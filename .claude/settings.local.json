@@ -1,0 +1,41 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//Users/mirlannurbekov/development/flutter/bin/**)",
+      "Read(//opt/homebrew/bin/**)",
+      "Read(//Users/mirlannurbekov/**)",
+      "Bash(export PATH=\"$PATH:/Users/mirlannurbekov/flutter/bin\")",
+      "Bash(flutter --version)",
+      "Bash(flutter create *)",
+      "Bash(npm --version)",
+      "Bash(flutter pub *)",
+      "Bash(/Users/mirlannurbekov/flutter/bin/flutter analyze *)",
+      "Bash(/Users/mirlannurbekov/flutter/bin/flutter build *)",
+      "Bash(/Users/mirlannurbekov/flutter/bin/flutter devices *)",
+      "Bash(/Users/mirlannurbekov/flutter/bin/flutter emulators *)",
+      "Bash(xcrun simctl *)",
+      "Bash(xcode-select -p)",
+      "Read(//Applications/**)",
+      "Bash(sudo xcode-select -s /Applications/Xcode.app/Contents/Developer)",
+      "Bash(/Applications/Xcode.app/Contents/Developer/usr/bin/simctl list *)",
+      "Bash(/Applications/Xcode.app/Contents/Developer/usr/bin/simctl boot *)",
+      "Bash(open -a Simulator)",
+      "Bash(DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer /Users/mirlannurbekov/flutter/bin/flutter devices *)",
+      "Bash(DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer /Users/mirlannurbekov/flutter/bin/flutter run -d \"02587A39-E186-46D8-BB0B-3E82C4470DFC\")",
+      "Bash(echo \"Flutter run started in background, PID: $!\")",
+      "Bash(gem --version)",
+      "Bash(sudo gem install cocoapods)",
+      "Bash(gem install *)",
+      "Bash(brew --version)",
+      "Bash(brew install *)",
+      "Bash(pod --version)",
+      "Bash(brew list *)",
+      "Bash(rm -rf ~/Library/Developer/Xcode/DerivedData)",
+      "Bash(rm -rf ~/Library/Caches/Homebrew)",
+      "Bash(xcrun --sdk iphonesimulator --show-sdk-path)",
+      "Bash(DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcrun *)",
+      "Bash(export DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer)",
+      "Bash(/Users/mirlannurbekov/flutter/bin/flutter run *)"
+    ]
+  }
+}
