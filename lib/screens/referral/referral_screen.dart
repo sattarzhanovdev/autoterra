@@ -251,20 +251,41 @@ class _ReferralScreenState extends State<ReferralScreen> {
 
   Widget _buildStats(List<Referral> referrals, NumberFormat fmt) {
     final met = referrals.where((r) => r.conditionMet).length;
+    final buyers = referrals.where((r) => r.hasPurchase).length;
+    final purchaseAmount = referrals.fold<double>(
+      0,
+      (sum, item) => sum + item.purchaseAmount,
+    );
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
-        child: Row(
+        child: Column(
           children: [
-            _stat('Приглашено', '${referrals.length}', AppColors.primary),
-            _vDiv(),
-            _stat(
-              'Зарегистрировано',
-              '${referrals.where((r) => r.isRegistered).length}',
-              AppColors.info,
+            Row(
+              children: [
+                _stat('Приглашено', '${referrals.length}', AppColors.primary),
+                _vDiv(),
+                _stat(
+                  'Зарегистрировано',
+                  '${referrals.where((r) => r.isRegistered).length}',
+                  AppColors.info,
+                ),
+              ],
             ),
-            _vDiv(),
-            _stat('Подарки', '$met', AppColors.success),
+            const SizedBox(height: 14),
+            Row(
+              children: [
+                _stat('С покупками', '$buyers', AppColors.warning),
+                _vDiv(),
+                _stat(
+                  'Продажи клиентов',
+                  '${fmt.format(purchaseAmount)} ₽',
+                  AppColors.success,
+                ),
+                _vDiv(),
+                _stat('Подарки', '$met', AppColors.success),
+              ],
+            ),
           ],
         ),
       ),
@@ -277,10 +298,12 @@ class _ReferralScreenState extends State<ReferralScreen> {
         children: [
           Text(
             value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: TextStyle(
               color: color,
               fontWeight: FontWeight.w700,
-              fontSize: 22,
+              fontSize: value.length > 9 ? 18 : 22,
             ),
           ),
           const SizedBox(height: 2),

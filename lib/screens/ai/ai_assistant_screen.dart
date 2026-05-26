@@ -49,7 +49,7 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
       answer = await _api.aiChat(text);
     } catch (e) {
       answer =
-          'Не удалось получить ответ от AI. Проверьте подключение к backend и переменную HF_API_TOKEN. Детали: $e';
+          'AI-помощник сейчас недоступен. Попробуйте позже или отправьте вопрос технологу через раздел Вопрос-Ответ.';
     }
     if (mounted) {
       setState(() {

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 // AutoTerra brand palette
 class AppColors {
@@ -70,6 +69,50 @@ class AppShapes {
   }
 }
 
+class _AppFonts {
+  static TextStyle tektur({
+    double? fontSize,
+    FontWeight? fontWeight,
+    Color? color,
+    double? letterSpacing,
+  }) {
+    return TextStyle(
+      fontSize: fontSize,
+      fontWeight: fontWeight,
+      color: color,
+      letterSpacing: letterSpacing,
+    );
+  }
+
+  static TextStyle spaceGrotesk({
+    double? fontSize,
+    FontWeight? fontWeight,
+    Color? color,
+    double? letterSpacing,
+  }) {
+    return TextStyle(
+      fontSize: fontSize,
+      fontWeight: fontWeight,
+      color: color,
+      letterSpacing: letterSpacing,
+    );
+  }
+
+  static TextStyle inter({
+    double? fontSize,
+    FontWeight? fontWeight,
+    Color? color,
+    double? letterSpacing,
+  }) {
+    return TextStyle(
+      fontSize: fontSize,
+      fontWeight: fontWeight,
+      color: color,
+      letterSpacing: letterSpacing,
+    );
+  }
+}
+
 class ChamferClipper extends CustomClipper<Path> {
   final double cut;
   const ChamferClipper({this.cut = AppShapes.chamferMd});
@@ -100,7 +143,7 @@ class AppTheme {
         foregroundColor: Colors.white,
         elevation: 0,
         centerTitle: false,
-        titleTextStyle: GoogleFonts.tektur(
+        titleTextStyle: _AppFonts.tektur(
           fontSize: 16,
           fontWeight: FontWeight.w700,
           color: Colors.white,
@@ -126,7 +169,7 @@ class AppTheme {
           elevation: 0,
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-          textStyle: GoogleFonts.tektur(
+          textStyle: _AppFonts.tektur(
             fontSize: 14,
             fontWeight: FontWeight.w700,
             letterSpacing: 0.6,
@@ -139,7 +182,7 @@ class AppTheme {
           side: const BorderSide(color: AppColors.brandBlack, width: 1.5),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-          textStyle: GoogleFonts.tektur(
+          textStyle: _AppFonts.tektur(
             fontSize: 14,
             fontWeight: FontWeight.w700,
           ),
@@ -148,7 +191,7 @@ class AppTheme {
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
           foregroundColor: AppColors.brandRed,
-          textStyle: GoogleFonts.tektur(
+          textStyle: _AppFonts.tektur(
             fontSize: 13,
             fontWeight: FontWeight.w700,
           ),
@@ -178,11 +221,11 @@ class AppTheme {
           horizontal: 16,
           vertical: 14,
         ),
-        labelStyle: GoogleFonts.spaceGrotesk(
+        labelStyle: _AppFonts.spaceGrotesk(
           color: AppColors.textSecondary,
           fontSize: 14,
         ),
-        hintStyle: GoogleFonts.spaceGrotesk(
+        hintStyle: _AppFonts.spaceGrotesk(
           color: AppColors.textHint,
           fontSize: 14,
         ),
@@ -198,16 +241,16 @@ class AppTheme {
         unselectedItemColor: Colors.white.withValues(alpha: 0.45),
         type: BottomNavigationBarType.fixed,
         elevation: 0,
-        selectedLabelStyle: GoogleFonts.spaceGrotesk(
+        selectedLabelStyle: _AppFonts.spaceGrotesk(
           fontSize: 11,
           fontWeight: FontWeight.w700,
         ),
-        unselectedLabelStyle: GoogleFonts.spaceGrotesk(fontSize: 11),
+        unselectedLabelStyle: _AppFonts.spaceGrotesk(fontSize: 11),
       ),
       chipTheme: ChipThemeData(
         backgroundColor: AppColors.brandWhite,
         selectedColor: AppColors.brandRed.withValues(alpha: 0.12),
-        labelStyle: GoogleFonts.spaceGrotesk(
+        labelStyle: _AppFonts.spaceGrotesk(
           fontSize: 12,
           fontWeight: FontWeight.w600,
         ),
@@ -230,16 +273,16 @@ class AppTheme {
         unselectedLabelColor: AppColors.textSecondary,
         indicatorColor: AppColors.brandRed,
         indicatorSize: TabBarIndicatorSize.tab,
-        labelStyle: GoogleFonts.spaceGrotesk(
+        labelStyle: _AppFonts.spaceGrotesk(
           fontSize: 13,
           fontWeight: FontWeight.w700,
         ),
-        unselectedLabelStyle: GoogleFonts.spaceGrotesk(fontSize: 13),
+        unselectedLabelStyle: _AppFonts.spaceGrotesk(fontSize: 13),
         dividerColor: AppColors.border,
       ),
       snackBarTheme: SnackBarThemeData(
         backgroundColor: AppColors.brandBlack,
-        contentTextStyle: GoogleFonts.spaceGrotesk(
+        contentTextStyle: _AppFonts.spaceGrotesk(
           color: Colors.white,
           fontSize: 14,
         ),
@@ -249,7 +292,7 @@ class AppTheme {
       dialogTheme: DialogThemeData(
         backgroundColor: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-        titleTextStyle: GoogleFonts.spaceGrotesk(
+        titleTextStyle: _AppFonts.spaceGrotesk(
           fontSize: 18,
           fontWeight: FontWeight.w700,
           color: AppColors.textPrimary,
@@ -267,69 +310,69 @@ class AppTheme {
 
   static TextTheme _buildTextTheme() {
     return TextTheme(
-      displayLarge: GoogleFonts.spaceGrotesk(
+      displayLarge: _AppFonts.spaceGrotesk(
         fontSize: 28,
         fontWeight: FontWeight.w700,
         color: AppColors.textPrimary,
       ),
-      displayMedium: GoogleFonts.spaceGrotesk(
+      displayMedium: _AppFonts.spaceGrotesk(
         fontSize: 24,
         fontWeight: FontWeight.w700,
         color: AppColors.textPrimary,
       ),
-      headlineLarge: GoogleFonts.tektur(
+      headlineLarge: _AppFonts.tektur(
         fontSize: 22,
         fontWeight: FontWeight.w700,
         color: AppColors.textPrimary,
       ),
-      headlineMedium: GoogleFonts.tektur(
+      headlineMedium: _AppFonts.tektur(
         fontSize: 18,
         fontWeight: FontWeight.w700,
         color: AppColors.textPrimary,
       ),
-      headlineSmall: GoogleFonts.tektur(
+      headlineSmall: _AppFonts.tektur(
         fontSize: 15,
         fontWeight: FontWeight.w700,
         color: AppColors.textPrimary,
       ),
-      titleLarge: GoogleFonts.spaceGrotesk(
+      titleLarge: _AppFonts.spaceGrotesk(
         fontSize: 15,
         fontWeight: FontWeight.w600,
         color: AppColors.textPrimary,
       ),
-      titleMedium: GoogleFonts.spaceGrotesk(
+      titleMedium: _AppFonts.spaceGrotesk(
         fontSize: 14,
         fontWeight: FontWeight.w600,
         color: AppColors.textPrimary,
       ),
-      bodyLarge: GoogleFonts.inter(
+      bodyLarge: _AppFonts.inter(
         fontSize: 15,
         fontWeight: FontWeight.w400,
         color: AppColors.textPrimary,
       ),
-      bodyMedium: GoogleFonts.inter(
+      bodyMedium: _AppFonts.inter(
         fontSize: 14,
         fontWeight: FontWeight.w400,
         color: AppColors.textSecondary,
       ),
-      bodySmall: GoogleFonts.inter(
+      bodySmall: _AppFonts.inter(
         fontSize: 12,
         fontWeight: FontWeight.w400,
         color: AppColors.textHint,
       ),
-      labelLarge: GoogleFonts.tektur(
+      labelLarge: _AppFonts.tektur(
         fontSize: 13,
         fontWeight: FontWeight.w700,
         color: AppColors.brandRed,
         letterSpacing: 0.5,
       ),
-      labelMedium: GoogleFonts.tektur(
+      labelMedium: _AppFonts.tektur(
         fontSize: 11,
         fontWeight: FontWeight.w700,
         color: AppColors.textSecondary,
         letterSpacing: 0.6,
       ),
-      labelSmall: GoogleFonts.tektur(
+      labelSmall: _AppFonts.tektur(
         fontSize: 10,
         fontWeight: FontWeight.w700,
         color: AppColors.textHint,
