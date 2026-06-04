@@ -6,33 +6,30 @@ class AppColors {
   static const brandBlack = Color(0xFF171717);
   static const brandRed = Color(0xFFF01D2C);
   static const brandWhite = Color(0xFFF5F5F5);
-  static const canvas = Color(0xFFF0F0F0);
+  static const canvas = Color(0xFFE8E8E8);
 
   // Aliases for compatibility
   static const primary = brandBlack;
-  static const primaryDark = Color(0xFF0A0A0A);
   static const accent = brandRed;
-  static const accentLight = Color(0xFFFF4455);
   static const surface = brandWhite;
-  static const surfaceCard = Color(0xFFFCFCFC);
-  static const surfaceDark = Color(0xFF1F1F1F);
-  static const border = Color(0xFFD4D4D4);
+  static const surfaceCard = Color(0xFFFFFFFF);
+  static const border = Color(0xFF000000); // Strict black border
+  static const borderMuted = Color(0xFFD4D4D4);
   static const borderDark = Color(0xFF2E2E2E);
   static const textPrimary = Color(0xFF171717);
-  static const textSecondary = Color(0xFF5A5A5A);
-  static const textHint = Color(0xFF9A9A9A);
-  static const textOnDark = Color(0xFFF5F5F5);
-  static const textOnDarkMuted = Color(0xFF9A9A9A);
+  static const textSecondary = Color(0xFF4A4A4A);
+  static const textHint = Color(0xFF8A8A8A);
 
   // Functional colors - strict version
-  static const success = Color(0xFF22C55E); // Strict green
-  static const warning = Color(0xFFF59E0B); // Strict amber
+  static const success = Color(0xFF171717); // Use black for success to keep it strict, or very dark grey
+  static const successAlt = Color(0xFF15803D); // Functional green only when critical
+  static const warning = Color(0xFFD97706); // Strict amber
   static const error = brandRed;
-  static const info = brandBlack; // Use black for info to keep it strict
+  static const info = brandBlack;
 
   // Status
   static const statusNew = brandBlack;
-  static const statusActive = Color(0xFF171717); // Neutral for active
+  static const statusActive = brandBlack;
   static const statusPending = warning;
   static const statusBlocked = brandRed;
 
@@ -47,6 +44,23 @@ class AppShapes {
   static const double chamferSm = 4.0;
   static const double chamferMd = 8.0;
   static const double chamferLg = 16.0;
+
+  static ShapeBorder get strictShape => const RoundedRectangleBorder(
+        borderRadius: BorderRadius.zero,
+      );
+
+  static ShapeBorder get angularShape => strictShape;
+  
+  static ShapeBorder get chamferedShape => const BeveledRectangleBorder(
+    borderRadius: BorderRadius.only(topRight: Radius.circular(AppShapes.chamferMd)),
+  );
+
+  static ShapeBorder get chamferedShapeDouble => const BeveledRectangleBorder(
+    borderRadius: BorderRadius.only(
+      topRight: Radius.circular(AppShapes.chamferMd),
+      bottomLeft: Radius.circular(AppShapes.chamferMd),
+    ),
+  );
 
   // Top-right chamfer only (brand cut)
   static Path chamferPath(Size size, double cut) {
@@ -70,14 +84,6 @@ class AppShapes {
       ..lineTo(0, size.height - cut)
       ..close();
   }
-
-  static ShapeBorder get strictShape => const RoundedRectangleBorder(
-        borderRadius: BorderRadius.all(Radius.circular(2)),
-      );
-
-  static ShapeBorder get angularShape => const RoundedRectangleBorder(
-        borderRadius: BorderRadius.zero,
-      );
 }
 
 class _AppFonts {
@@ -140,7 +146,6 @@ class ChamferClipper extends CustomClipper<Path> {
 
 class AppTheme {
   static ThemeData get light {
-    final baseTextTheme = _buildTextTheme();
     return ThemeData(
       useMaterial3: true,
       fontFamily: GoogleFonts.tektur().fontFamily,
@@ -173,8 +178,8 @@ class AppTheme {
         elevation: 0,
         shadowColor: Colors.transparent,
         shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.all(Radius.circular(2)),
-          side: BorderSide(color: AppColors.border, width: 1.5),
+          borderRadius: BorderRadius.zero,
+          side: BorderSide(color: AppColors.borderMuted, width: 1.0),
         ),
         margin: EdgeInsets.zero,
       ),

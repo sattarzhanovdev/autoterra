@@ -21,7 +21,7 @@ class StatusBadge extends StatelessWidget {
       decoration: BoxDecoration(
         color: filled ? color : color.withValues(alpha: 0.10),
         border: Border.all(color: filled ? color : color.withValues(alpha: 0.30)),
-        borderRadius: const BorderRadius.all(Radius.circular(2)),
+        borderRadius: BorderRadius.zero,
       ),
       child: Text(
         label,
@@ -121,18 +121,18 @@ class StatusBadge extends StatelessWidget {
     Color color;
     switch (status) {
       case 'Gold':
-        color = const Color(0xFFD4920A);
+        color = AppColors.brandBlack;
         break;
       case 'Platinum':
-        color = const Color(0xFF5A5A5A);
+        color = const Color(0xFF4A4A4A);
         break;
       case 'Certified Partner':
         color = AppColors.brandBlack;
         break;
       default:
-        color = const Color(0xFF9A9A9A);
+        color = AppColors.textHint;
     }
-    return StatusBadge(label: status, color: color, filled: true);
+    return StatusBadge(label: status.toUpperCase(), color: color, filled: true);
   }
 }
 

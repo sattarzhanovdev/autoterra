@@ -105,11 +105,9 @@ class _HomeScreenState extends State<HomeScreen> {
                           const SizedBox(height: 4),
                           Text(
                             data.client.name.toUpperCase(),
-                            style: const TextStyle(
+                            style: Theme.of(context).textTheme.labelMedium?.copyWith(
                               color: Colors.white,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: 0.5,
+                              fontWeight: FontWeight.w900,
                             ),
                           ),
                         ],
@@ -240,21 +238,19 @@ class _HomeScreenState extends State<HomeScreen> {
         children: [
           Text(
             label,
-            style: TextStyle(
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
               color: Colors.white.withOpacity(0.4),
-              fontSize: 9,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 0.8,
+              fontWeight: FontWeight.w900,
             ),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 4),
           Text(
             value,
-            style: TextStyle(
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
               color: valueColor,
               fontWeight: FontWeight.w900,
-              fontSize: 12,
+              fontSize: 13,
             ),
             textAlign: TextAlign.center,
             maxLines: 1,
@@ -625,5 +621,8 @@ class _QuickAction {
   final IconData icon;
   final String label;
   final VoidCallback onTap;
+  const _QuickAction(this.icon, this.label, this.onTap);
+}
+ final VoidCallback onTap;
   const _QuickAction(this.icon, this.label, this.onTap);
 }

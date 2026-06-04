@@ -260,7 +260,7 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
                 );
                 if (date != null) setState(() => _date = date);
               },
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.zero,
               child: InputDecorator(
                 decoration: const InputDecoration(
                   labelText: 'Дата документа *',
@@ -343,9 +343,9 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
       margin: const EdgeInsets.only(top: 12),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColors.border),
+        color: AppColors.brandWhite,
+        borderRadius: BorderRadius.zero,
+        border: Border.all(color: AppColors.borderMuted),
       ),
       child: Column(
         children: [

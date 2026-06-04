@@ -35,26 +35,6 @@ enum CourierTaskStatus {
 
 enum ColorRequestStatus { created, inProgress, ready, delivered }
 
-class User {
-  final String id;
-  final String phone;
-  final String email;
-  final UserRole role;
-  final ClientStatus status;
-  final DateTime createdAt;
-
-  const User({
-    required this.id,
-    required this.phone,
-    required this.email,
-    required this.role,
-    required this.status,
-    required this.createdAt,
-  });
-}
-
-enum UserRole { superAdmin, importerManager, distributor, autoservice, courier, expert }
-
 class Client {
   final String id;
   final String inn;
@@ -480,27 +460,3 @@ class Notification {
 }
 
 enum NotificationType { order, color, delivery, referral, ai, system }
-
-class KnowledgeCardLegacy {
-  final String id;
-  final String problem;
-  final String causes;
-  final String solution;
-  final List<String> skus;
-  final String? restrictions;
-  final String approvingExpert;
-  final bool isApproved;
-  final DateTime createdAt;
-
-  const KnowledgeCardLegacy({
-    required this.id,
-    required this.problem,
-    required this.causes,
-    required this.solution,
-    required this.skus,
-    this.restrictions,
-    required this.approvingExpert,
-    this.isApproved = true,
-    required this.createdAt,
-  });
-}

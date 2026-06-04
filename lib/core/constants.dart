@@ -1,14 +1,5 @@
 class AppConstants {
   static const appName = 'AutoTerra';
-  static const appTagline = 'B2B платформа ЛКМ';
-
-  static const regions = [
-    'Москва', 'Санкт-Петербург', 'Новосибирск', 'Екатеринбург',
-    'Казань', 'Нижний Новгород', 'Челябинск', 'Самара',
-    'Омск', 'Ростов-на-Дону', 'Уфа', 'Красноярск',
-    'Воронеж', 'Пермь', 'Волгоград', 'Краснодар',
-    'Саратов', 'Тюмень', 'Тольятти', 'Иркутск',
-  ];
 
   static const clientCategories = {
     'A': 'Дилерский салон',
@@ -26,7 +17,6 @@ class AppConstants {
 }
 
 class AppRoutes {
-  static const splash = '/';
   static const login = '/login';
   static const register = '/register';
   static const home = '/home';
@@ -40,7 +30,6 @@ class AppRoutes {
   static const referral = '/referral';
   static const delivery = '/delivery';
   static const courierCabinet = '/courier-cabinet';
-  static const admin = '/admin';
   static const notifications = '/notifications';
   static const distributor = '/distributor';
   static const distributorCabinet = '/distributor-cabinet';

@@ -290,17 +290,16 @@ class _OrderDetailsSheet extends StatelessWidget {
       ),
       decoration: const BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.zero,
       ),
       child: Column(
         children: [
           Container(
-            width: 36,
+            width: 48,
             height: 4,
             margin: const EdgeInsets.only(top: 12),
-            decoration: BoxDecoration(
-              color: AppColors.border,
-              borderRadius: BorderRadius.circular(2),
+            decoration: const BoxDecoration(
+              color: AppColors.brandBlack,
             ),
           ),
           Padding(
@@ -376,8 +375,8 @@ class _OrderDetailsSheet extends StatelessWidget {
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
                       color: AppColors.brandWhite,
-                      border: Border.all(color: AppColors.border),
-                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: AppColors.borderMuted),
+                      borderRadius: BorderRadius.zero,
                     ),
                     child: Row(
                       children: [
@@ -432,7 +431,8 @@ class _OrderDetailsSheet extends StatelessWidget {
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     color: AppColors.warning.withValues(alpha: 0.08),
-                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: AppColors.warning.withValues(alpha: 0.2)),
+                    borderRadius: BorderRadius.zero,
                   ),
                   child: const Text(
                     'Обновите страницу потягиванием вниз, чтобы увидеть новый статус после изменения в админке.',
@@ -571,8 +571,9 @@ class _PurchaseCard extends StatelessWidget {
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: AppColors.primary.withOpacity(0.06),
-                      borderRadius: BorderRadius.circular(6),
+                      color: AppColors.brandBlack.withValues(alpha: 0.05),
+                      border: Border.all(color: AppColors.brandBlack.withValues(alpha: 0.1)),
+                      borderRadius: BorderRadius.zero,
                     ),
                     child: Text(
                       item.sku,
@@ -615,17 +616,16 @@ class _PurchaseDetailsSheet extends StatelessWidget {
       ),
       decoration: const BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.zero,
       ),
       child: Column(
         children: [
           Container(
-            width: 36,
+            width: 48,
             height: 4,
             margin: const EdgeInsets.only(top: 12),
-            decoration: BoxDecoration(
-              color: AppColors.border,
-              borderRadius: BorderRadius.circular(2),
+            decoration: const BoxDecoration(
+              color: AppColors.brandBlack,
             ),
           ),
           Padding(

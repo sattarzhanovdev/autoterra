@@ -5,10 +5,23 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiClient {
-  static const String baseUrl = String.fromEnvironment(
-    'API_BASE_URL',
-    defaultValue: 'http://89.111.132.221:8000/api',
+  static const String environment = String.fromEnvironment(
+    'APP_ENV',
+    defaultValue: 'development',
   );
+
+  static String get baseUrl {
+    switch (environment) {
+      case 'production':
+        return 'https://api.autoterra.app/api';
+      case 'staging':
+        return 'https://staging-api.autoterra.app/api';
+      case 'development':
+      default:
+        const url = String.fromEnvironment('API_BASE_URL');
+        return url.isNotEmpty ? url : 'http://10.0.2.2:8000/api';
+    }
+  }
 
   const ApiClient();
   static const _tokenKey = 'auth_token';
@@ -261,6 +274,11 @@ class ApiClient {
 
   Future<List<Map<String, dynamic>>> knowledgeCards() async {
     final result = await _get('/knowledge-cards/');
+    return (result['results'] as List<dynamic>).cast<Map<String, dynamic>>();
+  }
+
+  Future<List<Map<String, dynamic>>> regions() async {
+    final result = await _get('/regions/');
     return (result['results'] as List<dynamic>).cast<Map<String, dynamic>>();
   }
 

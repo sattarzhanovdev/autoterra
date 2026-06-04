@@ -24,6 +24,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
   String? _selectedRegion;
   String? _selectedCategory;
 
+  List<Map<String, dynamic>> _regions = [];
+  bool _regionsLoading = true;
+  String? _regionsError;
+
   // Page 2 fields
   final _contactCtrl = TextEditingController();
   final _phoneCtrl = TextEditingController();
@@ -36,6 +40,35 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   final _formKey1 = GlobalKey<FormState>();
   final _formKey2 = GlobalKey<FormState>();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadRegions();
+  }
+
+  Future<void> _loadRegions() async {
+    setState(() {
+      _regionsLoading = true;
+      _regionsError = null;
+    });
+    try {
+      final results = await _api.regions();
+      if (mounted) {
+        setState(() {
+          _regions = results;
+          _regionsLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _regionsError = 'НЕ УДАЛОСЬ ЗАГРУЗИТЬ СПИСОК РЕГИОНОВ';
+          _regionsLoading = false;
+        });
+      }
+    }
+  }
 
   @override
   void dispose() {
@@ -331,17 +364,52 @@ class _RegisterScreenState extends State<RegisterScreen> {
               validator: (v) => v!.isEmpty ? 'ВВЕДИТЕ НАЗВАНИЕ' : null,
             ),
             const SizedBox(height: 16),
-            DropdownButtonFormField<String>(
-              value: _selectedRegion,
-              decoration: const InputDecoration(
-                labelText: 'РЕГИОН ПРИСУТСТВИЯ *',
-                prefixIcon: Icon(Icons.location_on_sharp),
+            if (_regionsLoading)
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(vertical: 20),
+                  child: CircularProgressIndicator(color: AppColors.brandBlack),
+                ),
+              )
+            else if (_regionsError != null)
+              Column(
+                children: [
+                  Text(
+                    _regionsError!,
+                    style: const TextStyle(color: AppColors.brandRed, fontSize: 12, fontWeight: FontWeight.w700),
+                    textAlign: TextAlign.center,
+                  ),
+                  TextButton(
+                    onPressed: _loadRegions,
+                    child: const Text('ПОВТОРИТЬ', style: TextStyle(color: AppColors.brandBlack)),
+                  ),
+                ],
+              )
+            else if (_regions.isEmpty)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 20),
+                child: Text(
+                  'НЕТ ДОСТУПНЫХ РЕГИОНОВ',
+                  style: TextStyle(color: AppColors.textSecondary, fontSize: 12, fontWeight: FontWeight.w700),
+                  textAlign: TextAlign.center,
+                ),
+              )
+            else
+              DropdownButtonFormField<String>(
+                value: _selectedRegion,
+                decoration: const InputDecoration(
+                  labelText: 'РЕГИОН ПРИСУТСТВИЯ *',
+                  prefixIcon: Icon(Icons.location_on_sharp),
+                ),
+                items: _regions
+                    .map((r) => DropdownMenuItem(
+                          value: r['code']?.toString(),
+                          child: Text(r['name']?.toString().toUpperCase() ?? ''),
+                        ))
+                    .toList(),
+                onChanged: (v) => setState(() => _selectedRegion = v),
+                validator: (v) => v == null ? 'ВЫБЕРИТЕ РЕГИОН' : null,
               ),
-              items: AppConstants.regions
-                  .map((r) => DropdownMenuItem(value: r, child: Text(r.toUpperCase())))
-                  .toList(),
-              onChanged: (v) => setState(() => _selectedRegion = v),
-            ),
             const SizedBox(height: 24),
             const Text(
               'КАТЕГОРИЯ СЕРВИСА *',
@@ -392,7 +460,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         padding: const EdgeInsets.all(15),
         decoration: BoxDecoration(
           color: selected
-              ? AppColors.brandBlack.withValues(alpha: 0.05)
+              ? AppColors.brandBlack.withOpacity(0.05)
               : Colors.white,
           border: Border.all(
             color: selected ? AppColors.brandBlack : AppColors.border,
@@ -501,7 +569,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ),
               validator: (v) {
                 if (v!.isEmpty) return 'ВВЕДИТЕ ПАРОЛЬ';
-                if (v.length < 6) return 'МИНИМУМ 6 СИМВОЛОВ';
+                if (v.length < 8) return 'МИНИМУМ 8 СИМВОЛОВ';
+                if (!RegExp(r'[A-Za-zА-Яа-я]').hasMatch(v)) return 'НУЖНЫ БУКВЫ';
+                if (!RegExp(r'[0-9]').hasMatch(v)) return 'НУЖНЫ ЦИФРЫ';
                 return null;
               },
             ),
