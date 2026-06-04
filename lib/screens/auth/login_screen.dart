@@ -29,11 +29,19 @@ class _LoginScreenState extends State<LoginScreen> {
   void _login() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _loading = true);
+    var targetRoute = AppRoutes.home;
     try {
-      await const ApiClient().login(
+      final result = await const ApiClient().login(
         phone: _phoneCtrl.text,
         password: _passwordCtrl.text,
       );
+      final user = result['user'];
+      final role = user is Map<String, dynamic> ? user['role']?.toString() : null;
+      targetRoute = switch (role) {
+        'distributor' => AppRoutes.distributorCabinet,
+        'courier' => AppRoutes.courierCabinet,
+        _ => AppRoutes.home,
+      };
     } catch (e) {
       if (!mounted) return;
       setState(() => _loading = false);
@@ -44,7 +52,7 @@ class _LoginScreenState extends State<LoginScreen> {
     }
     if (!mounted) return;
     setState(() => _loading = false);
-    context.go(AppRoutes.home);
+    context.go(targetRoute);
   }
 
   @override

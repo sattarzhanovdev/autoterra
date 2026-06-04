@@ -35,9 +35,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Профиль сервиса'),
+        title: const Text('ПРОФИЛЬ СЕРВИСА'),
         actions: [
-          IconButton(icon: const Icon(Icons.edit_outlined), onPressed: () {}),
+          IconButton(icon: const Icon(Icons.edit_sharp), onPressed: () {}),
         ],
       ),
       body: FutureBuilder<DashboardData>(
@@ -47,7 +47,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             return const Center(child: CircularProgressIndicator());
           }
           if (snapshot.hasError) {
-            return Center(child: Text(snapshot.error.toString()));
+            return Center(child: Text(snapshot.error.toString().toUpperCase()));
           }
           final client = snapshot.data!.client;
           final distributor = snapshot.data!.distributor;
@@ -60,15 +60,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _buildHeader(client, fmt, context),
-                  const SizedBox(height: 16),
-                  _buildPartnerProgress(client),
                   const SizedBox(height: 20),
+                  _buildPartnerProgress(client),
+                  const SizedBox(height: 24),
                   _buildInfoSection(client),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 20),
                   _buildDistributorSection(distributor, context),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 20),
                   _buildSettingsSection(context),
-                  const SizedBox(height: 80),
+                  const SizedBox(height: 100),
                 ],
               ),
             ),
@@ -88,32 +88,33 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 width: 64,
                 height: 64,
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(16),
+                  color: AppColors.brandBlack,
+                  borderRadius: BorderRadius.zero,
                 ),
                 child: const Icon(
-                  Icons.garage_outlined,
-                  color: AppColors.primary,
-                  size: 34,
+                  Icons.garage_sharp,
+                  color: Colors.white,
+                  size: 32,
                 ),
               ),
-              const SizedBox(width: 14),
+              const SizedBox(width: 16),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      client.name,
+                      client.name.toUpperCase(),
                       style: const TextStyle(
-                        fontWeight: FontWeight.w700,
+                        fontWeight: FontWeight.w900,
                         fontSize: 16,
+                        letterSpacing: 0.5,
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 6),
                     Row(
                       children: [
                         StatusBadge.fromClientStatus(client.status),
-                        const SizedBox(width: 6),
+                        const SizedBox(width: 8),
                         CategoryBadge(category: client.categoryLabel),
                       ],
                     ),
@@ -123,21 +124,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
               StatusBadge.fromPartnerStatus(client.partnerStatus),
             ],
           ),
-          const SizedBox(height: 16),
-          const Divider(height: 1),
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
+          const Divider(height: 1, thickness: 1.5),
+          const SizedBox(height: 20),
           Row(
             children: [
               _headerStat(
-                'Покупки',
-                '${fmt.format(client.totalPurchases)} ₽',
-                AppColors.primary,
+                'ЗАКУПКИ',
+                ' ₽',
+                AppColors.brandRed,
               ),
               _vDivider(),
-              _headerStat('Рефералы', '2', AppColors.success),
+              _headerStat('РЕФЕРАЛЫ', '2', AppColors.brandBlack),
               _vDivider(),
               _headerStat(
-                'Зарегистрирован',
+                'РЕГИСТРАЦИЯ',
                 DateFormat('MM.yyyy', 'ru_RU').format(client.createdAt),
                 AppColors.textSecondary,
               ),
@@ -156,16 +157,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
             value,
             style: TextStyle(
               color: color,
-              fontWeight: FontWeight.w700,
-              fontSize: 16,
+              fontWeight: FontWeight.w900,
+              fontSize: 15,
             ),
           ),
-          const SizedBox(height: 2),
+          const SizedBox(height: 4),
           Text(
             label,
             style: const TextStyle(
               color: AppColors.textSecondary,
-              fontSize: 11,
+              fontSize: 9,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.5,
             ),
             textAlign: TextAlign.center,
           ),
@@ -176,8 +179,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Widget _vDivider() {
     return Container(
-      width: 1,
-      height: 32,
+      width: 1.5,
+      height: 28,
       color: AppColors.border,
       margin: const EdgeInsets.symmetric(horizontal: 4),
     );
@@ -193,20 +196,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
           Row(
             children: [
               const Icon(
-                Icons.stars_rounded,
-                color: Color(0xFFD4A017),
+                Icons.stars_sharp,
+                color: AppColors.brandBlack,
                 size: 20,
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 10),
               const Text(
-                'Статус партнёра',
-                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+                'СТАТУС ПАРТНЁРА',
+                style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 0.5),
               ),
               const Spacer(),
               StatusBadge.fromPartnerStatus(client.partnerStatus),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
           Row(
             children: statuses.asMap().entries.map((e) {
               final active = e.key <= currentIdx;
@@ -218,25 +221,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       child: Column(
                         children: [
                           Container(
-                            height: 6,
+                            height: 4,
                             decoration: BoxDecoration(
                               color: active
-                                  ? AppColors.primary
+                                  ? AppColors.brandRed
                                   : AppColors.border,
-                              borderRadius: BorderRadius.circular(3),
                             ),
                           ),
-                          const SizedBox(height: 6),
+                          const SizedBox(height: 8),
                           Text(
-                            e.value,
+                            e.value.toUpperCase(),
                             style: TextStyle(
-                              fontSize: 9,
+                              fontSize: 8,
                               color: active
-                                  ? AppColors.primary
+                                  ? AppColors.brandBlack
                                   : AppColors.textHint,
                               fontWeight: active
-                                  ? FontWeight.w600
-                                  : FontWeight.w400,
+                                  ? FontWeight.w900
+                                  : FontWeight.w700,
+                              letterSpacing: 0.3,
                             ),
                             textAlign: TextAlign.center,
                           ),
@@ -249,12 +252,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
               );
             }).toList(),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
           Text(
-            'Следующий уровень: Platinum · закупите ещё 150 000 ₽',
+            'СЛЕДУЮЩИЙ УРОВЕНЬ: PLATINUM · ЗАКУПИТЕ ЕЩЁ 150 000 ₽',
             style: const TextStyle(
               color: AppColors.textSecondary,
-              fontSize: 12,
+              fontSize: 10,
+              fontWeight: FontWeight.w800,
             ),
           ),
         ],
@@ -268,20 +272,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'Данные сервиса',
-            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+            'ДАННЫЕ АВТОСЕРВИСА',
+            style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 0.5),
           ),
           const SizedBox(height: 12),
-          const Divider(height: 1),
+          const Divider(height: 1, thickness: 1.5),
           const SizedBox(height: 12),
           InfoRow(label: 'ИНН', value: client.inn),
-          InfoRow(label: 'Регион', value: client.region),
-          InfoRow(label: 'Город', value: client.city),
-          InfoRow(label: 'Контакт', value: client.contact),
-          InfoRow(label: 'Телефон', value: client.phone),
+          InfoRow(label: 'РЕГИОН', value: client.region.toUpperCase()),
+          InfoRow(label: 'ГОРОД', value: client.city.toUpperCase()),
+          InfoRow(label: 'КОНТАКТ', value: client.contact.toUpperCase()),
+          InfoRow(label: 'ТЕЛЕФОН', value: client.phone),
           InfoRow(
-            label: 'Категория',
-            value: '${client.categoryLabel} · ${client.categoryDescription}',
+            label: 'КАТЕГОРИЯ',
+            value: ' · '.toUpperCase(),
           ),
         ],
       ),
@@ -294,24 +298,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'Мой дистрибьютор',
-            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+            'МОЙ ДИСТРИБЬЮТОР',
+            style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 0.5),
           ),
           const SizedBox(height: 12),
-          const Divider(height: 1),
+          const Divider(height: 1, thickness: 1.5),
           const SizedBox(height: 12),
-          InfoRow(label: 'Компания', value: distributor.name),
+          InfoRow(label: 'КОМПАНИЯ', value: distributor.name.toUpperCase()),
           InfoRow(label: 'ИНН', value: distributor.inn),
-          InfoRow(label: 'Регионы', value: distributor.regions.join(', ')),
+          InfoRow(label: 'РЕГИОНЫ', value: distributor.regions.join(', ').toUpperCase()),
           InfoRow(
-            label: 'Телефон',
+            label: 'ТЕЛЕФОН',
             value: distributor.phone,
-            valueColor: AppColors.primary,
+            valueColor: AppColors.brandRed,
           ),
           InfoRow(
-            label: 'Email',
-            value: distributor.email,
-            valueColor: AppColors.primary,
+            label: 'EMAIL',
+            value: distributor.email.toUpperCase(),
+            valueColor: AppColors.brandBlack,
           ),
         ],
       ),
@@ -321,17 +325,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget _buildSettingsSection(BuildContext context) {
     final items = [
       _SettingItem(
-        Icons.notifications_outlined,
-        'Уведомления',
+        Icons.notifications_none_sharp,
+        'УВЕДОМЛЕНИЯ',
         () => context.push(AppRoutes.notifications),
       ),
       _SettingItem(
-        Icons.people_outline,
-        'Рефералы',
+        Icons.people_alt_sharp,
+        'РЕФЕРАЛЬНАЯ ПРОГРАММА',
         () => context.push(AppRoutes.referral),
       ),
-      _SettingItem(Icons.security_outlined, 'Безопасность', () {}),
-      _SettingItem(Icons.help_outline, 'Поддержка', () {}),
+      _SettingItem(Icons.security_sharp, 'БЕЗОПАСНОСТЬ', () {}),
+      _SettingItem(Icons.help_center_sharp, 'СЛУЖБА ПОДДЕРЖКИ', () {}),
     ];
 
     return AppCard(
@@ -342,55 +346,59 @@ class _ProfileScreenState extends State<ProfileScreen> {
               children: [
                 ListTile(
                   leading: Container(
-                    width: 38,
-                    height: 38,
+                    width: 36,
+                    height: 36,
                     decoration: BoxDecoration(
-                      color: AppColors.primary.withOpacity(0.08),
-                      borderRadius: BorderRadius.circular(10),
+                      color: AppColors.brandBlack,
+                      borderRadius: BorderRadius.zero,
                     ),
                     child: Icon(
                       e.value.icon,
-                      color: AppColors.primary,
-                      size: 20,
+                      color: Colors.white,
+                      size: 18,
                     ),
                   ),
                   title: Text(
                     e.value.label,
                     style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 0.5,
                     ),
                   ),
                   trailing: const Icon(
-                    Icons.chevron_right,
-                    size: 18,
-                    color: AppColors.textHint,
+                    Icons.arrow_forward_ios_sharp,
+                    size: 14,
+                    color: AppColors.brandBlack,
                   ),
                   onTap: e.value.onTap,
                   contentPadding: EdgeInsets.zero,
                   dense: true,
                 ),
-                if (e.key < items.length - 1) const Divider(height: 1),
+                if (e.key < items.length - 1) const Divider(height: 1, thickness: 1),
               ],
             ),
           ),
-          const Divider(height: 16),
+          const SizedBox(height: 16),
+          const Divider(height: 1, thickness: 2, color: AppColors.brandBlack),
+          const SizedBox(height: 8),
           ListTile(
             leading: Container(
-              width: 38,
-              height: 38,
-              decoration: BoxDecoration(
-                color: AppColors.error.withOpacity(0.08),
-                borderRadius: BorderRadius.circular(10),
+              width: 36,
+              height: 36,
+              decoration: const BoxDecoration(
+                color: AppColors.brandRed,
+                borderRadius: BorderRadius.zero,
               ),
-              child: const Icon(Icons.logout, color: AppColors.error, size: 20),
+              child: const Icon(Icons.logout_sharp, color: Colors.white, size: 18),
             ),
             title: const Text(
-              'Выйти из аккаунта',
+              'ВЫЙТИ ИЗ АККАУНТА',
               style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-                color: AppColors.error,
+                fontSize: 12,
+                fontWeight: FontWeight.w900,
+                color: AppColors.brandRed,
+                letterSpacing: 0.5,
               ),
             ),
             onTap: () => context.go(AppRoutes.login),

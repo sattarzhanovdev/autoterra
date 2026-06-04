@@ -39,7 +39,9 @@ class AppRoutes {
   static const qa = '/qa';
   static const referral = '/referral';
   static const delivery = '/delivery';
+  static const courierCabinet = '/courier-cabinet';
   static const admin = '/admin';
   static const notifications = '/notifications';
   static const distributor = '/distributor';
+  static const distributorCabinet = '/distributor-cabinet';
 }

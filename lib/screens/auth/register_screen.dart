@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/theme.dart';
 import '../../core/constants.dart';
+import '../../services/api_client.dart';
 import '../../widgets/common/app_logo.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -29,6 +32,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _obscure = true;
 
   bool _loading = false;
+  final _api = const ApiClient();
 
   final _formKey1 = GlobalKey<FormState>();
   final _formKey2 = GlobalKey<FormState>();
@@ -50,13 +54,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (_selectedRegion == null) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Выберите регион')));
+      ).showSnackBar(const SnackBar(content: Text('ВЫБЕРИТЕ РЕГИОН')));
       return;
     }
     if (_selectedCategory == null) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Выберите категорию')));
+      ).showSnackBar(const SnackBar(content: Text('ВЫБЕРИТЕ КАТЕГОРИЮ')));
       return;
     }
     _pageCtrl.nextPage(
@@ -69,18 +73,66 @@ class _RegisterScreenState extends State<RegisterScreen> {
   void _register() async {
     if (!_formKey2.currentState!.validate()) return;
     setState(() => _loading = true);
-    await Future.delayed(const Duration(milliseconds: 1000));
-    if (mounted) {
-      _showSuccessDialog();
+    try {
+      final result = await _api.register(
+        inn: _innCtrl.text,
+        companyName: _nameCtrl.text,
+        region: _selectedRegion!,
+        category: _selectedCategory!,
+        contactName: _contactCtrl.text,
+        phone: _phoneCtrl.text,
+        email: _emailCtrl.text,
+        password: _passwordCtrl.text,
+      );
+      if (mounted) {
+        _showSuccessDialog(result['status']?.toString() ?? 'under_review');
+      }
+    } on ApiException catch (error) {
+      if (mounted) {
+        _showError(_registrationErrorMessage(error).toUpperCase());
+      }
+    } on TimeoutException {
+      if (mounted) {
+        _showError('СЕРВЕР НЕДОСТУПЕН. ПРОВЕРЬТЕ ПОДКЛЮЧЕНИЕ.');
+      }
+    } catch (_) {
+      if (mounted) {
+        _showError('ОШИБКА РЕГИСТРАЦИИ. ПОПРОБУЙТЕ ПОЗЖЕ.');
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _loading = false);
+      }
     }
   }
 
-  void _showSuccessDialog() {
+  String _registrationErrorMessage(ApiException error) {
+    final details = error.details;
+    final code = details is Map<String, dynamic> ? details['code']?.toString() : null;
+    switch (code) {
+      case 'inn_duplicate':
+        return 'ИНН УЖЕ ЗАРЕГИСТРИРОВАН В ДАННОМ РЕГИОНЕ.';
+      case 'region_not_found':
+        return 'РЕГИОН НЕ НАЙДЕН.';
+      case 'phone_duplicate':
+        return 'ПОЛЬЗОВАТЕЛЬ С ТАКИМ ТЕЛЕФОНОМ УЖЕ СУЩЕСТВУЕТ.';
+      default:
+        return error.message.isNotEmpty
+            ? error.message
+            : 'НЕ УДАЛОСЬ ОТПРАВИТЬ ЗАЯВКУ.';
+    }
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  void _showSuccessDialog(String status) {
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (_) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -88,26 +140,28 @@ class _RegisterScreenState extends State<RegisterScreen> {
               width: 64,
               height: 64,
               decoration: BoxDecoration(
-                color: AppColors.success.withOpacity(0.1),
-                shape: BoxShape.circle,
+                color: AppColors.brandBlack.withOpacity(0.05),
+                shape: BoxShape.rectangle,
+                border: Border.all(color: AppColors.brandBlack, width: 2),
               ),
               child: const Icon(
-                Icons.check_circle,
-                color: AppColors.success,
+                Icons.check_sharp,
+                color: AppColors.brandBlack,
                 size: 36,
               ),
             ),
             const SizedBox(height: 16),
             const Text(
-              'Регистрация отправлена!',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+              'ЗАЯВКА ОТПРАВЛЕНА',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, letterSpacing: 0.5),
             ),
             const SizedBox(height: 8),
             Text(
-              'Ваш профиль передан региональному дистрибьютору для подтверждения. Ожидайте активации.',
+              'ВАШ СТАТУС: ${_statusLabel(status).toUpperCase()}. ПРОФИЛЬ ПЕРЕДАН ДИСТРИБЬЮТОРУ ДЛЯ ПОДТВЕРЖДЕНИЯ.',
               style: const TextStyle(
                 color: AppColors.textSecondary,
-                fontSize: 14,
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
               ),
               textAlign: TextAlign.center,
             ),
@@ -118,7 +172,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             width: double.infinity,
             child: ElevatedButton(
               onPressed: () => context.go(AppRoutes.login),
-              child: const Text('Перейти ко входу'),
+              child: const Text('ПЕРЕЙТИ КО ВХОДУ'),
             ),
           ),
         ],
@@ -126,14 +180,33 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
+  String _statusLabel(String status) {
+    switch (status) {
+      case 'under_review':
+      case 'pending':
+        return 'на проверке';
+      case 'new':
+      case 'newClient':
+        return 'новый';
+      case 'approved':
+      case 'active':
+        return 'одобрен';
+      case 'rejected':
+      case 'blocked':
+        return 'отклонён';
+      default:
+        return 'на проверке';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.surface,
+      backgroundColor: AppColors.canvas,
       appBar: AppBar(
         title: const AppLogo(width: 92, height: 22),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: const Icon(Icons.arrow_back_sharp),
           onPressed: () => _currentPage == 0
               ? context.go(AppRoutes.login)
               : (() {
@@ -162,20 +235,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   Widget _buildStepper() {
     return Container(
-      color: AppColors.primary,
+      color: AppColors.brandBlack,
       padding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
       child: Row(
         children: [
-          _stepItem(1, 'Сервис', _currentPage >= 0),
+          _stepItem(1, 'СЕРВИС', _currentPage >= 0),
           Expanded(
             child: Container(
               height: 2,
               color: _currentPage >= 1
-                  ? Colors.white
+                  ? AppColors.brandRed
                   : Colors.white.withOpacity(0.3),
             ),
           ),
-          _stepItem(2, 'Контакты', _currentPage >= 1),
+          _stepItem(2, 'КОНТАКТЫ', _currentPage >= 1),
         ],
       ),
     );
@@ -188,15 +261,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
           width: 32,
           height: 32,
           decoration: BoxDecoration(
-            color: active ? Colors.white : Colors.white.withOpacity(0.3),
-            shape: BoxShape.circle,
+            color: active ? AppColors.brandRed : Colors.white.withOpacity(0.3),
+            shape: BoxShape.rectangle,
           ),
           child: Center(
             child: Text(
               '$n',
               style: TextStyle(
-                color: active ? AppColors.primary : Colors.white,
-                fontWeight: FontWeight.w700,
+                color: Colors.white,
+                fontWeight: FontWeight.w900,
                 fontSize: 14,
               ),
             ),
@@ -207,7 +280,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
           label,
           style: TextStyle(
             color: Colors.white.withOpacity(active ? 1 : 0.5),
-            fontSize: 11,
+            fontSize: 10,
+            fontWeight: FontWeight.w800,
           ),
         ),
       ],
@@ -223,13 +297,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              'Информация об автосервисе',
-              style: Theme.of(context).textTheme.headlineLarge,
+              'РЕГИСТРАЦИЯ СЕРВИСА',
+              style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 20, letterSpacing: 0.5),
             ),
             const SizedBox(height: 6),
             Text(
-              'Заполните данные вашего сервиса',
-              style: Theme.of(context).textTheme.bodyMedium,
+              'ЗАПОЛНИТЕ ДАННЫЕ ВАШЕГО ПРЕДПРИЯТИЯ',
+              style: const TextStyle(color: AppColors.textSecondary, fontSize: 11, fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: 24),
             TextFormField(
@@ -237,13 +311,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
               keyboardType: TextInputType.number,
               maxLength: 12,
               decoration: const InputDecoration(
-                labelText: 'ИНН организации *',
-                prefixIcon: Icon(Icons.business_outlined),
+                labelText: 'ИНН ОРГАНИЗАЦИИ *',
+                prefixIcon: Icon(Icons.business_sharp),
                 counterText: '',
               ),
               validator: (v) {
-                if (v!.isEmpty) return 'Введите ИНН';
-                if (v.length < 10) return 'ИНН должен содержать 10-12 цифр';
+                if (v!.isEmpty) return 'ВВЕДИТЕ ИНН';
+                if (v.length < 10) return 'ИНН ДОЛЖЕН БЫТЬ 10-12 ЦИФР';
                 return null;
               },
             ),
@@ -251,27 +325,27 @@ class _RegisterScreenState extends State<RegisterScreen> {
             TextFormField(
               controller: _nameCtrl,
               decoration: const InputDecoration(
-                labelText: 'Название сервиса *',
-                prefixIcon: Icon(Icons.store_outlined),
+                labelText: 'НАЗВАНИЕ СЕРВИСА *',
+                prefixIcon: Icon(Icons.store_sharp),
               ),
-              validator: (v) => v!.isEmpty ? 'Введите название' : null,
+              validator: (v) => v!.isEmpty ? 'ВВЕДИТЕ НАЗВАНИЕ' : null,
             ),
             const SizedBox(height: 16),
             DropdownButtonFormField<String>(
               value: _selectedRegion,
               decoration: const InputDecoration(
-                labelText: 'Регион *',
-                prefixIcon: Icon(Icons.location_on_outlined),
+                labelText: 'РЕГИОН ПРИСУТСТВИЯ *',
+                prefixIcon: Icon(Icons.location_on_sharp),
               ),
               items: AppConstants.regions
-                  .map((r) => DropdownMenuItem(value: r, child: Text(r)))
+                  .map((r) => DropdownMenuItem(value: r, child: Text(r.toUpperCase())))
                   .toList(),
               onChanged: (v) => setState(() => _selectedRegion = v),
             ),
             const SizedBox(height: 24),
-            Text(
-              'Категория сервиса *',
-              style: Theme.of(context).textTheme.headlineSmall,
+            const Text(
+              'КАТЕГОРИЯ СЕРВИСА *',
+              style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 0.5),
             ),
             const SizedBox(height: 12),
             ...AppConstants.clientCategories.entries.map(
@@ -279,15 +353,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
             ),
             const SizedBox(height: 32),
             SizedBox(
-              height: 50,
+              height: 52,
               child: ElevatedButton(
                 onPressed: _nextPage,
                 child: const Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text('Далее'),
+                    Text('ДАЛЕЕ'),
                     SizedBox(width: 8),
-                    Icon(Icons.arrow_forward, size: 18),
+                    Icon(Icons.arrow_forward_sharp, size: 18),
                   ],
                 ),
               ),
@@ -318,19 +392,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
         padding: const EdgeInsets.all(15),
         decoration: BoxDecoration(
           color: selected
-              ? color.withValues(alpha: 0.08)
-              : AppColors.surfaceCard,
+              ? AppColors.brandBlack.withValues(alpha: 0.05)
+              : Colors.white,
           border: Border.all(
-            color: selected ? color : AppColors.border,
+            color: selected ? AppColors.brandBlack : AppColors.border,
             width: selected ? 2 : 1,
           ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: selected ? 0.08 : 0.03),
-              blurRadius: selected ? 12 : 8,
-              offset: const Offset(0, 3),
-            ),
-          ],
+          borderRadius: BorderRadius.zero,
         ),
         child: Row(
           children: [
@@ -339,14 +407,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
               height: 36,
               decoration: BoxDecoration(
                 color: color,
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.zero,
               ),
               child: Center(
                 child: Text(
                   key,
                   style: const TextStyle(
                     color: Colors.white,
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w900,
                     fontSize: 16,
                   ),
                 ),
@@ -355,14 +423,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
             const SizedBox(width: 14),
             Expanded(
               child: Text(
-                description,
+                description.toUpperCase(),
                 style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 0.2,
                 ),
               ),
             ),
-            if (selected) Icon(Icons.check_circle, color: color, size: 22),
+            if (selected) const Icon(Icons.check_box_sharp, color: AppColors.brandBlack, size: 22),
           ],
         ),
       ),
@@ -378,40 +447,40 @@ class _RegisterScreenState extends State<RegisterScreen> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              'Контактная информация',
-              style: Theme.of(context).textTheme.headlineLarge,
+              'КОНТАКТНЫЕ ДАННЫЕ',
+              style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 20, letterSpacing: 0.5),
             ),
             const SizedBox(height: 6),
             Text(
-              'Данные ответственного лица',
-              style: Theme.of(context).textTheme.bodyMedium,
+              'ДАННЫЕ ОТВЕТСТВЕННОГО ЛИЦА',
+              style: const TextStyle(color: AppColors.textSecondary, fontSize: 11, fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: 24),
             TextFormField(
               controller: _contactCtrl,
               decoration: const InputDecoration(
-                labelText: 'ФИО контактного лица *',
-                prefixIcon: Icon(Icons.person_outline),
+                labelText: 'ФИО КОНТАКТНОГО ЛИЦА *',
+                prefixIcon: Icon(Icons.person_sharp),
               ),
-              validator: (v) => v!.isEmpty ? 'Введите ФИО' : null,
+              validator: (v) => v!.isEmpty ? 'ВВЕДИТЕ ФИО' : null,
             ),
             const SizedBox(height: 16),
             TextFormField(
               controller: _phoneCtrl,
               keyboardType: TextInputType.phone,
               decoration: const InputDecoration(
-                labelText: 'Телефон *',
-                prefixIcon: Icon(Icons.phone_outlined),
+                labelText: 'ТЕЛЕФОН *',
+                prefixIcon: Icon(Icons.phone_sharp),
               ),
-              validator: (v) => v!.isEmpty ? 'Введите телефон' : null,
+              validator: (v) => v!.isEmpty ? 'ВВЕДИТЕ ТЕЛЕФОН' : null,
             ),
             const SizedBox(height: 16),
             TextFormField(
               controller: _emailCtrl,
               keyboardType: TextInputType.emailAddress,
               decoration: const InputDecoration(
-                labelText: 'Email',
-                prefixIcon: Icon(Icons.email_outlined),
+                labelText: 'EMAIL',
+                prefixIcon: Icon(Icons.email_sharp),
               ),
             ),
             const SizedBox(height: 16),
@@ -419,52 +488,48 @@ class _RegisterScreenState extends State<RegisterScreen> {
               controller: _passwordCtrl,
               obscureText: _obscure,
               decoration: InputDecoration(
-                labelText: 'Пароль *',
-                prefixIcon: const Icon(Icons.lock_outline),
+                labelText: 'ПАРОЛЬ ДЛЯ ВХОДА *',
+                prefixIcon: const Icon(Icons.lock_sharp),
                 suffixIcon: IconButton(
                   icon: Icon(
                     _obscure
-                        ? Icons.visibility_outlined
-                        : Icons.visibility_off_outlined,
+                        ? Icons.visibility_sharp
+                        : Icons.visibility_off_sharp,
                   ),
                   onPressed: () => setState(() => _obscure = !_obscure),
                 ),
               ),
               validator: (v) {
-                if (v!.isEmpty) return 'Введите пароль';
-                if (v.length < 6) return 'Минимум 6 символов';
+                if (v!.isEmpty) return 'ВВЕДИТЕ ПАРОЛЬ';
+                if (v.length < 6) return 'МИНИМУМ 6 СИМВОЛОВ';
                 return null;
               },
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
             Container(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: AppColors.surfaceCard,
-                border: Border.all(color: AppColors.border),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.03),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
+                color: AppColors.brandWhite,
+                border: Border.all(color: AppColors.border, width: 1.5),
+                borderRadius: BorderRadius.zero,
               ),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Icon(
-                    Icons.info_outline,
-                    color: AppColors.info,
+                    Icons.info_sharp,
+                    color: AppColors.brandBlack,
                     size: 18,
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 10),
                   Expanded(
                     child: Text(
-                      'После регистрации ваш профиль будет привязан к региональному дистрибьютору и отправлен на проверку.',
+                      'ПОСЛЕ РЕГИСТРАЦИИ ВАШ ПРОФИЛЬ БУДЕТ ПРОВЕРЕН РЕГИОНАЛЬНЫМ ДИСТРИБЬЮТОРОМ.',
                       style: const TextStyle(
                         color: AppColors.textSecondary,
-                        fontSize: 12,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w800,
+                        height: 1.4,
                       ),
                     ),
                   ),
@@ -473,7 +538,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             ),
             const SizedBox(height: 28),
             SizedBox(
-              height: 50,
+              height: 52,
               child: ElevatedButton(
                 onPressed: _loading ? null : _register,
                 child: _loading
@@ -485,7 +550,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           strokeWidth: 2,
                         ),
                       )
-                    : const Text('Зарегистрироваться'),
+                    : const Text('ЗАРЕГИСТРИРОВАТЬСЯ', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 0.5)),
               ),
             ),
           ],

@@ -46,7 +46,8 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
     _scrollToBottom();
     String answer;
     try {
-      answer = await _api.aiChat(text);
+      final response = await _api.aiChatWithMeta(text);
+      answer = response['answer'] as String;
     } catch (e) {
       answer =
           'AI-помощник сейчас недоступен. Попробуйте позже или отправьте вопрос технологу через раздел Вопрос-Ответ.';
@@ -86,9 +87,9 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
             Container(
               width: 32,
               height: 32,
-              decoration: BoxDecoration(
-                color: AppColors.accent.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(8),
+              decoration: const BoxDecoration(
+                color: AppColors.brandRed,
+                borderRadius: BorderRadius.zero,
               ),
               child: const Icon(
                 Icons.smart_toy_outlined,
@@ -101,12 +102,12 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'AI-помощник',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  'AI-ПОМОЩНИК',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, letterSpacing: 0.5),
                 ),
                 Text(
                   'AutoTerra Assistant',
-                  style: TextStyle(fontSize: 11, color: Colors.white70),
+                  style: TextStyle(fontSize: 10, color: Colors.white60, letterSpacing: 0.3),
                 ),
               ],
             ),
@@ -125,8 +126,7 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
                 padding: const EdgeInsets.all(16),
                 itemCount: _messages.length + (_isTyping ? 1 : 0),
                 itemBuilder: (context, i) {
-                  if (_isTyping && i == _messages.length)
-                    return _TypingBubble();
+                  if (_isTyping && i == _messages.length) return _TypingBubble();
                   return _MessageBubble(message: _messages[i]);
                 },
               ),
@@ -140,20 +140,24 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
 
   Widget _buildSuggestions() {
     return Container(
-      color: AppColors.surface,
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+      color: Colors.white,
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+      decoration: const BoxDecoration(
+        border: Border(bottom: BorderSide(color: AppColors.border, width: 1.5)),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'Частые вопросы',
+            'ЧАСТЫЕ ВОПРОСЫ',
             style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
               color: AppColors.textSecondary,
+              letterSpacing: 0.5,
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 10),
           Wrap(
             spacing: 8,
             runSpacing: 8,
@@ -163,22 +167,22 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
                     onTap: () => _sendMessage(s),
                     child: Container(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
+                        horizontal: 10,
                         vertical: 6,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(20),
+                        color: AppColors.brandWhite,
                         border: Border.all(
-                          color: AppColors.primary.withOpacity(0.3),
+                          color: AppColors.brandBlack,
+                          width: 1,
                         ),
                       ),
                       child: Text(
                         s,
                         style: const TextStyle(
                           fontSize: 12,
-                          color: AppColors.primary,
-                          fontWeight: FontWeight.w500,
+                          color: AppColors.brandBlack,
+                          fontWeight: FontWeight.w700,
                         ),
                       ),
                     ),
@@ -199,55 +203,54 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
         16,
         12 + MediaQuery.of(context).padding.bottom,
       ),
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         color: Colors.white,
-        border: Border(top: BorderSide(color: AppColors.border)),
+        border: Border(top: BorderSide(color: AppColors.brandBlack, width: 2)),
       ),
       child: Row(
         children: [
           Expanded(
             child: TextField(
               controller: _msgCtrl,
-              decoration: InputDecoration(
+              decoration: const InputDecoration(
                 hintText: 'Задайте вопрос...',
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(24),
+                  borderRadius: BorderRadius.zero,
                   borderSide: BorderSide(color: AppColors.border),
                 ),
                 enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(24),
+                  borderRadius: BorderRadius.zero,
                   borderSide: BorderSide(color: AppColors.border),
                 ),
                 focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(24),
-                  borderSide: const BorderSide(color: AppColors.primary),
+                  borderRadius: BorderRadius.zero,
+                  borderSide: BorderSide(color: AppColors.brandBlack, width: 2),
                 ),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 10,
+                contentPadding: EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 12,
                 ),
                 isDense: true,
                 filled: true,
-
-                fillColor: AppColors.surface,
+                fillColor: AppColors.canvas,
               ),
-              maxLines: 3,
+              maxLines: 4,
               minLines: 1,
               onSubmitted: _sendMessage,
             ),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 8),
           GestureDetector(
             onTap: () => _sendMessage(_msgCtrl.text),
             child: Container(
-              width: 44,
-              height: 44,
+              width: 48,
+              height: 48,
               decoration: const BoxDecoration(
-                color: AppColors.accent,
-                shape: BoxShape.circle,
+                color: AppColors.brandRed,
+                borderRadius: BorderRadius.zero,
               ),
               child: const Icon(
-                Icons.send_rounded,
+                Icons.send_sharp,
                 color: Colors.white,
                 size: 20,
               ),
@@ -266,7 +269,7 @@ class _MessageBubble extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.only(bottom: 16),
       child: Row(
         mainAxisAlignment: message.isAi
             ? MainAxisAlignment.start
@@ -275,43 +278,35 @@ class _MessageBubble extends StatelessWidget {
         children: [
           if (message.isAi) ...[
             Container(
-              width: 30,
-              height: 30,
-              decoration: BoxDecoration(
-                color: AppColors.accent,
-                borderRadius: BorderRadius.circular(8),
+              width: 28,
+              height: 28,
+              decoration: const BoxDecoration(
+                color: AppColors.brandBlack,
               ),
               child: const Icon(
                 Icons.smart_toy_outlined,
                 color: Colors.white,
-                size: 16,
+                size: 14,
               ),
             ),
             const SizedBox(width: 8),
           ],
           Flexible(
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: message.isAi ? Colors.white : AppColors.primary,
-                borderRadius: BorderRadius.circular(16).copyWith(
-                  bottomLeft: message.isAi
-                      ? const Radius.circular(4)
-                      : const Radius.circular(16),
-                  bottomRight: message.isAi
-                      ? const Radius.circular(16)
-                      : const Radius.circular(4),
-                ),
+                color: message.isAi ? Colors.white : AppColors.brandBlack,
                 border: message.isAi
-                    ? Border.all(color: AppColors.border)
+                    ? Border.all(color: AppColors.brandBlack, width: 1.5)
                     : null,
               ),
               child: Text(
                 message.text,
                 style: TextStyle(
-                  color: message.isAi ? AppColors.textPrimary : Colors.white,
+                  color: message.isAi ? AppColors.brandBlack : Colors.white,
                   fontSize: 14,
-                  height: 1.4,
+                  fontWeight: message.isAi ? FontWeight.w500 : FontWeight.w400,
+                  height: 1.5,
                 ),
               ),
             ),
@@ -326,35 +321,26 @@ class _TypingBubble extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.only(bottom: 16),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            width: 30,
-            height: 30,
-            decoration: BoxDecoration(
-              color: AppColors.accent,
-              borderRadius: BorderRadius.circular(8),
-            ),
+            width: 28,
+            height: 28,
+            color: AppColors.brandBlack,
             child: const Icon(
               Icons.smart_toy_outlined,
               color: Colors.white,
-              size: 16,
+              size: 14,
             ),
           ),
           const SizedBox(width: 8),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(16),
-                topRight: Radius.circular(16),
-                bottomRight: Radius.circular(16),
-                bottomLeft: Radius.circular(4),
-              ),
-              border: Border.all(color: AppColors.border),
+              border: Border.all(color: AppColors.brandBlack, width: 1),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -374,12 +360,9 @@ class _TypingBubble extends StatelessWidget {
 
   Widget _dot(int delay) {
     return Container(
-      width: 8,
-      height: 8,
-      decoration: BoxDecoration(
-        color: AppColors.primary.withOpacity(0.6),
-        shape: BoxShape.circle,
-      ),
+      width: 6,
+      height: 6,
+      color: AppColors.brandBlack.withOpacity(0.5),
     );
   }
 }

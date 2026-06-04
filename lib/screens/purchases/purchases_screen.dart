@@ -8,6 +8,7 @@ import '../../services/data_repository.dart';
 import '../../widgets/common/status_badge.dart';
 import '../../widgets/common/section_header.dart';
 import '../../widgets/common/premium_icon_badge.dart';
+import '../../widgets/common/attachment_picker.dart';
 
 class PurchasesScreen extends StatefulWidget {
   const PurchasesScreen({super.key});
@@ -128,7 +129,13 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
         .where((p) => p.status == PurchaseStatus.verified)
         .length;
     final pending = purchases
-        .where((p) => p.status == PurchaseStatus.pending)
+        .where(
+          (p) =>
+              p.status == PurchaseStatus.pending ||
+              p.status == PurchaseStatus.pendingVerification ||
+              p.status == PurchaseStatus.underReview ||
+              p.status == PurchaseStatus.duplicateReview,
+        )
         .length;
 
     return Container(
@@ -579,6 +586,7 @@ class _PurchaseCard extends StatelessWidget {
                 )
                 .toList(),
           ),
+          AttachmentList(attachments: purchase.attachments),
         ],
       ),
     );
@@ -708,6 +716,7 @@ class _PurchaseDetailsSheet extends StatelessWidget {
                     ),
                   ),
                 ),
+                AttachmentList(attachments: purchase.attachments),
               ],
             ),
           ),

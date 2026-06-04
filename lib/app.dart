@@ -15,8 +15,10 @@ import 'screens/qa/qa_screen.dart';
 import 'screens/referral/referral_screen.dart';
 import 'screens/notifications/notifications_screen.dart';
 import 'screens/distributor/distributor_screen.dart';
+import 'screens/distributor/distributor_cabinet_screen.dart';
 import 'screens/orders/order_screen.dart';
 import 'screens/delivery/delivery_screen.dart';
+import 'screens/courier/courier_cabinet_screen.dart';
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
 final _shellNavigatorKey = GlobalKey<NavigatorState>();
@@ -55,8 +57,10 @@ final _router = GoRouter(
     GoRoute(path: AppRoutes.referral, builder: (ctx, _) => const ReferralScreen()),
     GoRoute(path: AppRoutes.notifications, builder: (ctx, _) => const NotificationsScreen()),
     GoRoute(path: AppRoutes.distributor, builder: (ctx, _) => const DistributorScreen()),
+    GoRoute(path: AppRoutes.distributorCabinet, builder: (ctx, _) => const DistributorCabinetScreen()),
     GoRoute(path: AppRoutes.order, builder: (ctx, _) => const OrderScreen()),
     GoRoute(path: AppRoutes.delivery, builder: (ctx, _) => const DeliveryScreen()),
+    GoRoute(path: AppRoutes.courierCabinet, builder: (ctx, _) => const CourierCabinetScreen()),
   ],
 );
 

@@ -113,15 +113,14 @@ class _OrderScreenState extends State<OrderScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Заказ отправлен дистрибьютору'),
-          backgroundColor: AppColors.success,
+          content: Text('ЗАКАЗ ОТПРАВЛЕН ДИСТРИБЬЮТОРУ'),
         ),
       );
       Navigator.pop(context);
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString()), backgroundColor: AppColors.error),
+        SnackBar(content: Text(e.toString().toUpperCase()), backgroundColor: AppColors.error),
       );
     } finally {
       if (mounted) setState(() => _sending = false);
@@ -137,7 +136,7 @@ class _OrderScreenState extends State<OrderScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Заказ')),
+      appBar: AppBar(title: const Text('ОФОРМЛЕНИЕ ЗАКАЗА')),
       body: FutureBuilder<OrderConfigData>(
         future: _future,
         builder: (context, snapshot) {
@@ -184,7 +183,7 @@ class _OrderScreenState extends State<OrderScreen> {
         child: Row(
           children: [
             const PremiumIconBadge(
-              icon: Icons.store_rounded,
+              icon: Icons.store_sharp,
               size: 44,
               iconSize: 22,
             ),
@@ -194,25 +193,27 @@ class _OrderScreenState extends State<OrderScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    dist.name,
+                    dist.name.toUpperCase(),
                     style: const TextStyle(
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.w800,
                       fontSize: 14,
+                      letterSpacing: 0.2,
                     ),
                   ),
                   Text(
                     dist.phone,
                     style: const TextStyle(
-                      color: AppColors.primary,
+                      color: AppColors.brandRed,
                       fontSize: 13,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
                 ],
               ),
             ),
             const Text(
-              'По региону',
-              style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
+              'РЕГИОН',
+              style: TextStyle(color: AppColors.textSecondary, fontSize: 10, fontWeight: FontWeight.w800),
             ),
           ],
         ),
@@ -228,14 +229,14 @@ class _OrderScreenState extends State<OrderScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'Магазин выдачи',
-              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+              'МАГАЗИН ВЫДАЧИ',
+              style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14, letterSpacing: 0.5),
             ),
             const SizedBox(height: 4),
             if (stores.isEmpty)
               const Text(
-                'Магазин пока не назначен. Заказ уйдёт дистрибьютору, он уточнит выдачу.',
-                style: TextStyle(color: AppColors.textSecondary),
+                'МАГАЗИН ПОКА НЕ НАЗНАЧЕН. ЗАКАЗ УЙДЁТ ДИСТРИБЬЮТОРУ ДЛЯ УТОЧНЕНИЯ.',
+                style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
               )
             else if (stores.length == 1)
               _storeTile(stores.first, selected: true, onTap: null)
@@ -265,18 +266,18 @@ class _OrderScreenState extends State<OrderScreen> {
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: selected
-              ? AppColors.brandRed.withValues(alpha: 0.05)
+              ? AppColors.brandBlack.withValues(alpha: 0.05)
               : Colors.white,
           border: Border.all(
-            color: selected ? AppColors.brandRed : AppColors.border,
+            color: selected ? AppColors.brandBlack : AppColors.border,
             width: selected ? 1.5 : 1,
           ),
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.zero,
         ),
         child: Row(
           children: [
             const PremiumIconBadge(
-              icon: Icons.store_rounded,
+              icon: Icons.store_sharp,
               size: 40,
               iconSize: 20,
             ),
@@ -286,21 +287,21 @@ class _OrderScreenState extends State<OrderScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    store.name,
-                    style: const TextStyle(fontWeight: FontWeight.w700),
+                    store.name.toUpperCase(),
+                    style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
                   ),
                   Text(
                     store.address,
                     style: const TextStyle(
                       color: AppColors.textSecondary,
-                      fontSize: 12,
+                      fontSize: 11,
                     ),
                   ),
                 ],
               ),
             ),
             if (selected)
-              const Icon(Icons.check_circle, color: AppColors.brandRed),
+              const Icon(Icons.check_box_sharp, color: AppColors.brandBlack),
           ],
         ),
       ),
@@ -317,33 +318,33 @@ class _OrderScreenState extends State<OrderScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'Отправка заказа',
-              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+              'ОТПРАВКА ЗАКАЗА',
+              style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14, letterSpacing: 0.5),
             ),
             const SizedBox(height: 6),
             Text(
               store == null
-                  ? 'Выберите товары. Дистрибьютор уточнит выдачу.'
-                  : 'Выбрано: ${store.name}',
-              style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+                  ? 'ВЫБЕРИТЕ ТОВАРЫ ДЛЯ ОФОРМЛЕНИЯ'
+                  : 'ВЫБРАНО: ${store.name.toUpperCase()}',
+              style: const TextStyle(color: AppColors.textSecondary, fontSize: 12, fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 14),
             TextFormField(
               controller: _commentCtrl,
               maxLines: 3,
               decoration: const InputDecoration(
-                labelText: 'Комментарий, если нужно',
+                labelText: 'КОММЕНТАРИЙ К ЗАКАЗУ',
                 alignLabelWithHint: true,
                 prefixIcon: Padding(
                   padding: EdgeInsets.only(bottom: 42),
-                  child: Icon(Icons.comment_outlined),
+                  child: Icon(Icons.comment_sharp),
                 ),
               ),
             ),
             const SizedBox(height: 20),
             SizedBox(
               width: double.infinity,
-              height: 48,
+              height: 52,
               child: ElevatedButton(
                 onPressed: disabled ? null : () => _submit(data),
                 child: _sending
@@ -357,8 +358,8 @@ class _OrderScreenState extends State<OrderScreen> {
                       )
                     : Text(
                         _totalQty == 0
-                            ? 'Добавьте товар'
-                            : 'Отправить дистрибьютору · $_totalQty шт.',
+                            ? 'ДОБАВЬТЕ ТОВАРЫ'
+                            : 'ОТПРАВИТЬ ЗАКАЗ · $_totalQty ШТ.',
                       ),
               ),
             ),
@@ -378,26 +379,21 @@ class _OrderScreenState extends State<OrderScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'Ассортимент',
-              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
-            ),
-            const SizedBox(height: 4),
-            const Text(
-              'Найдите товар, нажмите “Добавить” и укажите количество',
-              style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+              'АССОРТИМЕНТ',
+              style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15, letterSpacing: 0.5),
             ),
             const SizedBox(height: 12),
             TextField(
               controller: _searchCtrl,
               onChanged: (_) => setState(() {}),
               decoration: const InputDecoration(
-                hintText: 'Поиск по названию, артикулу или бренду',
-                prefixIcon: Icon(Icons.search),
+                hintText: 'ПОИСК ПО КАТАЛОГУ',
+                prefixIcon: Icon(Icons.search_sharp),
               ),
             ),
             const SizedBox(height: 12),
             SizedBox(
-              height: 36,
+              height: 32,
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
                 itemCount: categories.length,
@@ -406,20 +402,26 @@ class _OrderScreenState extends State<OrderScreen> {
                   final category = categories[index];
                   final selected = category == _selectedCategory;
                   return ChoiceChip(
-                    label: Text(category),
+                    label: Text(category.toUpperCase()),
                     selected: selected,
                     onSelected: (_) =>
                         setState(() => _selectedCategory = category),
-                    selectedColor: AppColors.brandRed.withValues(alpha: 0.14),
+                    selectedColor: AppColors.brandBlack,
+                    backgroundColor: Colors.transparent,
                     labelStyle: TextStyle(
                       color: selected
-                          ? AppColors.brandRed
+                          ? Colors.white
                           : AppColors.textPrimary,
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 10,
+                      letterSpacing: 0.5,
                     ),
-                    side: BorderSide(
-                      color: selected ? AppColors.brandRed : AppColors.border,
+                    shape: const RoundedRectangleBorder(
+                      borderRadius: BorderRadius.zero,
+                      side: BorderSide(color: AppColors.brandBlack, width: 1.5),
                     ),
+                    showCheckmark: false,
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
                   );
                 },
               ),
@@ -427,13 +429,13 @@ class _OrderScreenState extends State<OrderScreen> {
             const SizedBox(height: 14),
             if (products.isEmpty)
               const Text(
-                'Ассортимент пока не заполнен',
-                style: TextStyle(color: AppColors.textSecondary),
+                'КАТАЛОГ ПУСТ',
+                style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
               )
             else if (filtered.isEmpty)
               const Text(
-                'Ничего не найдено',
-                style: TextStyle(color: AppColors.textSecondary),
+                'НИЧЕГО НЕ НАЙДЕНО',
+                style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
               )
             else
               ...filtered.map(_productTile),
@@ -453,12 +455,13 @@ class _OrderScreenState extends State<OrderScreen> {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: qty > 0
-            ? AppColors.brandRed.withValues(alpha: 0.04)
+            ? AppColors.brandBlack.withValues(alpha: 0.04)
             : Colors.white,
         border: Border.all(
-          color: qty > 0 ? AppColors.brandRed : AppColors.border,
+          color: qty > 0 ? AppColors.brandBlack : AppColors.border,
+          width: qty > 0 ? 1.5 : 1.0,
         ),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.zero,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -467,7 +470,7 @@ class _OrderScreenState extends State<OrderScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const PremiumIconBadge(
-                icon: Icons.inventory_2_outlined,
+                icon: Icons.inventory_2_sharp,
                 size: 40,
                 iconSize: 20,
               ),
@@ -477,25 +480,28 @@ class _OrderScreenState extends State<OrderScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      item.name,
+                      item.name.toUpperCase(),
                       style: const TextStyle(
                         fontWeight: FontWeight.w800,
-                        fontSize: 14,
+                        fontSize: 13,
+                        letterSpacing: 0.2,
                       ),
                     ),
                     const SizedBox(height: 3),
                     Text(
-                      '${item.category} · ${item.brand}',
+                      '${item.category.toUpperCase()} · ${item.brand.toUpperCase()}',
                       style: const TextStyle(
                         color: AppColors.textSecondary,
-                        fontSize: 12,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
                     Text(
-                      'Артикул: ${item.sku}',
+                      'SKU: ${item.sku}',
                       style: const TextStyle(
                         color: AppColors.textHint,
-                        fontSize: 11,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ],
@@ -508,18 +514,20 @@ class _OrderScreenState extends State<OrderScreen> {
           Row(
             children: [
               Text(
-                '${_formatVolume(item.volume)} л',
+                '${_formatVolume(item.volume)} Л',
                 style: const TextStyle(
                   color: AppColors.textSecondary,
-                  fontSize: 12,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
               const SizedBox(width: 10),
               Text(
                 '${_formatPrice(item.price)} ₽',
                 style: const TextStyle(
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.textPrimary,
+                  fontWeight: FontWeight.w900,
+                  fontSize: 14,
+                  color: AppColors.brandBlack,
                 ),
               ),
               const Spacer(),
@@ -531,16 +539,9 @@ class _OrderScreenState extends State<OrderScreen> {
                     onPressed: null,
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(horizontal: 10),
-                      textStyle: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w800,
-                      ),
+                      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
                     ),
-                    child: const Text(
-                      'Нет в наличии',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
+                    child: const Text('НЕТ В НАЛИЧИИ'),
                   ),
                 )
               else if (qty == 0)
@@ -551,24 +552,15 @@ class _OrderScreenState extends State<OrderScreen> {
                     onPressed: () => _changeQty(item, 1),
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(horizontal: 10),
-                      textStyle: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w800,
-                      ),
+                      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
                     ),
                     child: const Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.add, size: 18),
+                        Icon(Icons.add_sharp, size: 18),
                         SizedBox(width: 6),
-                        Flexible(
-                          child: Text(
-                            'Добавить',
-                            maxLines: 1,
-                            overflow: TextOverflow.visible,
-                          ),
-                        ),
+                        Text('ДОБАВИТЬ'),
                       ],
                     ),
                   ),
@@ -580,11 +572,11 @@ class _OrderScreenState extends State<OrderScreen> {
           if (showStockWarning && canOrder) ...[
             const SizedBox(height: 8),
             Text(
-              'Доступно только ${item.quantity} шт. Больше остатка заказать нельзя.',
+              'ДОСТУПНО ТОЛЬКО ${item.quantity} ШТ.',
               style: const TextStyle(
-                color: AppColors.error,
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
+                color: AppColors.brandRed,
+                fontSize: 10,
+                fontWeight: FontWeight.w900,
               ),
             ),
           ],
@@ -608,15 +600,15 @@ class _OrderScreenState extends State<OrderScreen> {
             Row(
               children: [
                 const Text(
-                  'В заказе',
-                  style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
+                  'В ЗАКАЗЕ',
+                  style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14, letterSpacing: 0.5),
                 ),
                 const Spacer(),
                 Text(
-                  '$_totalQty шт.',
+                  '$_totalQty ШТ.',
                   style: const TextStyle(
                     color: AppColors.brandRed,
-                    fontWeight: FontWeight.w800,
+                    fontWeight: FontWeight.w900,
                   ),
                 ),
               ],
@@ -630,10 +622,10 @@ class _OrderScreenState extends State<OrderScreen> {
                   children: [
                     Expanded(
                       child: Text(
-                        item.name,
+                        item.name.toUpperCase(),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontWeight: FontWeight.w700),
+                        style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12),
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -650,23 +642,25 @@ class _OrderScreenState extends State<OrderScreen> {
 
   Widget _stockPill(StockStatus status) {
     final color = switch (status) {
-      StockStatus.inStock => AppColors.success,
+      StockStatus.inStock => AppColors.brandBlack,
       StockStatus.low => AppColors.warning,
-      StockStatus.onOrder => AppColors.info,
+      StockStatus.onOrder => AppColors.brandBlack,
       StockStatus.outOfStock => AppColors.error,
     };
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
+        borderRadius: BorderRadius.zero,
       ),
       child: Text(
-        _stockLabel(status),
+        _stockLabel(status).toUpperCase(),
         style: TextStyle(
           color: color,
-          fontSize: 11,
-          fontWeight: FontWeight.w800,
+          fontSize: 9,
+          fontWeight: FontWeight.w900,
+          letterSpacing: 0.3,
         ),
       ),
     );
@@ -699,23 +693,23 @@ class _OrderScreenState extends State<OrderScreen> {
     return Container(
       height: 36,
       decoration: BoxDecoration(
-        border: Border.all(color: AppColors.border),
-        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppColors.brandBlack, width: 1.5),
+        borderRadius: BorderRadius.zero,
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          _qtyButton(Icons.remove, qty == 0, () => _changeQty(product, -1)),
+          _qtyButton(Icons.remove_sharp, qty == 0, () => _changeQty(product, -1)),
           SizedBox(
             width: 32,
             child: Text(
               '$qty',
               textAlign: TextAlign.center,
-              style: const TextStyle(fontWeight: FontWeight.w800),
+              style: const TextStyle(fontWeight: FontWeight.w900),
             ),
           ),
           _qtyButton(
-            Icons.add,
+            Icons.add_sharp,
             qty >= product.quantity,
             () => _changeQty(product, 1),
           ),
@@ -732,7 +726,7 @@ class _OrderScreenState extends State<OrderScreen> {
         visualDensity: VisualDensity.compact,
         padding: EdgeInsets.zero,
         onPressed: disabled ? null : onTap,
-        icon: Icon(icon, size: 18),
+        icon: Icon(icon, size: 18, color: disabled ? AppColors.textHint : AppColors.brandBlack),
       ),
     );
   }
@@ -748,7 +742,7 @@ class _ErrorState extends StatelessWidget {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
-        child: Text(message, textAlign: TextAlign.center),
+        child: Text(message.toUpperCase(), textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
       ),
     );
   }

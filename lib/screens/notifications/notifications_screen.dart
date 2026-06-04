@@ -30,13 +30,13 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Уведомления'),
+        title: const Text('УВЕДОМЛЕНИЯ'),
         actions: [
           TextButton(
             onPressed: () {},
             child: const Text(
-              'Прочитать все',
-              style: TextStyle(color: Colors.white, fontSize: 13),
+              'ПРОЧИТАТЬ ВСЕ',
+              style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 0.5),
             ),
           ),
         ],
@@ -48,7 +48,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             return const Center(child: CircularProgressIndicator());
           }
           if (snapshot.hasError) {
-            return Center(child: Text(snapshot.error.toString()));
+            return Center(child: Text(snapshot.error.toString().toUpperCase()));
           }
           final notifications = snapshot.data!;
           final unread = notifications.where((n) => !n.isRead).toList();
@@ -60,7 +60,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 physics: const AlwaysScrollableScrollPhysics(),
                 children: const [
                   SizedBox(height: 220),
-                  Center(child: Text('Уведомлений пока нет')),
+                  Center(child: Text('УВЕДОМЛЕНИЙ ПОКА НЕТ', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: AppColors.textSecondary))),
                 ],
               ),
             );
@@ -73,11 +73,12 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               children: [
                 if (unread.isNotEmpty) ...[
                   const Text(
-                    'Новые',
+                    'НОВЫЕ',
                     style: TextStyle(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 12,
                       color: AppColors.textSecondary,
+                      letterSpacing: 0.5,
                     ),
                   ),
                   const SizedBox(height: 10),
@@ -86,11 +87,12 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 ],
                 if (read.isNotEmpty) ...[
                   const Text(
-                    'Ранее',
+                    'РАНЕЕ',
                     style: TextStyle(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 12,
                       color: AppColors.textSecondary,
+                      letterSpacing: 0.5,
                     ),
                   ),
                   const SizedBox(height: 10),
@@ -118,12 +120,13 @@ class _NotifCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: notification.isRead
             ? Colors.white
-            : config.color.withOpacity(0.04),
-        borderRadius: BorderRadius.circular(12),
+            : config.color.withValues(alpha: 0.04),
+        borderRadius: BorderRadius.zero,
         border: Border.all(
           color: notification.isRead
               ? AppColors.border
-              : config.color.withOpacity(0.2),
+              : config.color.withValues(alpha: 0.2),
+          width: notification.isRead ? 1.0 : 1.5,
         ),
       ),
       child: Padding(
@@ -146,12 +149,13 @@ class _NotifCard extends StatelessWidget {
                     children: [
                       Expanded(
                         child: Text(
-                          notification.title,
+                          notification.title.toUpperCase(),
                           style: TextStyle(
                             fontWeight: notification.isRead
-                                ? FontWeight.w500
-                                : FontWeight.w700,
-                            fontSize: 14,
+                                ? FontWeight.w700
+                                : FontWeight.w900,
+                            fontSize: 13,
+                            letterSpacing: 0.2,
                           ),
                         ),
                       ),
@@ -160,8 +164,8 @@ class _NotifCard extends StatelessWidget {
                           width: 8,
                           height: 8,
                           decoration: const BoxDecoration(
-                            color: AppColors.accent,
-                            shape: BoxShape.circle,
+                            color: AppColors.brandRed,
+                            shape: BoxShape.rectangle,
                           ),
                         ),
                     ],
@@ -179,10 +183,11 @@ class _NotifCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    _formatTime(notification.createdAt),
+                    _formatTime(notification.createdAt).toUpperCase(),
                     style: const TextStyle(
                       color: AppColors.textHint,
-                      fontSize: 11,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
                 ],
@@ -197,29 +202,29 @@ class _NotifCard extends StatelessWidget {
   _NotifConfig _getConfig(dynamic type) {
     switch (type.toString()) {
       case 'NotificationType.color':
-        return _NotifConfig(Icons.palette_outlined, const Color(0xFF8B5CF6));
+        return _NotifConfig(Icons.palette_sharp, AppColors.brandBlack);
       case 'NotificationType.referral':
-        return _NotifConfig(Icons.people_outline, AppColors.success);
+        return _NotifConfig(Icons.people_sharp, AppColors.brandBlack);
       case 'NotificationType.order':
-        return _NotifConfig(Icons.receipt_outlined, AppColors.primary);
+        return _NotifConfig(Icons.receipt_sharp, AppColors.brandRed);
       case 'NotificationType.delivery':
         return _NotifConfig(
-          Icons.local_shipping_outlined,
-          const Color(0xFFF59E0B),
+          Icons.local_shipping_sharp,
+          AppColors.warning,
         );
       case 'NotificationType.ai':
-        return _NotifConfig(Icons.smart_toy_outlined, AppColors.accent);
+        return _NotifConfig(Icons.smart_toy_sharp, AppColors.brandRed);
       default:
-        return _NotifConfig(Icons.notifications_outlined, AppColors.info);
+        return _NotifConfig(Icons.notifications_sharp, AppColors.brandBlack);
     }
   }
 
   String _formatTime(DateTime dt) {
     final now = DateTime.now();
     final diff = now.difference(dt);
-    if (diff.inDays > 0) return '${diff.inDays} д. назад';
-    if (diff.inHours > 0) return '${diff.inHours} ч. назад';
-    return '${diff.inMinutes} мин. назад';
+    if (diff.inDays > 0) return '${diff.inDays} Д. НАЗАД';
+    if (diff.inHours > 0) return '${diff.inHours} Ч. НАЗАД';
+    return '${diff.inMinutes} МИН. НАЗАД';
   }
 }
 

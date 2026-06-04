@@ -19,23 +19,24 @@ class SectionHeader extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(
-          title,
+          title.toUpperCase(),
           style: const TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w800,
-            color: AppColors.textSecondary,
-            letterSpacing: 1.0,
+            fontSize: 11,
+            fontWeight: FontWeight.w900,
+            color: AppColors.brandBlack,
+            letterSpacing: 1.2,
           ),
         ),
         if (actionLabel != null)
           GestureDetector(
             onTap: onAction,
             child: Text(
-              actionLabel!,
+              actionLabel!.toUpperCase(),
               style: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
+                fontSize: 10,
+                fontWeight: FontWeight.w900,
                 color: AppColors.brandRed,
+                letterSpacing: 0.5,
               ),
             ),
           ),
@@ -54,20 +55,20 @@ class InfoRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 7),
+      padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
             width: 130,
-            child: Text(label, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary, letterSpacing: 0.2)),
+            child: Text(label, style: const TextStyle(fontSize: 11, color: AppColors.textSecondary, fontWeight: FontWeight.w700, letterSpacing: 0.2)),
           ),
           Expanded(
             child: Text(
               value,
               style: TextStyle(
                 fontSize: 13,
-                fontWeight: FontWeight.w600,
+                fontWeight: FontWeight.w800,
                 color: valueColor ?? AppColors.textPrimary,
               ),
             ),
@@ -99,17 +100,17 @@ class AppCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        margin: const EdgeInsets.only(bottom: 8),
+        margin: const EdgeInsets.only(bottom: 12),
         decoration: BoxDecoration(
           color: Colors.white,
           border: Border(
             left: BorderSide(
-              color: redAccent ? AppColors.brandRed : (borderColor ?? AppColors.border),
-              width: redAccent ? 3 : 1,
+              color: redAccent ? AppColors.brandRed : (borderColor ?? AppColors.brandBlack),
+              width: redAccent ? 4 : 1.5,
             ),
-            top: BorderSide(color: borderColor ?? AppColors.border),
-            right: BorderSide(color: borderColor ?? AppColors.border),
-            bottom: BorderSide(color: borderColor ?? AppColors.border),
+            top: BorderSide(color: borderColor ?? AppColors.border, width: 1.5),
+            right: BorderSide(color: borderColor ?? AppColors.border, width: 1.5),
+            bottom: BorderSide(color: borderColor ?? AppColors.border, width: 1.5),
           ),
         ),
         child: Padding(
@@ -147,16 +148,22 @@ class EmptyState extends StatelessWidget {
           children: [
             Container(
               width: 72, height: 72,
-              color: AppColors.brandBlack,
-              child: Icon(icon, size: 32, color: AppColors.brandRed),
+              decoration: const BoxDecoration(
+                color: AppColors.brandBlack,
+                borderRadius: BorderRadius.zero,
+              ),
+              child: Icon(icon, size: 32, color: Colors.white),
             ),
-            const SizedBox(height: 16),
-            Text(title, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16), textAlign: TextAlign.center),
-            const SizedBox(height: 8),
-            Text(subtitle, style: const TextStyle(color: AppColors.textSecondary, fontSize: 13), textAlign: TextAlign.center),
+            const SizedBox(height: 20),
+            Text(title.toUpperCase(), style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15, letterSpacing: 0.5), textAlign: TextAlign.center),
+            const SizedBox(height: 10),
+            Text(subtitle, style: const TextStyle(color: AppColors.textSecondary, fontSize: 13, fontWeight: FontWeight.w500), textAlign: TextAlign.center),
             if (actionLabel != null) ...[
-              const SizedBox(height: 24),
-              ElevatedButton(onPressed: onAction, child: Text(actionLabel!)),
+              const SizedBox(height: 32),
+              ElevatedButton(
+                onPressed: onAction, 
+                child: Text(actionLabel!.toUpperCase())
+              ),
             ],
           ],
         ),

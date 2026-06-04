@@ -132,6 +132,11 @@ class DataRepository {
     return items.map(_courierTaskFromJson).toList();
   }
 
+  Future<List<CourierTask>> courierMyTasks() async {
+    final items = await _api.courierMyTasks();
+    return items.map(_courierTaskFromJson).toList();
+  }
+
   Future<List<Referral>> referrals() async {
     final items = await _api.referrals();
     return items.map(_referralFromJson).toList();
@@ -162,6 +167,10 @@ class DataRepository {
 
   static List<Map<String, dynamic>> _list(Object? value) {
     return (value as List<dynamic>).cast<Map<String, dynamic>>();
+  }
+
+  static List<Map<String, dynamic>> _listOrEmpty(Object? value) {
+    return ((value as List<dynamic>?) ?? const []).cast<Map<String, dynamic>>();
   }
 
   static Client _clientFromJson(Map<String, dynamic> json) {
@@ -235,7 +244,19 @@ class DataRepository {
         json['items'],
       ).map((item) => _purchaseItemFromJson(item)).toList(),
       documentUrl: json['documentUrl'] as String?,
+      attachments: _listOrEmpty(json['attachments']).map(_attachmentFromJson).toList(),
       createdAt: DateTime.parse(json['createdAt'] as String),
+    );
+  }
+
+  static Attachment _attachmentFromJson(Map<String, dynamic> json) {
+    return Attachment(
+      id: json['id'] as String,
+      url: json['url'] as String? ?? '',
+      name: json['name'] as String? ?? 'Файл',
+      fileType: json['fileType'] as String? ?? 'document',
+      uploadedAt: DateTime.parse(json['uploadedAt'] as String),
+      description: json['description'] as String?,
     );
   }
 
@@ -257,13 +278,49 @@ class DataRepository {
       clientId: json['clientId'] as String,
       carBrand: json['carBrand'] as String,
       carModel: json['carModel'] as String,
+      carYear: json['carYear'] as String?,
       vin: json['vin'] as String,
       colorCode: json['colorCode'] as String,
       colorName: json['colorName'] as String,
       urgent: json['urgent'] as bool? ?? false,
+      comment: json['comment'] as String?,
+      courierPickup: json['courierPickup'] as bool? ?? false,
+      pickupAddress: json['pickupAddress'] as String?,
+      pickupDate: json['pickupDate'] != null ? DateTime.parse(json['pickupDate'] as String) : null,
+      contactPerson: json['contactPerson'] as String?,
+      contactPhone: json['contactPhone'] as String?,
+      deliveryMethod: json['deliveryMethod'] as String? ?? 'courier',
+      slaDeadline: json['slaDeadline'] != null ? DateTime.parse(json['slaDeadline'] as String) : null,
+      isOverdue: json['isOverdue'] as bool? ?? false,
+      assignedDistributorId: json['assignedDistributorId'] as String?,
+      assignedStation: json['assignedStation'] as String?,
       status: _colorRequestStatus(json['status'] as String),
+      statusHistory: _listOrEmpty(json['statusHistory']).map(_colorStatusHistoryFromJson).toList(),
       recipe: json['recipe'] as String?,
+      materials: _listOrEmpty(json['materials']).map(_recipeMaterialFromJson).toList(),
+      courierTasks: _listOrEmpty(json['courierTasks']).map(_courierTaskFromJson).toList(),
+      attachments: _listOrEmpty(json['attachments']).map(_attachmentFromJson).toList(),
       createdAt: DateTime.parse(json['createdAt'] as String),
+    );
+  }
+
+  static RecipeMaterial _recipeMaterialFromJson(Map<String, dynamic> json) {
+    return RecipeMaterial(
+      id: json['id'] as String,
+      sku: json['sku'] as String,
+      quantity: (json['quantity'] as num).toDouble(),
+      unit: json['unit'] as String,
+      comment: json['comment'] as String?,
+      version: (json['version'] as num? ?? 1).toInt(),
+    );
+  }
+
+  static ColorStatusHistory _colorStatusHistoryFromJson(Map<String, dynamic> json) {
+    return ColorStatusHistory(
+      status: json['status'] as String,
+      at: DateTime.parse(json['at'] as String),
+      by: json['by'] as String?,
+      comment: json['comment'] as String?,
     );
   }
 
@@ -271,6 +328,9 @@ class DataRepository {
     return CourierTask(
       id: json['id'] as String,
       clientId: json['clientId'] as String,
+      clientName: json['clientName'] as String?,
+      orderId: json['orderId'] as String?,
+      colorRequestId: json['colorRequestId'] as String?,
       type: json['type'] as String,
       address: json['address'] as String,
       scheduledTime: DateTime.parse(json['scheduledTime'] as String),
@@ -281,6 +341,9 @@ class DataRepository {
       courierId: json['courierId'] as String?,
       photoProof: json['photoProof'] as String?,
       comment: json['comment'] as String?,
+      courierComment: json['courierComment'] as String?,
+      statusHistory: ((json['statusHistory'] as List<dynamic>?) ?? const []).cast<Map<String, dynamic>>(),
+      attachments: _listOrEmpty(json['attachments']).map(_attachmentFromJson).toList(),
       createdAt: DateTime.parse(json['createdAt'] as String),
     );
   }
@@ -305,12 +368,19 @@ class DataRepository {
     return ExpertTicket(
       id: json['id'] as String,
       clientId: json['clientId'] as String,
+      clientName: json['clientName'] as String?,
       question: json['question'] as String,
       category: json['category'] as String,
+      risk: json['risk'] as String? ?? 'low',
+      aiDraftAnswer: json['aiDraftAnswer'] as String?,
       aiAnswer: json['aiAnswer'] as String?,
       expertAnswer: json['expertAnswer'] as String?,
+      linkedKnowledgeCardId: json['linkedKnowledgeCardId'] as String?,
+      similarCases: (json['similarCases'] as List<dynamic>? ?? []).cast<String>(),
       status: _ticketStatus(json['status'] as String),
+      attachments: _listOrEmpty(json['attachments']).map(_attachmentFromJson).toList(),
       createdAt: DateTime.parse(json['createdAt'] as String),
+      updatedAt: DateTime.parse(json['updatedAt'] as String),
     );
   }
 
@@ -328,14 +398,20 @@ class DataRepository {
   static KnowledgeCard _knowledgeCardFromJson(Map<String, dynamic> json) {
     return KnowledgeCard(
       id: json['id'] as String,
+      title: json['title'] as String? ?? '',
+      category: json['category'] as String? ?? '',
       problem: json['problem'] as String,
-      causes: json['causes'] as String,
+      causes: json['causes'] as String?,
       solution: json['solution'] as String,
-      skus: (json['skus'] as List<dynamic>).cast<String>(),
+      skus: (json['skus'] as List<dynamic>? ?? []).cast<String>(),
       restrictions: json['restrictions'] as String?,
-      approvingExpert: json['approvingExpert'] as String,
+      status: json['status'] as String? ?? 'approved',
       isApproved: json['isApproved'] as bool? ?? true,
+      createdBy: json['createdBy'] as String?,
+      approvedBy: json['approvedBy'] as String?,
+      revisionHistory: ((json['revisionHistory'] as List<dynamic>?) ?? const []).cast<Map<String, dynamic>>(),
       createdAt: DateTime.parse(json['createdAt'] as String),
+      updatedAt: DateTime.parse(json['updatedAt'] as String),
     );
   }
 
@@ -347,6 +423,12 @@ class DataRepository {
   }
 
   static ClientStatus _clientStatus(String value) {
+    switch (value) {
+      case 'new':
+        return ClientStatus.newStatus;
+      case 'under_review':
+        return ClientStatus.underReview;
+    }
     return ClientStatus.values.firstWhere(
       (item) => item.name == value,
       orElse: () => ClientStatus.active,
@@ -354,6 +436,14 @@ class DataRepository {
   }
 
   static PurchaseStatus _purchaseStatus(String value) {
+    switch (value) {
+      case 'pending_verification':
+        return PurchaseStatus.pendingVerification;
+      case 'under_review':
+        return PurchaseStatus.underReview;
+      case 'duplicate_review':
+        return PurchaseStatus.duplicateReview;
+    }
     return PurchaseStatus.values.firstWhere(
       (item) => item.name == value,
       orElse: () => PurchaseStatus.pending,
@@ -375,6 +465,13 @@ class DataRepository {
   }
 
   static CourierTaskStatus _courierTaskStatus(String value) {
+    switch (value) {
+      case 'picked_up':
+        return CourierTaskStatus.pickedUp;
+      case 'in_progress':
+      case 'inProgress':
+        return CourierTaskStatus.inProgress;
+    }
     return CourierTaskStatus.values.firstWhere(
       (item) => item.name == value,
       orElse: () => CourierTaskStatus.created,

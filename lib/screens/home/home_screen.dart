@@ -36,7 +36,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     final fmt = NumberFormat('#,##0', 'ru_RU');
     return Scaffold(
-      backgroundColor: AppColors.brandWhite,
+      backgroundColor: AppColors.canvas,
       body: FutureBuilder<DashboardData>(
         future: _future,
         builder: (context, snapshot) {
@@ -53,7 +53,7 @@ class _HomeScreenState extends State<HomeScreen> {
               physics: const AlwaysScrollableScrollPhysics(),
               slivers: [
                 SliverAppBar(
-                  expandedHeight: 118,
+                  expandedHeight: 120,
                   pinned: true,
                   backgroundColor: AppColors.brandBlack,
                   flexibleSpace: FlexibleSpaceBar(
@@ -66,13 +66,13 @@ class _HomeScreenState extends State<HomeScreen> {
                         children: [
                           Row(
                             children: [
-                              const AppLogo(height: 34),
+                              const AppLogo(height: 32),
                               const Spacer(),
                               Stack(
                                 children: [
                                   IconButton(
                                     icon: const Icon(
-                                      Icons.notifications_outlined,
+                                      Icons.notifications_none_sharp,
                                       color: Colors.white,
                                     ),
                                     onPressed: () =>
@@ -80,19 +80,19 @@ class _HomeScreenState extends State<HomeScreen> {
                                   ),
                                   if (data.unreadCount > 0)
                                     Positioned(
-                                      right: 8,
-                                      top: 8,
+                                      right: 10,
+                                      top: 10,
                                       child: Container(
-                                        width: 16,
-                                        height: 16,
+                                        width: 14,
+                                        height: 14,
                                         color: AppColors.brandRed,
                                         child: Center(
                                           child: Text(
-                                            '${data.unreadCount}',
+                                            '',
                                             style: const TextStyle(
                                               color: Colors.white,
-                                              fontSize: 9,
-                                              fontWeight: FontWeight.w700,
+                                              fontSize: 8,
+                                              fontWeight: FontWeight.w900,
                                             ),
                                           ),
                                         ),
@@ -102,14 +102,14 @@ class _HomeScreenState extends State<HomeScreen> {
                               ),
                             ],
                           ),
-                          const SizedBox(height: 6),
+                          const SizedBox(height: 4),
                           Text(
-                            data.client.name,
+                            data.client.name.toUpperCase(),
                             style: const TextStyle(
                               color: Colors.white,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: 0.2,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 0.5,
                             ),
                           ),
                         ],
@@ -124,24 +124,24 @@ class _HomeScreenState extends State<HomeScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         _buildQuickActions(context),
-                        const SizedBox(height: 20),
+                        const SizedBox(height: 24),
                         _buildRecentPurchases(
                           data.recentPurchases,
                           fmt,
                           context,
                         ),
-                        const SizedBox(height: 20),
+                        const SizedBox(height: 24),
                         _buildStatusCard(
                           data.client,
                           data.distributor,
                           fmt,
                           context,
                         ),
-                        const SizedBox(height: 20),
+                        const SizedBox(height: 24),
                         _buildColorRequests(data.activeColorRequests, context),
-                        const SizedBox(height: 20),
+                        const SizedBox(height: 24),
                         _buildDistributorCard(data.distributor, context),
-                        const SizedBox(height: 100),
+                        const SizedBox(height: 120),
                       ],
                     ),
                   ),
@@ -163,17 +163,16 @@ class _HomeScreenState extends State<HomeScreen> {
     return Container(
       decoration: const BoxDecoration(
         color: AppColors.brandBlack,
-        border: Border(left: BorderSide(color: AppColors.brandRed, width: 3)),
+        border: Border(left: BorderSide(color: AppColors.brandRed, width: 4)),
       ),
       child: Stack(
         children: [
-          // Chamfer cut top-right
           Positioned(
             top: 0,
             right: 0,
-            child: CustomPaint(
-              size: const Size(24, 24),
-              painter: _ChamferPainter(),
+            child: ClipPath(
+              clipper: const ChamferClipper(cut: 16),
+              child: Container(width: 16, height: 16, color: AppColors.canvas),
             ),
           ),
           Padding(
@@ -183,24 +182,26 @@ class _HomeScreenState extends State<HomeScreen> {
                 Row(
                   children: [
                     CategoryBadge(category: client.categoryLabel),
-                    const SizedBox(width: 10),
+                    const SizedBox(width: 12),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            client.name,
+                            client.name.toUpperCase(),
                             style: const TextStyle(
                               color: Colors.white,
-                              fontWeight: FontWeight.w700,
+                              fontWeight: FontWeight.w800,
                               fontSize: 14,
+                              letterSpacing: 0.5,
                             ),
                           ),
                           Text(
-                            'ИНН: ${client.inn}',
+                            'ИНН: ',
                             style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.5),
+                              color: Colors.white.withOpacity(0.5),
                               fontSize: 11,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
                         ],
@@ -209,23 +210,20 @@ class _HomeScreenState extends State<HomeScreen> {
                     StatusBadge.fromPartnerStatus(client.partnerStatus),
                   ],
                 ),
-                const SizedBox(height: 14),
-                Container(
-                  height: 1,
-                  color: Colors.white.withValues(alpha: 0.1),
-                ),
-                const SizedBox(height: 14),
+                const SizedBox(height: 16),
+                const Divider(color: Colors.white12, height: 1),
+                const SizedBox(height: 16),
                 Row(
                   children: [
                     _statItem(
-                      'Закупки',
-                      '${fmt.format(client.totalPurchases)} ₽',
+                      'ЗАКУПКИ',
+                      ' ₽',
                       AppColors.brandRed,
                     ),
                     _vertDivider(),
-                    _statItem('Регион', client.region, Colors.white),
+                    _statItem('РЕГИОН', client.region.toUpperCase(), Colors.white),
                     _vertDivider(),
-                    _statItem('Статус', 'Активный', AppColors.success),
+                    _statItem('СТАТУС', 'АКТИВНЫЙ', AppColors.success),
                   ],
                 ),
               ],
@@ -243,18 +241,19 @@ class _HomeScreenState extends State<HomeScreen> {
           Text(
             label,
             style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.5),
-              fontSize: 10,
-              letterSpacing: 0.5,
+              color: Colors.white.withOpacity(0.4),
+              fontSize: 9,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.8,
             ),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 3),
+          const SizedBox(height: 4),
           Text(
             value,
             style: TextStyle(
               color: valueColor,
-              fontWeight: FontWeight.w700,
+              fontWeight: FontWeight.w900,
               fontSize: 12,
             ),
             textAlign: TextAlign.center,
@@ -268,9 +267,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _vertDivider() {
     return Container(
-      width: 1,
-      height: 28,
-      color: Colors.white.withValues(alpha: 0.15),
+      width: 1.5,
+      height: 24,
+      color: Colors.white12,
       margin: const EdgeInsets.symmetric(horizontal: 4),
     );
   }
@@ -279,32 +278,32 @@ class _HomeScreenState extends State<HomeScreen> {
     final actions = [
       _QuickAction(
         Icons.shopping_bag_outlined,
-        'Заказ и ассортимент',
+        'ЗАКАЗ И ПРАЙС',
         () => context.push(AppRoutes.order),
       ),
       _QuickAction(
         Icons.receipt_long_outlined,
-        'Мои покупки',
+        'МОИ ПОКУПКИ',
         () => context.push(AppRoutes.purchases),
       ),
       _QuickAction(
         Icons.palette_outlined,
-        'Подбор цвета',
+        'ПОДБОР ЦВЕТА',
         () => context.push(AppRoutes.colorCenter),
       ),
       _QuickAction(
         Icons.local_shipping_outlined,
-        'Доставка',
+        'ДОСТАВКА',
         () => context.push(AppRoutes.delivery),
       ),
       _QuickAction(
-        Icons.help_outline_rounded,
-        'Вопрос-ответ',
+        Icons.help_center_outlined,
+        'ВОПРОС-ОТВЕТ',
         () => context.push(AppRoutes.qa),
       ),
       _QuickAction(
         Icons.smart_toy_outlined,
-        'AI-помощник',
+        'AI-ПОМОЩНИК',
         () => context.push(AppRoutes.aiAssistant),
       ),
     ];
@@ -312,16 +311,16 @@ class _HomeScreenState extends State<HomeScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SectionHeader(title: 'Что нужно сделать?'),
+        const SectionHeader(title: 'БЫСТРЫЙ ДОСТУП'),
         const SizedBox(height: 12),
         GridView.count(
           padding: EdgeInsets.zero,
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           crossAxisCount: 3,
-          mainAxisSpacing: 8,
-          crossAxisSpacing: 8,
-          childAspectRatio: 1.16,
+          mainAxisSpacing: 10,
+          crossAxisSpacing: 10,
+          childAspectRatio: 1.1,
           children: actions.map(_buildActionTile).toList(),
         ),
       ],
@@ -333,27 +332,21 @@ class _HomeScreenState extends State<HomeScreen> {
       onTap: action.onTap,
       child: Container(
         decoration: BoxDecoration(
-          color: AppColors.surfaceCard,
-          border: Border.all(color: AppColors.border),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
+          color: Colors.white,
+          border: Border.all(color: AppColors.border, width: 1.5),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            PremiumIconBadge(icon: action.icon, size: 38, iconSize: 19),
-            const SizedBox(height: 6),
+            PremiumIconBadge(icon: action.icon, size: 36, iconSize: 18),
+            const SizedBox(height: 8),
             Text(
               action.label,
               style: const TextStyle(
-                fontSize: 10.5,
-                fontWeight: FontWeight.w700,
+                fontSize: 9,
+                fontWeight: FontWeight.w900,
                 color: AppColors.textPrimary,
+                letterSpacing: 0.2,
               ),
               textAlign: TextAlign.center,
               maxLines: 2,
@@ -375,7 +368,7 @@ class _HomeScreenState extends State<HomeScreen> {
       children: [
         SectionHeader(
           title: 'ПОСЛЕДНИЕ ПОКУПКИ',
-          actionLabel: 'Все',
+          actionLabel: 'ВСЕ',
           onAction: () => context.push(AppRoutes.purchases),
         ),
         const SizedBox(height: 12),
@@ -393,7 +386,7 @@ class _HomeScreenState extends State<HomeScreen> {
       children: [
         SectionHeader(
           title: 'ЦЕНТР ЦВЕТА',
-          actionLabel: 'Все',
+          actionLabel: 'ВСЕ',
           onAction: () => context.push(AppRoutes.colorCenter),
         ),
         const SizedBox(height: 12),
@@ -406,29 +399,23 @@ class _HomeScreenState extends State<HomeScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SectionHeader(title: 'МОЙ ДИСТРИБЬЮТОР'),
+        const SectionHeader(title: 'ДИСТРИБЬЮТОР'),
         const SizedBox(height: 12),
         GestureDetector(
           onTap: () => context.push(AppRoutes.distributor),
           child: Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: AppColors.surfaceCard,
-              border: Border.all(color: AppColors.border),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.04),
-                  blurRadius: 10,
-                  offset: const Offset(0, 3),
-                ),
-              ],
+              color: Colors.white,
+              border: Border.all(color: AppColors.brandBlack, width: 1.5),
             ),
             child: Row(
               children: [
                 const PremiumIconBadge(
-                  icon: Icons.store,
-                  size: 44,
-                  iconSize: 22,
+                  icon: Icons.store_sharp,
+                  size: 42,
+                  iconSize: 20,
+                  iconColor: AppColors.brandBlack,
                 ),
                 const SizedBox(width: 14),
                 Expanded(
@@ -436,31 +423,35 @@ class _HomeScreenState extends State<HomeScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        distributor.name,
+                        distributor.name.toUpperCase(),
                         style: const TextStyle(
-                          fontWeight: FontWeight.w700,
+                          fontWeight: FontWeight.w900,
                           fontSize: 14,
+                          letterSpacing: 0.2,
                         ),
                       ),
+                      const SizedBox(height: 2),
                       Text(
-                        distributor.regions.join(', '),
+                        distributor.regions.join(', ').toUpperCase(),
                         style: const TextStyle(
                           color: AppColors.textSecondary,
-                          fontSize: 12,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
+                      const SizedBox(height: 4),
                       Text(
                         distributor.phone,
                         style: const TextStyle(
                           color: AppColors.brandRed,
                           fontSize: 13,
-                          fontWeight: FontWeight.w600,
+                          fontWeight: FontWeight.w800,
                         ),
                       ),
                     ],
                   ),
                 ),
-                const Icon(Icons.chevron_right, color: AppColors.textSecondary),
+                const Icon(Icons.arrow_forward_ios_sharp, color: AppColors.brandBlack, size: 16),
               ],
             ),
           ),
@@ -479,21 +470,21 @@ class _BackendError extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(32),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.cloud_off_outlined, size: 40),
-            const SizedBox(height: 12),
+            const Icon(Icons.error_outline_sharp, size: 48, color: AppColors.brandRed),
+            const SizedBox(height: 16),
             const Text(
-              'Нет данных из backend',
-              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
+              'ОШИБКА ПОДКЛЮЧЕНИЯ',
+              style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 1.0),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
             Text(
-              message,
+              message.toUpperCase(),
               textAlign: TextAlign.center,
-              style: const TextStyle(color: AppColors.textSecondary),
+              style: const TextStyle(color: AppColors.textSecondary, fontSize: 12, fontWeight: FontWeight.w600),
             ),
           ],
         ),
@@ -510,24 +501,17 @@ class _PurchaseListItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 8),
+      margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppColors.surfaceCard,
-        border: Border.all(color: AppColors.border),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        color: Colors.white,
+        border: Border.all(color: AppColors.border, width: 1.5),
       ),
       child: Row(
         children: [
           const PremiumIconBadge(
             icon: Icons.receipt_outlined,
-            size: 42,
+            size: 40,
             iconSize: 20,
           ),
           const SizedBox(width: 12),
@@ -536,9 +520,9 @@ class _PurchaseListItem extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  purchase.documentNumber,
+                  purchase.documentNumber.toUpperCase(),
                   style: const TextStyle(
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w900,
                     fontSize: 13,
                   ),
                 ),
@@ -547,6 +531,7 @@ class _PurchaseListItem extends StatelessWidget {
                   style: const TextStyle(
                     color: AppColors.textSecondary,
                     fontSize: 11,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
               ],
@@ -556,13 +541,14 @@ class _PurchaseListItem extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                '${fmt.format(purchase.totalAmount)} ₽',
+                ' ₽',
                 style: const TextStyle(
-                  fontWeight: FontWeight.w700,
+                  fontWeight: FontWeight.w900,
                   fontSize: 13,
+                  color: AppColors.brandBlack,
                 ),
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: 6),
               StatusBadge.fromPurchaseStatus(purchase.status),
             ],
           ),
@@ -579,24 +565,17 @@ class _ColorRequestItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 8),
+      margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppColors.surfaceCard,
-        border: Border.all(color: AppColors.border),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        color: Colors.white,
+        border: Border.all(color: AppColors.border, width: 1.5),
       ),
       child: Row(
         children: [
           const PremiumIconBadge(
             icon: Icons.palette_outlined,
-            size: 42,
+            size: 40,
             iconSize: 20,
           ),
           const SizedBox(width: 12),
@@ -605,17 +584,18 @@ class _ColorRequestItem extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '${request.carBrand} ${request.carModel}',
+                  ' '.toUpperCase(),
                   style: const TextStyle(
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w900,
                     fontSize: 13,
                   ),
                 ),
                 Text(
-                  '${request.colorCode} · ${request.colorName}',
+                  ' · '.toUpperCase(),
                   style: const TextStyle(
                     color: AppColors.textSecondary,
                     fontSize: 11,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
               ],
@@ -626,7 +606,7 @@ class _ColorRequestItem extends StatelessWidget {
             children: [
               StatusBadge.fromColorStatus(request.status),
               if (request.urgent) ...[
-                const SizedBox(height: 4),
+                const SizedBox(height: 6),
                 const StatusBadge(
                   label: 'СРОЧНО',
                   color: AppColors.brandRed,
@@ -646,20 +626,4 @@ class _QuickAction {
   final String label;
   final VoidCallback onTap;
   const _QuickAction(this.icon, this.label, this.onTap);
-}
-
-class _ChamferPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()..color = AppColors.brandWhite;
-    final path = Path()
-      ..moveTo(0, 0)
-      ..lineTo(size.width, size.height)
-      ..lineTo(size.width, 0)
-      ..close();
-    canvas.drawPath(path, paint);
-  }
-
-  @override
-  bool shouldRepaint(_) => false;
 }

@@ -91,11 +91,11 @@ class _DistributorScreenState extends State<DistributorScreen> {
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => context.push(AppRoutes.order),
-        backgroundColor: AppColors.primary,
+        backgroundColor: AppColors.brandRed,
         icon: const Icon(Icons.shopping_cart_outlined, color: Colors.white),
         label: const Text(
           'Сделать заказ',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, letterSpacing: 0.5),
         ),
       ),
     );
@@ -150,15 +150,15 @@ class _DistributorScreenState extends State<DistributorScreen> {
                     vertical: 4,
                   ),
                   decoration: BoxDecoration(
-                    color: AppColors.success.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(6),
+                    color: AppColors.brandBlack.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.zero,
                   ),
                   child: const Text(
                     'Активен',
                     style: TextStyle(
-                      color: AppColors.success,
+                      color: AppColors.brandBlack,
                       fontSize: 11,
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
                 ),
@@ -170,12 +170,12 @@ class _DistributorScreenState extends State<DistributorScreen> {
             InfoRow(
               label: 'Телефон',
               value: dist.phone,
-              valueColor: AppColors.primary,
+              valueColor: AppColors.brandBlack,
             ),
             InfoRow(
               label: 'Email',
               value: dist.email,
-              valueColor: AppColors.primary,
+              valueColor: AppColors.brandBlack,
             ),
           ],
         ),
@@ -190,7 +190,7 @@ class _DistributorScreenState extends State<DistributorScreen> {
           child: _ActionButton(
             icon: Icons.phone,
             label: 'Позвонить',
-            color: AppColors.success,
+            color: AppColors.brandBlack,
             onTap: () {},
           ),
         ),
@@ -199,7 +199,7 @@ class _DistributorScreenState extends State<DistributorScreen> {
           child: _ActionButton(
             icon: Icons.chat_outlined,
             label: 'WhatsApp',
-            color: const Color(0xFF25D366),
+            color: AppColors.brandBlack,
             onTap: () {},
           ),
         ),
@@ -208,7 +208,7 @@ class _DistributorScreenState extends State<DistributorScreen> {
           child: _ActionButton(
             icon: Icons.email_outlined,
             label: 'Email',
-            color: AppColors.info,
+            color: AppColors.brandBlack,
             onTap: () {},
           ),
         ),
@@ -236,9 +236,9 @@ class _ActionButton extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 14),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.08),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: color.withOpacity(0.3)),
+          color: color.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.zero,
+          border: Border.all(color: color.withValues(alpha: 0.3)),
         ),
         child: Column(
           children: [
@@ -249,7 +249,7 @@ class _ActionButton extends StatelessWidget {
               style: TextStyle(
                 color: color,
                 fontSize: 12,
-                fontWeight: FontWeight.w600,
+                fontWeight: FontWeight.w700,
               ),
             ),
           ],

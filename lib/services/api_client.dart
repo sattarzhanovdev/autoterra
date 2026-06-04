@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:file_picker/file_picker.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -12,6 +13,7 @@ class ApiClient {
   const ApiClient();
   static const _tokenKey = 'auth_token';
   static String? _token;
+  static String? currentRole;
 
   static bool get isAuthorized => _token != null;
 
@@ -36,11 +38,37 @@ class ApiClient {
       'password': password,
     });
     _token = result['token'] as String?;
+    final user = result['user'];
+    currentRole = user is Map<String, dynamic> ? user['role']?.toString() : null;
     if (_token != null) {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_tokenKey, _token!);
     }
     return result;
+  }
+
+  Future<Map<String, dynamic>> register({
+    required String inn,
+    required String companyName,
+    required String region,
+    required String category,
+    required String contactName,
+    required String phone,
+    required String email,
+    required String password,
+    String registrationSource = 'client',
+  }) {
+    return _post('/register/', {
+      'inn': inn,
+      'companyName': companyName,
+      'region': region,
+      'category': category,
+      'contactName': contactName,
+      'phone': phone,
+      'email': email,
+      'password': password,
+      'registrationSource': registrationSource,
+    });
   }
 
   Future<Map<String, dynamic>> dashboard() {
@@ -83,13 +111,34 @@ class ApiClient {
     return (result['results'] as List<dynamic>).cast<Map<String, dynamic>>();
   }
 
+  Future<Map<String, dynamic>> createPurchase({
+    required String inn,
+    required String documentNumber,
+    required DateTime date,
+    required double totalAmount,
+    required List<Map<String, dynamic>> items,
+    List<PlatformFile> attachments = const [],
+  }) async {
+    return _multipartPost('/purchases/create/', {
+      'inn': inn,
+      'documentNumber': documentNumber,
+      'date': date.toIso8601String().split('T').first,
+      'totalAmount': totalAmount.toString(),
+      'items': jsonEncode(items),
+    }, attachments);
+  }
+
   Future<List<Map<String, dynamic>>> colorRequests() async {
     final result = await _get('/color-requests/');
     return (result['results'] as List<dynamic>).cast<Map<String, dynamic>>();
   }
 
-  Future<Map<String, dynamic>> createColorRequest(Map<String, dynamic> body) {
-    return _post('/color-requests/create/', body);
+  Future<Map<String, dynamic>> createColorRequest(
+    Map<String, dynamic> body, {
+    List<PlatformFile> attachments = const [],
+  }) {
+    if (attachments.isEmpty) return _post('/color-requests/create/', body);
+    return _multipartPost('/color-requests/create/', _stringFields(body), attachments);
   }
 
   Future<List<Map<String, dynamic>>> courierTasks() async {
@@ -101,6 +150,92 @@ class ApiClient {
     return _post('/courier-tasks/create/', body);
   }
 
+  Future<Map<String, dynamic>> uploadCourierProof({
+    required String taskId,
+    required List<PlatformFile> attachments,
+  }) {
+    return _multipartPost('/courier-tasks/$taskId/proof/', {}, attachments);
+  }
+
+  Future<List<Map<String, dynamic>>> courierMyTasks() async {
+    final result = await _get('/courier/tasks/');
+    return (result['results'] as List<dynamic>).cast<Map<String, dynamic>>();
+  }
+
+  Future<Map<String, dynamic>> courierTaskDetail(String id) {
+    return _get('/courier/tasks/$id/');
+  }
+
+  Future<Map<String, dynamic>> courierUpdateTaskStatus(String id, String status, {String comment = ''}) {
+    return _post('/courier/tasks/$id/status/', {'status': status, 'comment': comment});
+  }
+
+  Future<Map<String, dynamic>> courierUpdateComment(String id, String comment) {
+    return _post('/courier/tasks/$id/comment/', {'comment': comment});
+  }
+
+  Future<Map<String, dynamic>> courierUploadProof({
+    required String taskId,
+    required List<PlatformFile> attachments,
+  }) {
+    return _multipartPost('/courier/tasks/$taskId/proof/', {}, attachments);
+  }
+
+  Future<Map<String, dynamic>> assignCourierTask({
+    required String taskId,
+    required String courierId,
+  }) {
+    return _post('/courier/tasks/$taskId/assign/', {'courierId': courierId});
+  }
+
+  Future<Map<String, dynamic>> distributorDashboard() => _get('/distributor/dashboard/');
+
+  Future<List<Map<String, dynamic>>> distributorClients() async {
+    final result = await _get('/distributor/clients/');
+    return (result['results'] as List<dynamic>).cast<Map<String, dynamic>>();
+  }
+
+  Future<List<Map<String, dynamic>>> distributorPurchases() async {
+    final result = await _get('/distributor/purchases/');
+    return (result['results'] as List<dynamic>).cast<Map<String, dynamic>>();
+  }
+
+  Future<Map<String, dynamic>> distributorConfirmPurchase(String id) {
+    return _post('/distributor/purchases/$id/confirm/', {});
+  }
+
+  Future<Map<String, dynamic>> distributorRejectPurchase(String id, String reason) {
+    return _post('/distributor/purchases/$id/reject/', {'reason': reason});
+  }
+
+  Future<List<Map<String, dynamic>>> distributorOrders() async {
+    final result = await _get('/distributor/orders/');
+    return (result['results'] as List<dynamic>).cast<Map<String, dynamic>>();
+  }
+
+  Future<Map<String, dynamic>> distributorAcceptOrder(String id) {
+    return _post('/distributor/orders/$id/accept/', {});
+  }
+
+  Future<Map<String, dynamic>> distributorRejectOrder(String id, String reason) {
+    return _post('/distributor/orders/$id/reject/', {'reason': reason});
+  }
+
+  Future<Map<String, dynamic>> distributorUpdateOrderStatus(String id, String status) {
+    return _post('/distributor/orders/$id/status/', {'status': status});
+  }
+
+  Future<List<Map<String, dynamic>>> distributorStock() async {
+    final result = await _get('/distributor/stock/');
+    return (result['results'] as List<dynamic>).cast<Map<String, dynamic>>();
+  }
+
+  Future<Map<String, dynamic>> distributorUploadStock(List<Map<String, dynamic>> items) {
+    return _post('/distributor/stock/upload/', {'items': items});
+  }
+
+  Future<Map<String, dynamic>> distributorReports() => _get('/distributor/reports/');
+
   Future<List<Map<String, dynamic>>> referrals() async {
     final result = await _get('/referrals/');
     return (result['results'] as List<dynamic>).cast<Map<String, dynamic>>();
@@ -109,6 +244,14 @@ class ApiClient {
   Future<List<Map<String, dynamic>>> tickets() async {
     final result = await _get('/tickets/');
     return (result['results'] as List<dynamic>).cast<Map<String, dynamic>>();
+  }
+
+  Future<Map<String, dynamic>> createTicket(
+    Map<String, dynamic> body, {
+    List<PlatformFile> attachments = const [],
+  }) {
+    if (attachments.isEmpty) return _post('/tickets/create/', body);
+    return _multipartPost('/tickets/create/', _stringFields(body), attachments);
   }
 
   Future<List<Map<String, dynamic>>> notifications() async {
@@ -121,13 +264,25 @@ class ApiClient {
     return (result['results'] as List<dynamic>).cast<Map<String, dynamic>>();
   }
 
-  Future<String> aiChat(String message) async {
-    final result = await _post(
+  Future<Map<String, dynamic>> aiChatWithMeta(String message) async {
+    return _post(
       '/ai/chat/',
       {'message': message},
       timeout: const Duration(seconds: 60),
     );
+  }
+
+  Future<String> aiChat(String message) async {
+    final result = await aiChatWithMeta(message);
     return result['answer'] as String;
+  }
+
+  Future<Map<String, dynamic>> expertAnswerTicket(String id, Map<String, dynamic> body) {
+    return _post('/tickets/$id/expert-answer/', body);
+  }
+
+  Future<Map<String, dynamic>> updateKnowledgeCard(String id, Map<String, dynamic> body) {
+    return _post('/knowledge-cards/$id/update/', body);
   }
 
   Future<Map<String, dynamic>> _get(String path) async {
@@ -150,6 +305,32 @@ class ApiClient {
         )
         .timeout(timeout);
     return _decode(response);
+  }
+
+  Future<Map<String, dynamic>> _multipartPost(
+    String path,
+    Map<String, String> fields,
+    List<PlatformFile> attachments,
+  ) async {
+    final request = http.MultipartRequest('POST', Uri.parse('$baseUrl$path'));
+    if (_token != null) {
+      request.headers['Authorization'] = 'Bearer $_token';
+    }
+    request.fields.addAll(fields);
+    for (final file in attachments) {
+      final bytes = file.bytes;
+      if (bytes == null) continue;
+      request.files.add(
+        http.MultipartFile.fromBytes('attachments', bytes, filename: file.name),
+      );
+    }
+    final streamed = await request.send().timeout(const Duration(seconds: 12));
+    final response = await http.Response.fromStream(streamed);
+    return _decode(response);
+  }
+
+  Map<String, String> _stringFields(Map<String, dynamic> body) {
+    return body.map((key, value) => MapEntry(key, value?.toString() ?? ''));
   }
 
   Map<String, String> _headers() {
