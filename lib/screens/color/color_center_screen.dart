@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
 import '../../core/theme.dart';
 import '../../models/models.dart';
 import '../../services/api_client.dart';
@@ -49,15 +51,12 @@ class _ColorCenterScreenState extends State<ColorCenterScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Подбор цвета'),
+        title: const Text('ПОДБОР ЦВЕТА'),
         bottom: TabBar(
           controller: _tabCtrl,
-          labelColor: Colors.white,
-          unselectedLabelColor: Colors.white54,
-          indicatorColor: Colors.white,
           tabs: const [
-            Tab(text: 'Заявки'),
-            Tab(text: 'История'),
+            Tab(text: 'ЗАЯВКИ'),
+            Tab(text: 'ИСТОРИЯ'),
           ],
         ),
       ),
@@ -67,11 +66,11 @@ class _ColorCenterScreenState extends State<ColorCenterScreen>
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showNewRequestDialog(),
-        backgroundColor: const Color(0xFF8B5CF6),
+        backgroundColor: AppColors.brandRed,
         icon: const Icon(Icons.add, color: Colors.white),
         label: const Text(
-          'Подобрать цвет',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+          'ПОДОБРАТЬ ЦВЕТ',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
         ),
       ),
     );
@@ -82,7 +81,7 @@ class _ColorCenterScreenState extends State<ColorCenterScreen>
       future: _future,
       builder: (context, snapshot) {
         if (snapshot.connectionState != ConnectionState.done) {
-          return const Center(child: CircularProgressIndicator());
+          return const Center(child: CircularProgressIndicator(color: AppColors.brandRed));
         }
         if (snapshot.hasError) {
           return Center(child: Text(snapshot.error.toString()));
@@ -97,7 +96,7 @@ class _ColorCenterScreenState extends State<ColorCenterScreen>
               physics: const AlwaysScrollableScrollPhysics(),
               children: const [
                 SizedBox(height: 220),
-                Center(child: Text('Нет активных заявок по цвету')),
+                Center(child: Text('НЕТ АКТИВНЫХ ЗАЯВОК')),
               ],
             ),
           );
@@ -108,7 +107,7 @@ class _ColorCenterScreenState extends State<ColorCenterScreen>
             physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.all(16),
             itemCount: requests.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 10),
+            separatorBuilder: (_, __) => const SizedBox(height: 12),
             itemBuilder: (context, i) => _ColorCard(
               request: requests[i],
               onTap: () => _showRecipe(requests[i]),
@@ -124,7 +123,7 @@ class _ColorCenterScreenState extends State<ColorCenterScreen>
       future: _future,
       builder: (context, snapshot) {
         if (snapshot.connectionState != ConnectionState.done) {
-          return const Center(child: CircularProgressIndicator());
+          return const Center(child: CircularProgressIndicator(color: AppColors.brandRed));
         }
         if (snapshot.hasError) {
           return Center(child: Text(snapshot.error.toString()));
@@ -137,7 +136,7 @@ class _ColorCenterScreenState extends State<ColorCenterScreen>
               physics: const AlwaysScrollableScrollPhysics(),
               children: const [
                 SizedBox(height: 220),
-                Center(child: Text('История пуста')),
+                Center(child: Text('ИСТОРИЯ ПУСТА')),
               ],
             ),
           );
@@ -148,52 +147,62 @@ class _ColorCenterScreenState extends State<ColorCenterScreen>
             physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.all(16),
             itemCount: requests.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 10),
+            separatorBuilder: (_, __) => const SizedBox(height: 12),
             itemBuilder: (context, i) {
               final r = requests[i];
-              return Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(14),
-                  child: Row(
-                    children: [
-                      const PremiumIconBadge(
-                        icon: Icons.palette_outlined,
-                        size: 42,
-                        iconSize: 22,
-                        iconColor: AppColors.brandRed,
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              '${r.carBrand} ${r.carModel}',
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w600,
-                                fontSize: 14,
-                              ),
-                            ),
-                            Text(
-                              '${r.colorCode} · ${r.colorName}',
-                              style: const TextStyle(
-                                color: AppColors.textSecondary,
-                                fontSize: 12,
-                              ),
-                            ),
-                            Text(
-                              DateFormat('dd.MM.yyyy').format(r.createdAt),
-                              style: const TextStyle(
-                                color: AppColors.textHint,
-                                fontSize: 11,
-                              ),
-                            ),
-                          ],
+              return Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  border: Border.all(color: AppColors.border),
+                ),
+                child: Column(
+                  children: [
+                    Row(
+                      children: [
+                        const PremiumIconBadge(
+                          icon: Icons.palette_outlined,
+                          size: 42,
+                          iconSize: 22,
+                          iconColor: AppColors.brandRed,
                         ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                '${r.carBrand} ${r.carModel}'.toUpperCase(),
+                                style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
+                              ),
+                              Text(
+                                '${r.colorCode} · ${r.colorName}'.toUpperCase(),
+                                style: const TextStyle(color: AppColors.textSecondary, fontSize: 11),
+                              ),
+                            ],
+                          ),
+                        ),
+                        StatusBadge.fromColorStatus(r.status),
+                      ],
+                    ),
+                    if (r.slaDeadline != null) ...[
+                      const Divider(height: 24),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text('SLA DEADLINE:', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.textSecondary)),
+                          Text(
+                            DateFormat('dd.MM.yyyy HH:mm').format(r.slaDeadline!),
+                            style: TextStyle(
+                              fontSize: 10, 
+                              fontWeight: FontWeight.bold, 
+                              color: r.isOverdue ? AppColors.brandRed : AppColors.success
+                            ),
+                          ),
+                        ],
                       ),
-                      StatusBadge.fromColorStatus(r.status),
                     ],
-                  ),
+                  ],
                 ),
               );
             },
@@ -209,83 +218,38 @@ class _ColorCenterScreenState extends State<ColorCenterScreen>
       context: context,
       backgroundColor: Colors.transparent,
       builder: (_) => Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        ),
+        decoration: const BoxDecoration(color: Colors.white),
         padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              width: 36,
-              height: 4,
-              decoration: BoxDecoration(
-                color: AppColors.border,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            const SizedBox(height: 20),
-            Row(
-              children: [
-                const Icon(
-                  Icons.science_outlined,
-                  color: Color(0xFF8B5CF6),
-                  size: 24,
-                ),
-                const SizedBox(width: 10),
-                const Text(
-                  'Рецепт цвета',
-                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18),
-                ),
-              ],
+            const Text(
+              'РЕЦЕПТ ЦВЕТА',
+              style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: 1),
             ),
             const SizedBox(height: 16),
-            InfoRow(
-              label: 'Автомобиль',
-              value: '${request.carBrand} ${request.carModel}',
-            ),
-            InfoRow(label: 'Код цвета', value: request.colorCode),
-            InfoRow(label: 'Цвет', value: request.colorName),
-            InfoRow(label: 'VIN', value: request.vin),
-            const SizedBox(height: 16),
+            InfoRow(label: 'АВТОМОБИЛЬ', value: '${request.carBrand} ${request.carModel}'.toUpperCase()),
+            InfoRow(label: 'КОД ЦВЕТА', value: request.colorCode.toUpperCase()),
+            InfoRow(label: 'ЦВЕТ', value: request.colorName.toUpperCase()),
+            const Divider(height: 32),
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: const Color(0xFF8B5CF6).withOpacity(0.06),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(
-                  color: const Color(0xFF8B5CF6).withOpacity(0.2),
-                ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Состав',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 13,
-                      color: Color(0xFF8B5CF6),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    request.recipe!,
-                    style: const TextStyle(fontSize: 14, height: 1.5),
-                  ),
-                ],
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(color: AppColors.canvas, border: Border.all(color: AppColors.border)),
+              child: Text(
+                request.recipe!,
+                style: const TextStyle(fontSize: 14, height: 1.5, fontWeight: FontWeight.bold),
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 24),
             SizedBox(
               width: double.infinity,
-              child: ElevatedButton.icon(
+              height: 50,
+              child: ElevatedButton(
                 onPressed: () => Navigator.pop(context),
-                icon: const Icon(Icons.check, size: 18),
-                label: const Text('Понятно'),
+                style: ElevatedButton.styleFrom(backgroundColor: AppColors.brandBlack),
+                child: const Text('ЗАКРЫТЬ'),
               ),
             ),
           ],
@@ -311,10 +275,13 @@ class _ColorCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(color: AppColors.border),
+      ),
       child: InkWell(
         onTap: request.status == ColorRequestStatus.ready ? onTap : null,
-        borderRadius: BorderRadius.circular(12),
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
@@ -322,18 +289,11 @@ class _ColorCard extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  Container(
-                    width: 42,
-                    height: 42,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF8B5CF6).withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: const Icon(
-                      Icons.palette_outlined,
-                      color: Color(0xFF8B5CF6),
-                      size: 22,
-                    ),
+                  const PremiumIconBadge(
+                    icon: Icons.palette_outlined,
+                    size: 42,
+                    iconSize: 22,
+                    iconColor: AppColors.brandRed,
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -341,88 +301,38 @@ class _ColorCard extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          '${request.carBrand} ${request.carModel}',
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w700,
-                            fontSize: 15,
-                          ),
+                          '${request.carBrand} ${request.carModel}'.toUpperCase(),
+                          style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
                         ),
                         Text(
-                          'VIN: ${request.vin}',
-                          style: const TextStyle(
-                            color: AppColors.textSecondary,
-                            fontSize: 11,
-                          ),
+                          'VIN: ${request.vin}'.toUpperCase(),
+                          style: const TextStyle(color: AppColors.textSecondary, fontSize: 11),
                         ),
                       ],
                     ),
                   ),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      StatusBadge.fromColorStatus(request.status),
-                      if (request.urgent) ...[
-                        const SizedBox(height: 4),
-                        const StatusBadge(
-                          label: 'Срочно',
-                          color: AppColors.error,
-                        ),
-                      ],
-                    ],
-                  ),
+                  StatusBadge.fromColorStatus(request.status),
                 ],
               ),
-              const SizedBox(height: 12),
-              const Divider(height: 1),
-              const SizedBox(height: 12),
+              const Divider(height: 24),
               Row(
                 children: [
-                  _infoChip(
-                    Icons.color_lens_outlined,
-                    '${request.colorCode} · ${request.colorName}',
-                    const Color(0xFF8B5CF6),
-                  ),
-                  const SizedBox(width: 8),
-                  _infoChip(
-                    Icons.calendar_today_outlined,
-                    DateFormat('dd.MM.yyyy').format(request.createdAt),
-                    AppColors.textSecondary,
-                  ),
+                  _infoChip(Icons.color_lens_outlined, '${request.colorCode} · ${request.colorName}'.toUpperCase()),
+                  const Spacer(),
+                  if (request.slaDeadline != null)
+                    _infoChip(Icons.timer_outlined, 'ДО ${DateFormat('HH:mm').format(request.slaDeadline!)}', request.isOverdue ? AppColors.brandRed : AppColors.success),
                 ],
               ),
               if (request.status == ColorRequestStatus.ready) ...[
                 const SizedBox(height: 12),
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: AppColors.success.withOpacity(0.08),
-                    borderRadius: BorderRadius.circular(8),
+                ElevatedButton(
+                  onPressed: onTap,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.success,
+                    minimumSize: const Size(double.infinity, 36),
+                    shape: const BeveledRectangleBorder(),
                   ),
-                  child: Row(
-                    children: [
-                      const Icon(
-                        Icons.check_circle,
-                        color: AppColors.success,
-                        size: 18,
-                      ),
-                      const SizedBox(width: 8),
-                      const Expanded(
-                        child: Text(
-                          'Рецепт готов. Нажмите для просмотра',
-                          style: TextStyle(
-                            color: AppColors.success,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                      const Icon(
-                        Icons.arrow_forward_ios,
-                        size: 12,
-                        color: AppColors.success,
-                      ),
-                    ],
-                  ),
+                  child: const Text('СМОТРЕТЬ РЕЦЕПТ', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
                 ),
               ],
             ],
@@ -432,13 +342,12 @@ class _ColorCard extends StatelessWidget {
     );
   }
 
-  Widget _infoChip(IconData icon, String label, Color color) {
+  Widget _infoChip(IconData icon, String label, [Color color = AppColors.textSecondary]) {
     return Row(
-      mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 13, color: color),
-        const SizedBox(width: 4),
-        Text(label, style: TextStyle(fontSize: 12, color: color)),
+        Icon(icon, size: 14, color: color),
+        const SizedBox(width: 6),
+        Text(label, style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: color)),
       ],
     );
   }
@@ -446,7 +355,6 @@ class _ColorCard extends StatelessWidget {
 
 class _NewColorRequestSheet extends StatefulWidget {
   final VoidCallback onCreated;
-
   const _NewColorRequestSheet({required this.onCreated});
 
   @override
@@ -459,36 +367,48 @@ class _NewColorRequestSheetState extends State<_NewColorRequestSheet> {
   final _vinCtrl = TextEditingController();
   final _colorCodeCtrl = TextEditingController();
   final _colorNameCtrl = TextEditingController();
+  final _addressCtrl = TextEditingController();
+  final _contactPersonCtrl = TextEditingController();
+  final _contactPhoneCtrl = TextEditingController();
+  final _commentCtrl = TextEditingController();
+
+  String _transferMethod = 'courier';
+  DateTime? _pickupTime;
+  XFile? _photo;
   bool _urgent = false;
-  bool _courierPickup = false;
   bool _saving = false;
+
+  Future<void> _pickImage() async {
+    final picker = ImagePicker();
+    final img = await picker.pickImage(source: ImageSource.camera);
+    if (img != null) setState(() => _photo = img);
+  }
 
   Future<void> _submit() async {
     setState(() => _saving = true);
     try {
-      await ApiClient().createColorRequest({
+      final bytes = _photo != null ? await _photo!.readAsBytes() : null;
+      await DataRepository().createColorRequest({
         'carBrand': _brandCtrl.text,
         'carModel': _modelCtrl.text,
         'vin': _vinCtrl.text,
         'colorCode': _colorCodeCtrl.text,
         'colorName': _colorNameCtrl.text,
         'urgent': _urgent,
-        'courierPickup': _courierPickup,
-      });
+        'transferMethod': _transferMethod,
+        'pickupAddress': _addressCtrl.text,
+        'pickupTime': _pickupTime?.toIso8601String(),
+        'contactPerson': _contactPersonCtrl.text,
+        'contactPhone': _contactPhoneCtrl.text,
+        'comment': _commentCtrl.text,
+      }, fileBytes: bytes, fileName: _photo?.name);
+      
       if (!mounted) return;
       widget.onCreated();
       Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Заявка на подбор цвета создана'),
-          backgroundColor: AppColors.success,
-        ),
-      );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString()), backgroundColor: AppColors.error),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -498,177 +418,112 @@ class _NewColorRequestSheetState extends State<_NewColorRequestSheet> {
   Widget build(BuildContext context) {
     return Container(
       height: MediaQuery.of(context).size.height * 0.9,
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
+      decoration: const BoxDecoration(color: Colors.white),
       child: Column(
         children: [
-          Container(
-            width: 36,
-            height: 4,
-            margin: const EdgeInsets.only(top: 12),
-            decoration: BoxDecoration(
-              color: AppColors.border,
-              borderRadius: BorderRadius.circular(2),
-            ),
+          AppBar(
+            title: const Text('НОВАЯ ЗАЯВКА', style: TextStyle(fontWeight: FontWeight.w900)),
+            automaticallyImplyLeading: false,
+            actions: [IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close))],
           ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-            child: Row(
-              children: [
-                const Text(
-                  'Новая заявка на подбор',
-                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18),
-                ),
-                const Spacer(),
-                IconButton(
-                  icon: const Icon(Icons.close),
-                  onPressed: () => Navigator.pop(context),
-                ),
-              ],
-            ),
-          ),
-          const Divider(),
           Expanded(
             child: ListView(
               padding: const EdgeInsets.all(20),
               children: [
-                const Text(
-                  '1. Автомобиль',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 14,
-                    color: AppColors.textSecondary,
-                  ),
-                ),
+                _sectionTitle('1. АВТОМОБИЛЬ И ЦВЕТ'),
                 const SizedBox(height: 12),
                 Row(
                   children: [
-                    Expanded(
-                      child: TextFormField(
-                        controller: _brandCtrl,
-                        decoration: const InputDecoration(labelText: 'Марка *'),
-                      ),
-                    ),
+                    Expanded(child: TextFormField(controller: _brandCtrl, decoration: const InputDecoration(labelText: 'МАРКА *'))),
                     const SizedBox(width: 10),
-                    Expanded(
-                      child: TextFormField(
-                        controller: _modelCtrl,
-                        decoration: const InputDecoration(
-                          labelText: 'Модель *',
-                        ),
-                      ),
-                    ),
+                    Expanded(child: TextFormField(controller: _modelCtrl, decoration: const InputDecoration(labelText: 'МОДЕЛЬ *'))),
                   ],
                 ),
                 const SizedBox(height: 12),
-                TextFormField(
-                  controller: _vinCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'VIN или госномер',
-                    prefixIcon: Icon(Icons.confirmation_num_outlined),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                const Text(
-                  '2. Цвет',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 14,
-                    color: AppColors.textSecondary,
-                  ),
-                ),
+                TextFormField(controller: _vinCtrl, decoration: const InputDecoration(labelText: 'VIN / ГОСНОМЕР')),
                 const SizedBox(height: 12),
                 Row(
                   children: [
-                    SizedBox(
-                      width: 120,
-                      child: TextFormField(
-                        controller: _colorCodeCtrl,
-                        decoration: const InputDecoration(
-                          labelText: 'Код цвета',
-                        ),
-                      ),
-                    ),
+                    Expanded(child: TextFormField(controller: _colorCodeCtrl, decoration: const InputDecoration(labelText: 'КОД ЦВЕТА'))),
                     const SizedBox(width: 10),
-                    Expanded(
-                      child: TextFormField(
-                        controller: _colorNameCtrl,
-                        decoration: const InputDecoration(
-                          labelText: 'Название цвета',
-                        ),
-                      ),
-                    ),
+                    Expanded(child: TextFormField(controller: _colorNameCtrl, decoration: const InputDecoration(labelText: 'НАЗВАНИЕ ЦВЕТА'))),
                   ],
-                ),
-                const SizedBox(height: 20),
-                GestureDetector(
-                  onTap: () {},
-                  child: Container(
-                    height: 80,
-                    decoration: BoxDecoration(
-                      color: AppColors.primary.withOpacity(0.04),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: AppColors.border),
-                    ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.add_a_photo_outlined,
-                          color: AppColors.primary.withOpacity(0.6),
-                        ),
-                        const SizedBox(height: 6),
-                        const Text(
-                          'Добавить фото лючка',
-                          style: TextStyle(
-                            color: AppColors.textSecondary,
-                            fontSize: 13,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                SwitchListTile(
-                  value: _urgent,
-                  onChanged: (v) => setState(() => _urgent = v),
-                  title: const Text(
-                    'Срочно',
-                    style: TextStyle(fontWeight: FontWeight.w500),
-                  ),
-                  subtitle: const Text(
-                    'Приоритетная обработка',
-                    style: TextStyle(fontSize: 12),
-                  ),
-                  activeColor: AppColors.accent,
-                  contentPadding: EdgeInsets.zero,
-                ),
-                SwitchListTile(
-                  value: _courierPickup,
-                  onChanged: (v) => setState(() => _courierPickup = v),
-                  title: const Text(
-                    'Забрать лючок курьером',
-                    style: TextStyle(fontWeight: FontWeight.w500),
-                  ),
-                  subtitle: const Text(
-                    'Дополнительная услуга внутри этой заявки',
-                    style: TextStyle(fontSize: 12),
-                  ),
-                  activeColor: AppColors.primary,
-                  contentPadding: EdgeInsets.zero,
                 ),
                 const SizedBox(height: 24),
-                ElevatedButton(
-                  onPressed: _saving ? null : _submit,
-                  child: Text(_saving ? 'Создаём...' : 'Создать заявку'),
+                _sectionTitle('2. ФОТО ЛЮЧКА'),
+                const SizedBox(height: 12),
+                GestureDetector(
+                  onTap: _pickImage,
+                  child: Container(
+                    height: 100,
+                    decoration: BoxDecoration(color: AppColors.canvas, border: Border.all(color: AppColors.border)),
+                    child: _photo == null 
+                      ? const Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.add_a_photo, color: AppColors.brandRed), Text('ДОБАВИТЬ ФОТО', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold))])
+                      : Image.file(File(_photo!.path), fit: BoxFit.cover),
+                  ),
+                ),
+                const SizedBox(height: 24),
+                _sectionTitle('3. ПЕРЕДАЧА ЛЮЧКА'),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    _radioBtn('courier', 'КУРЬЕР'),
+                    const SizedBox(width: 12),
+                    _radioBtn('self_delivery', 'САМ ПРИВЕЗУ'),
+                  ],
+                ),
+                if (_transferMethod == 'courier') ...[
+                  const SizedBox(height: 16),
+                  TextFormField(controller: _addressCtrl, decoration: const InputDecoration(labelText: 'АДРЕС ЗАБОРА *')),
+                  const SizedBox(height: 12),
+                  InkWell(
+                    onTap: () async {
+                      final time = await showTimePicker(context: context, initialTime: TimeOfDay.now());
+                      if (time != null) {
+                        final now = DateTime.now();
+                        setState(() => _pickupTime = DateTime(now.year, now.month, now.day, time.hour, time.minute));
+                      }
+                    },
+                    child: InputDecorator(
+                      decoration: const InputDecoration(labelText: 'ВРЕМЯ ЗАБОРА'),
+                      child: Text(_pickupTime == null ? 'НЕ ВЫБРАНО' : DateFormat('HH:mm').format(_pickupTime!)),
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 24),
+                TextFormField(controller: _commentCtrl, maxLines: 2, decoration: const InputDecoration(labelText: 'КОММЕНТАРИЙ')),
+                const SizedBox(height: 32),
+                SizedBox(
+                  height: 54,
+                  child: ElevatedButton(
+                    onPressed: _saving ? null : _submit,
+                    style: ElevatedButton.styleFrom(backgroundColor: AppColors.brandRed),
+                    child: Text(_saving ? 'ОТПРАВКА...' : 'ОТПРАВИТЬ ЗАЯВКУ'),
+                  ),
                 ),
               ],
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _sectionTitle(String title) => Text(title, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 0.5));
+
+  Widget _radioBtn(String value, String label) {
+    final selected = _transferMethod == value;
+    return Expanded(
+      child: InkWell(
+        onTap: () => setState(() => _transferMethod = value),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+            color: selected ? AppColors.brandBlack : Colors.white,
+            border: Border.all(color: AppColors.brandBlack),
+          ),
+          child: Text(label, textAlign: TextAlign.center, style: TextStyle(color: selected ? Colors.white : AppColors.brandBlack, fontWeight: FontWeight.bold, fontSize: 11)),
+        ),
       ),
     );
   }

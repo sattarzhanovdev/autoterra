@@ -18,7 +18,7 @@ class _DistributorLayoutState extends State<DistributorLayout> {
     const DistributorOrdersTabsScreen(),
     const _PlaceholderScreen(title: 'КЛИЕНТЫ'),
     const _PlaceholderScreen(title: 'СКЛАД'),
-    const _PlaceholderScreen(title: 'ОТЧЕТЫ'),
+    const DistributorReportsScreen(),
   ];
 
   @override
@@ -134,11 +134,11 @@ class PurchaseVerificationCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: ShapeDecoration(
+      decoration: const ShapeDecoration(
         color: Colors.white,
-        shape: const BeveledRectangleBorder(
+        shape: BeveledRectangleBorder(
           side: BorderSide(color: Color(0xFF171717), width: 1),
-          borderRadius: BorderRadius.only(topRight: Radius.circular(15)),
+          borderRadius: BorderRadius.zero,
         ),
       ),
       padding: const EdgeInsets.all(16),
@@ -162,7 +162,10 @@ class PurchaseVerificationCard extends StatelessWidget {
               Expanded(
                 child: ElevatedButton(
                   onPressed: () => _handle(context, true),
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.black),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.black,
+                    shape: const BeveledRectangleBorder(),
+                  ),
                   child: const Text('ПОДТВЕРДИТЬ'),
                 ),
               ),
@@ -170,7 +173,11 @@ class PurchaseVerificationCard extends StatelessWidget {
               Expanded(
                 child: OutlinedButton(
                   onPressed: () => _handle(context, false),
-                  style: OutlinedButton.styleFrom(foregroundColor: const Color(0xFFF01D2C), side: const BorderSide(color: Color(0xFFF01D2C))),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: const Color(0xFFF01D2C),
+                    side: const BorderSide(color: Color(0xFFF01D2C)),
+                    shape: const BeveledRectangleBorder(),
+                  ),
                   child: const Text('ОТКЛОНИТЬ'),
                 ),
               ),
@@ -221,7 +228,7 @@ class DistributorOrdersList extends StatefulWidget {
 
 class _DistributorOrdersListState extends State<DistributorOrdersList> {
   final DataRepository _repo = DataRepository();
-  List<Purchase> _items = [];
+  List<Order> _items = [];
   bool _loading = true;
 
   @override
@@ -257,7 +264,7 @@ class _DistributorOrdersListState extends State<DistributorOrdersList> {
 }
 
 class OrderProcessCard extends StatelessWidget {
-  final Purchase order;
+  final Order order;
   final VoidCallback onUpdate;
 
   const OrderProcessCard({super.key, required this.order, required this.onUpdate});
@@ -265,11 +272,11 @@ class OrderProcessCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: ShapeDecoration(
+      decoration: const ShapeDecoration(
         color: Colors.white,
-        shape: const BeveledRectangleBorder(
+        shape: BeveledRectangleBorder(
           side: BorderSide(color: Color(0xFF171717), width: 1),
-          borderRadius: BorderRadius.only(topRight: Radius.circular(15)),
+          borderRadius: BorderRadius.zero,
         ),
       ),
       padding: const EdgeInsets.all(16),
@@ -285,16 +292,21 @@ class OrderProcessCard extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(order.clientName.toUpperCase(), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12)),
+          if (order.storeName.isNotEmpty)
+            Text('ВЫДАЧА: ${order.storeName.toUpperCase()}', style: const TextStyle(color: Color(0xFF171717), fontSize: 10, fontWeight: FontWeight.bold)),
           const Divider(),
           ...order.items.map((it) => Text('• ${it.name} x ${it.quantity}', style: const TextStyle(fontSize: 12))),
           const SizedBox(height: 16),
           Row(
             children: [
-              if (order.status == PurchaseStatus.pending) ...[
+              if (order.status == OrderStatus.newOrder) ...[
                 Expanded(
                   child: ElevatedButton(
                     onPressed: () => _updateStatus(context, 'accepted'),
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.black),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.black,
+                      shape: const BeveledRectangleBorder(),
+                    ),
                     child: const Text('ПРИНЯТЬ'),
                   ),
                 ),
@@ -302,15 +314,23 @@ class OrderProcessCard extends StatelessWidget {
                 Expanded(
                   child: OutlinedButton(
                     onPressed: () => _updateStatus(context, 'rejected'),
-                    style: OutlinedButton.styleFrom(foregroundColor: const Color(0xFFF01D2C)),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFFF01D2C),
+                      side: const BorderSide(color: Color(0xFFF01D2C)),
+                      shape: const BeveledRectangleBorder(),
+                    ),
                     child: const Text('ОТКЛОНИТЬ'),
                   ),
                 ),
               ],
-              if (order.status == PurchaseStatus.verified) // Logic for accepted -> done
+              if (order.status == OrderStatus.accepted)
                 Expanded(
                   child: ElevatedButton(
-                    onPressed: () => _updateStatus(context, 'done'),
+                    onPressed: () => _updateStatus(context, 'fulfilled'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFF01D2C),
+                      shape: const BeveledRectangleBorder(),
+                    ),
                     child: const Text('ВЫПОЛНЕНО'),
                   ),
                 ),
@@ -328,6 +348,54 @@ class OrderProcessCard extends StatelessWidget {
     } catch (e) {
       if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Ошибка: $e')));
     }
+  }
+}
+
+class DistributorReportsScreen extends StatelessWidget {
+  const DistributorReportsScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF171717),
+        title: const Text('ОТЧЕТЫ И ЭКСПОРТ', style: TextStyle(fontWeight: FontWeight.w900)),
+      ),
+      body: ListView(
+        padding: const EdgeInsets.all(24),
+        children: [
+          _reportCard(
+            context,
+            'ОТЧЕТ ПО ПРОДАЖАМ (EXCEL)',
+            'Выгрузка всех подтвержденных покупок и заказов за все время.',
+            Icons.file_download_outlined,
+            () => DataRepository().downloadReport(),
+          ),
+          const SizedBox(height: 16),
+          _reportCard(
+            context,
+            'АКТИВНОСТЬ КЛИЕНТОВ',
+            'Статистика по регистрациям и обороту в вашем регионе.',
+            Icons.analytics_outlined,
+            null,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _reportCard(BuildContext context, String title, String desc, IconData icon, VoidCallback? onTap) {
+    return Container(
+      decoration: BoxDecoration(color: Colors.white, border: Border.all(color: AppColors.border)),
+      child: ListTile(
+        contentPadding: const EdgeInsets.all(16),
+        leading: Icon(icon, color: AppColors.brandRed, size: 32),
+        title: Text(title, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13)),
+        subtitle: Text(desc, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.textSecondary)),
+        onTap: onTap,
+        trailing: onTap != null ? const Icon(Icons.chevron_right) : const Text('СКОРО', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: AppColors.textHint)),
+      ),
+    );
   }
 }
 

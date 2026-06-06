@@ -1,5 +1,6 @@
 import '../models/models.dart';
 import 'api_client.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class ProductData {
   final String id;
@@ -82,6 +83,13 @@ class DataRepository {
 
   DataRepository({ApiClient? api}) : _api = api ?? ApiClient();
 
+  Future<void> downloadReport({String? regionId}) async {
+    final url = Uri.parse(_api.exportUrl(regionId: regionId));
+    if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
+      throw 'Could not launch $url';
+    }
+  }
+
   Future<DashboardData> dashboard() async {
     final data = await _api.dashboard();
     return DashboardData(
@@ -117,9 +125,9 @@ class DataRepository {
     return items.map(_purchaseFromJson).toList();
   }
 
-  Future<List<Purchase>> orders() async {
+  Future<List<Order>> orders() async {
     final items = await _api.orders();
-    return items.map(_purchaseFromJson).toList();
+    return items.map(_orderFromJson).toList();
   }
 
   Future<List<ColorRequest>> colorRequests() async {
@@ -141,14 +149,14 @@ class DataRepository {
     return _purchaseFromJson(result['purchase'] as Map<String, dynamic>);
   }
 
-  Future<List<Purchase>> distributorOrders() async {
+  Future<List<Order>> distributorOrders() async {
     final items = await _api.distributorOrders();
-    return items.map(_purchaseFromJson).toList();
+    return items.map(_orderFromJson).toList();
   }
 
-  Future<Purchase> updateOrderStatus(String id, {required String status, String? reason}) async {
+  Future<Order> updateOrderStatus(String id, {required String status, String? reason}) async {
     final result = await _api.updateOrderStatus(id, status: status, reason: reason);
-    return _purchaseFromJson(result['order'] as Map<String, dynamic>);
+    return _orderFromJson(result['order'] as Map<String, dynamic>);
   }
 
   Future<List<CourierTask>> courierTasks() async {
@@ -176,6 +184,15 @@ class DataRepository {
       fileName: fileName,
     );
     return _courierTaskFromJson(result['task'] as Map<String, dynamic>);
+  }
+
+  Future<Map<String, dynamic>> managerDashboard({String? regionId, String? distributorId}) {
+    return _api.managerDashboard(regionId: regionId, distributorId: distributorId);
+  }
+
+  Future<Referral> createReferral(Map<String, dynamic> data) async {
+    final result = await _api.createReferral(data);
+    return _referralFromJson(result['referral'] as Map<String, dynamic>);
   }
 
   Future<List<Referral>> referrals() async {
@@ -214,8 +231,20 @@ class DataRepository {
     return _api.getRegions();
   }
 
-  Future<Map<String, dynamic>> createPurchase(Map<String, dynamic> data) {
-    return _api.createPurchase(data);
+  Future<List<Map<String, dynamic>>> getDistributors() {
+    return _api.getDistributors();
+  }
+
+  Future<Map<String, dynamic>> createPurchase(Map<String, dynamic> data, {List<int>? fileBytes, String? fileName}) {
+    return _api.createPurchase(data, fileBytes: fileBytes, fileName: fileName);
+  }
+
+  Future<Map<String, dynamic>> createColorRequest(Map<String, dynamic> data, {List<int>? fileBytes, String? fileName}) {
+    return _api.createColorRequest(data, fileBytes: fileBytes, fileName: fileName);
+  }
+
+  Future<Map<String, dynamic>> createExpertTicket(Map<String, dynamic> data, {List<int>? fileBytes, String? fileName}) {
+    return _api.createExpertTicket(data, fileBytes: fileBytes, fileName: fileName);
   }
 
   static List<Map<String, dynamic>> _list(Object? value) {
@@ -279,6 +308,26 @@ class DataRepository {
     );
   }
 
+  static Order _orderFromJson(Map<String, dynamic> json) {
+    return Order(
+      id: json['id'] as String,
+      clientId: json['clientId'] as String,
+      clientName: json['clientName'] as String? ?? 'Неизвестно',
+      distributorId: json['distributorId'] as String,
+      storeName: json['storeName'] as String? ?? '',
+      documentNumber: json['documentNumber'] as String,
+      date: DateTime.parse(json['date'] as String),
+      totalAmount: (json['totalAmount'] as num).toDouble(),
+      status: _orderStatus(json['status'] as String),
+      items: _list(
+        json['items'],
+      ).map((item) => _purchaseItemFromJson(item)).toList(),
+      comment: json['comment'] as String?,
+      rejectionReason: json['rejectionReason'] as String?,
+      createdAt: DateTime.parse(json['createdAt'] as String),
+    );
+  }
+
   static Purchase _purchaseFromJson(Map<String, dynamic> json) {
     return Purchase(
       id: json['id'] as String,
@@ -321,6 +370,13 @@ class DataRepository {
       colorName: json['colorName'] as String,
       urgent: json['urgent'] as bool? ?? false,
       status: _colorRequestStatus(json['status'] as String),
+      transferMethod: json['transferMethod'] as String? ?? 'courier',
+      pickupAddress: json['pickupAddress'] as String?,
+      pickupTime: json['pickupTime'] != null ? DateTime.parse(json['pickupTime'] as String) : null,
+      contactPerson: json['contactPerson'] as String?,
+      contactPhone: json['contactPhone'] as String?,
+      slaDeadline: json['slaDeadline'] != null ? DateTime.parse(json['slaDeadline'] as String) : null,
+      isOverdue: json['isOverdue'] as bool? ?? false,
       recipe: json['recipe'] as String?,
       createdAt: DateTime.parse(json['createdAt'] as String),
     );
@@ -355,6 +411,8 @@ class DataRepository {
       aiAnswer: json['aiAnswer'] as String?,
       expertAnswer: json['expertAnswer'] as String?,
       status: _ticketStatus(json['status'] as String),
+      photo: json['photo'] as String?,
+      videoLink: json['videoLink'] as String?,
       createdAt: DateTime.parse(json['createdAt'] as String),
     );
   }
@@ -399,10 +457,39 @@ class DataRepository {
   }
 
   static PurchaseStatus _purchaseStatus(String value) {
-    return PurchaseStatus.values.firstWhere(
-      (item) => item.name == value,
-      orElse: () => PurchaseStatus.pending,
-    );
+    switch (value) {
+      case 'new':
+        return PurchaseStatus.newPurchase;
+      case 'pending':
+        return PurchaseStatus.pending;
+      case 'pending_verification':
+        return PurchaseStatus.pendingVerification;
+      case 'under_review':
+        return PurchaseStatus.underReview;
+      case 'duplicate_review':
+        return PurchaseStatus.duplicateReview;
+      case 'verified':
+        return PurchaseStatus.verified;
+      case 'rejected':
+        return PurchaseStatus.rejected;
+      default:
+        return PurchaseStatus.pending;
+    }
+  }
+
+  static OrderStatus _orderStatus(String value) {
+    switch (value) {
+      case 'new':
+        return OrderStatus.newOrder;
+      case 'accepted':
+        return OrderStatus.accepted;
+      case 'rejected':
+        return OrderStatus.rejected;
+      case 'fulfilled':
+        return OrderStatus.fulfilled;
+      default:
+        return OrderStatus.newOrder;
+    }
   }
 
   static StockStatus _stockStatus(String value) {

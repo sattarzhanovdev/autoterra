@@ -89,10 +89,6 @@ class ApiClient {
     return (result['results'] as List<dynamic>).cast<Map<String, dynamic>>();
   }
 
-  Future<Map<String, dynamic>> createColorRequest(Map<String, dynamic> body) {
-    return _post('/color-requests/create/', body);
-  }
-
   Future<List<Map<String, dynamic>>> courierTasks() async {
     final result = await _get('/courier-tasks/');
     return (result['results'] as List<dynamic>).cast<Map<String, dynamic>>();
@@ -100,6 +96,22 @@ class ApiClient {
 
   Future<Map<String, dynamic>> createCourierTask(Map<String, dynamic> body) {
     return _post('/courier-tasks/create/', body);
+  }
+
+  String exportUrl({String? regionId}) {
+    final query = regionId != null ? '?region=$regionId' : '';
+    return '$baseUrl/reports/export/$query';
+  }
+
+  Future<Map<String, dynamic>> managerDashboard({String? regionId, String? distributorId}) async {
+    final params = <String, String>{};
+    if (regionId != null) params['region'] = regionId;
+    if (distributorId != null) params['distributor'] = distributorId;
+    return _get('/manager/dashboard/', params: params);
+  }
+
+  Future<Map<String, dynamic>> createReferral(Map<String, dynamic> body) {
+    return _post('/referrals/create/', body);
   }
 
   Future<List<Map<String, dynamic>>> referrals() async {
@@ -115,6 +127,13 @@ class ApiClient {
   Future<List<Map<String, dynamic>>> notifications() async {
     final result = await _get('/notifications/');
     return (result['results'] as List<dynamic>).cast<Map<String, dynamic>>();
+  }
+
+  Future<Map<String, dynamic>> createExpertTicket(Map<String, dynamic> body, {List<int>? fileBytes, String? fileName}) {
+    if (fileBytes != null && fileName != null) {
+      return _multipartPost('/tickets/create/', body, fileBytes, fileName, fileField: 'photo');
+    }
+    return _post('/tickets/create/', body);
   }
 
   Future<List<Map<String, dynamic>>> knowledgeCards() async {
@@ -140,8 +159,56 @@ class ApiClient {
     return (result['results'] as List<dynamic>).cast<Map<String, dynamic>>();
   }
 
-  Future<Map<String, dynamic>> createPurchase(Map<String, dynamic> body) {
+  Future<Map<String, dynamic>> createPurchase(Map<String, dynamic> body, {List<int>? fileBytes, String? fileName}) {
+    if (fileBytes != null && fileName != null) {
+      return _multipartPost('/purchases/create/', body, fileBytes, fileName, fileField: 'document');
+    }
     return _post('/purchases/create/', body);
+  }
+
+  Future<Map<String, dynamic>> createColorRequest(Map<String, dynamic> body, {List<int>? fileBytes, String? fileName}) {
+    if (fileBytes != null && fileName != null) {
+      return _multipartPost('/color-requests/create/', body, fileBytes, fileName, fileField: 'photo');
+    }
+    return _post('/color-requests/create/', body);
+  }
+
+  Future<Map<String, dynamic>> _multipartPost(
+    String path,
+    Map<String, dynamic> body,
+    List<int> fileBytes,
+    String fileName, {
+    String fileField = 'file',
+  }) async {
+    final request = http.MultipartRequest('POST', Uri.parse('$baseUrl$path'));
+    if (_token != null) {
+      request.headers['Authorization'] = 'Bearer $_token';
+    }
+    
+    // Add text fields
+    body.forEach((key, value) {
+      if (value is List || value is Map) {
+        request.fields[key] = jsonEncode(value);
+      } else {
+        request.fields[key] = value.toString();
+      }
+    });
+
+    // Add file
+    request.files.add(http.MultipartFile.fromBytes(
+      fileField,
+      fileBytes,
+      filename: fileName,
+    ));
+
+    final streamedResponse = await request.send();
+    final response = await http.Response.fromStream(streamedResponse);
+    return _decode(response);
+  }
+
+  Future<List<Map<String, dynamic>>> getDistributors() async {
+    final result = await _get('/distributors/');
+    return (result['results'] as List<dynamic>).cast<Map<String, dynamic>>();
   }
 
   Future<List<Map<String, dynamic>>> courierMyTasks() async {
@@ -217,9 +284,10 @@ class ApiClient {
     return _decode(response);
   }
 
-  Future<Map<String, dynamic>> _get(String path) async {
+  Future<Map<String, dynamic>> _get(String path, {Map<String, String>? params}) async {
+    final uri = Uri.parse('$baseUrl$path').replace(queryParameters: params);
     final response = await _httpClient
-        .get(Uri.parse('$baseUrl$path'), headers: _headers())
+        .get(uri, headers: _headers())
         .timeout(const Duration(seconds: 3));
     return _decode(response);
   }

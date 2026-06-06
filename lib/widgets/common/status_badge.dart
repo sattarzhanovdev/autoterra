@@ -51,10 +51,18 @@ class StatusBadge extends StatelessWidget {
 
   static StatusBadge fromPurchaseStatus(PurchaseStatus status) {
     switch (status) {
-      case PurchaseStatus.verified:
-        return const StatusBadge(label: 'Подтверждена', color: AppColors.success);
+      case PurchaseStatus.newPurchase:
+        return const StatusBadge(label: 'Новая', color: AppColors.info);
       case PurchaseStatus.pending:
         return const StatusBadge(label: 'На проверке', color: AppColors.warning);
+      case PurchaseStatus.pendingVerification:
+        return const StatusBadge(label: 'Ожидает', color: AppColors.warning);
+      case PurchaseStatus.underReview:
+        return const StatusBadge(label: 'Проверка', color: AppColors.accent);
+      case PurchaseStatus.duplicateReview:
+        return const StatusBadge(label: 'Дубликат?', color: AppColors.brandRed);
+      case PurchaseStatus.verified:
+        return const StatusBadge(label: 'Подтверждена', color: AppColors.success);
       case PurchaseStatus.rejected:
         return const StatusBadge(label: 'Отклонена', color: AppColors.error);
     }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
+import 'package:share_plus/share_plus.dart';
 import '../../core/theme.dart';
 import '../../models/models.dart';
 import '../../services/data_repository.dart';
@@ -21,10 +22,71 @@ class _ReferralScreenState extends State<ReferralScreen> {
     _future = DataRepository().referrals();
   }
 
+  void _reload() {
+    setState(() { _future = DataRepository().referrals(); });
+  }
+
   Future<void> _refresh() async {
     final next = DataRepository().referrals();
     setState(() => _future = next);
     await next;
+  }
+
+  void _share(String code, {bool isWhatsapp = false}) {
+    final text = 'Присоединяйся к AutoTerra! Используй мой промокод $code для получения бонуса: https://autoterra.ru/register?ref=$code';
+    if (isWhatsapp) {
+      // Logic for whatsapp can be more complex (url launcher), 
+      // but share_plus usually allows choosing app.
+      Share.share(text, subject: 'Приглашение в AutoTerra');
+    } else {
+      Share.share(text, subject: 'Приглашение в AutoTerra');
+    }
+  }
+
+  void _showAddDialog() {
+    final innCtrl = TextEditingController();
+    final nameCtrl = TextEditingController();
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => Padding(
+        padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: const BoxDecoration(color: Colors.white),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('ПРИГЛАСИТЬ СТО', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
+              const SizedBox(height: 16),
+              TextFormField(controller: innCtrl, decoration: const InputDecoration(labelText: 'ИНН СТО *')),
+              const SizedBox(height: 12),
+              TextFormField(controller: nameCtrl, decoration: const InputDecoration(labelText: 'НАЗВАНИЕ СТО *')),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: ElevatedButton(
+                  onPressed: () async {
+                    if (innCtrl.text.isEmpty || nameCtrl.text.isEmpty) return;
+                    await DataRepository().createReferral({
+                      'inviteeInn': innCtrl.text,
+                      'inviteeName': nameCtrl.text,
+                    });
+                    if (mounted) {
+                      Navigator.pop(context);
+                      _reload();
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.brandRed),
+                  child: const Text('ДОБАВИТЬ'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -33,12 +95,12 @@ class _ReferralScreenState extends State<ReferralScreen> {
     const refCode = 'AT-MASTER-2847';
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Рекомендовать автосервис')),
+      appBar: AppBar(title: const Text('РЕФЕРАЛЬНАЯ ПРОГРАММА')),
       body: FutureBuilder<List<Referral>>(
         future: _future,
         builder: (context, snapshot) {
           if (snapshot.connectionState != ConnectionState.done) {
-            return const Center(child: CircularProgressIndicator());
+            return const Center(child: CircularProgressIndicator(color: AppColors.brandRed));
           }
           if (snapshot.hasError) {
             return Center(child: Text(snapshot.error.toString()));
@@ -57,21 +119,19 @@ class _ReferralScreenState extends State<ReferralScreen> {
                   _buildRefCode(context, refCode),
                   const SizedBox(height: 20),
                   _buildStats(referrals, fmt),
-                  const SizedBox(height: 20),
-                  const Text(
-                    'Мои приглашения',
-                    style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
+                  const SizedBox(height: 24),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('МОИ ПРИГЛАШЕНИЯ', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13)),
+                      TextButton(onPressed: _showAddDialog, child: const Text('ДОБАВИТЬ +', style: TextStyle(color: AppColors.brandRed, fontWeight: FontWeight.bold))),
+                    ],
                   ),
                   const SizedBox(height: 12),
                   if (referrals.isEmpty)
-                    const Text(
-                      'Приглашений пока нет',
-                      style: TextStyle(color: AppColors.textSecondary),
-                    )
+                    const Center(child: Text('ПРИГЛАШЕНИЙ ПОКА НЕТ', style: TextStyle(color: AppColors.textSecondary, fontSize: 12, fontWeight: FontWeight.bold)))
                   else
-                    ...referrals.map(
-                      (r) => _ReferralCard(referral: r, fmt: fmt),
-                    ),
+                    ...referrals.map((r) => _ReferralCard(referral: r, fmt: fmt)),
                   const SizedBox(height: 80),
                 ],
               ),
@@ -83,168 +143,63 @@ class _ReferralScreenState extends State<ReferralScreen> {
   }
 
   Widget _buildHowItWorks() {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    color: AppColors.success.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: const Icon(
-                    Icons.card_giftcard,
-                    color: AppColors.success,
-                    size: 20,
-                  ),
-                ),
-                const SizedBox(width: 10),
-                const Text(
-                  'Как это работает',
-                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
-                ),
-              ],
-            ),
-            const SizedBox(height: 14),
-            _step('1', 'Отправьте реферальный код другому автосервису'),
-            _step('2', 'Сервис регистрируется в своём регионе'),
-            _step('3', 'Делает первый заказ от 30 000 ₽'),
-            _step('4', 'Вы получаете подарок после подтверждения покупки'),
-            const SizedBox(height: 10),
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: AppColors.warning.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Text(
-                'Подарок начисляется только за реальный подтверждённый заказ',
-                style: TextStyle(fontSize: 12, color: Color(0xFF92400E)),
-              ),
-            ),
-          ],
-        ),
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(color: Colors.white, border: Border.all(color: AppColors.border)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('КАК ЭТО РАБОТАЕТ', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14)),
+          const SizedBox(height: 16),
+          _step('1', 'ОТПРАВЬТЕ РЕФЕРАЛЬНЫЙ КОД ДРУГОМУ СТО'),
+          _step('2', 'СТО РЕГИСТРИРУЕТСЯ И ДЕЛАЕТ ЗАКАЗЫ'),
+          _step('3', 'СУММА ЗАКАЗОВ ДОСТИГАЕТ 30 000 ₽'),
+          _step('4', 'ВЫ ПОЛУЧАЕТЕ СЕРТИФИКАТ НА 5 000 ₽'),
+        ],
       ),
     );
   }
 
   Widget _step(String n, String text) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.only(bottom: 12),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 22,
-            height: 22,
-            decoration: const BoxDecoration(
-              color: AppColors.success,
-              shape: BoxShape.circle,
-            ),
-            child: Center(
-              child: Text(
-                n,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              text,
-              style: const TextStyle(
-                fontSize: 13,
-                color: AppColors.textPrimary,
-              ),
-            ),
-          ),
+          Container(width: 20, height: 20, color: AppColors.brandRed, child: Center(child: Text(n, style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)))),
+          const SizedBox(width: 12),
+          Expanded(child: Text(text, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold))),
         ],
       ),
     );
   }
 
   Widget _buildRefCode(BuildContext context, String code) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Ваш реферальный код',
-              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
-            ),
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: AppColors.primary.withOpacity(0.05),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: AppColors.primary.withOpacity(0.2)),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      code,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 18,
-                        letterSpacing: 1,
-                        color: AppColors.primary,
-                      ),
-                    ),
-                  ),
-                  IconButton(
-                    icon: const Icon(
-                      Icons.copy_outlined,
-                      color: AppColors.primary,
-                    ),
-                    onPressed: () {
-                      Clipboard.setData(ClipboardData(text: code));
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Код скопирован'),
-                          duration: Duration(seconds: 1),
-                        ),
-                      );
-                    },
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () {},
-                    icon: const Icon(Icons.share_outlined, size: 18),
-                    label: const Text('Поделиться ссылкой'),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () {},
-                    icon: const Icon(Icons.message_outlined, size: 18),
-                    label: const Text('Отправить в WhatsApp'),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(color: AppColors.brandBlack, border: Border.all(color: AppColors.brandBlack)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('ВАШ РЕФЕРАЛЬНЫЙ КОД', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: Colors.white)),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(child: Text(code, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 24, color: AppColors.brandRed, letterSpacing: 2))),
+              IconButton(icon: const Icon(Icons.copy, color: Colors.white), onPressed: () {
+                Clipboard.setData(ClipboardData(text: code));
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('КОД СКОПИРОВАН')));
+              }),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(child: ElevatedButton.icon(onPressed: () => _share(code), icon: const Icon(Icons.share, size: 16), label: const Text('ПОДЕЛИТЬСЯ'), style: ElevatedButton.styleFrom(backgroundColor: AppColors.brandRed, shape: const BeveledRectangleBorder()))),
+              const SizedBox(width: 8),
+              Expanded(child: OutlinedButton.icon(onPressed: () => _share(code, isWhatsapp: true), icon: const Icon(Icons.message, size: 16), label: const Text('WHATSAPP'), style: OutlinedButton.styleFrom(foregroundColor: Colors.white, side: const BorderSide(color: Colors.white), shape: const BeveledRectangleBorder()))),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -252,76 +207,29 @@ class _ReferralScreenState extends State<ReferralScreen> {
   Widget _buildStats(List<Referral> referrals, NumberFormat fmt) {
     final met = referrals.where((r) => r.conditionMet).length;
     final buyers = referrals.where((r) => r.hasPurchase).length;
-    final purchaseAmount = referrals.fold<double>(
-      0,
-      (sum, item) => sum + item.purchaseAmount,
-    );
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            Row(
-              children: [
-                _stat('Приглашено', '${referrals.length}', AppColors.primary),
-                _vDiv(),
-                _stat(
-                  'Зарегистрировано',
-                  '${referrals.where((r) => r.isRegistered).length}',
-                  AppColors.info,
-                ),
-              ],
-            ),
-            const SizedBox(height: 14),
-            Row(
-              children: [
-                _stat('С покупками', '$buyers', AppColors.warning),
-                _vDiv(),
-                _stat(
-                  'Продажи клиентов',
-                  '${fmt.format(purchaseAmount)} ₽',
-                  AppColors.success,
-                ),
-                _vDiv(),
-                _stat('Подарки', '$met', AppColors.success),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _stat(String label, String value, Color color) {
-    return Expanded(
-      child: Column(
+    final total = referrals.fold<double>(0, (sum, it) => sum + it.purchaseAmount);
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(color: Colors.white, border: Border.all(color: AppColors.border)),
+      child: Row(
         children: [
-          Text(
-            value,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              color: color,
-              fontWeight: FontWeight.w700,
-              fontSize: value.length > 9 ? 18 : 22,
-            ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            label,
-            style: const TextStyle(
-              color: AppColors.textSecondary,
-              fontSize: 11,
-            ),
-            textAlign: TextAlign.center,
-          ),
+          _stat('СТО', '${referrals.length}'),
+          _stat('АКТИВНЫЕ', '$buyers'),
+          _stat('БОНУСЫ', '$met'),
         ],
       ),
     );
   }
 
-  Widget _vDiv() {
-    return Container(width: 1, height: 36, color: AppColors.border);
+  Widget _stat(String label, String value) {
+    return Expanded(
+      child: Column(
+        children: [
+          Text(value, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 20, color: AppColors.brandBlack)),
+          Text(label, style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: AppColors.textSecondary)),
+        ],
+      ),
+    );
   }
 }
 
@@ -332,143 +240,74 @@ class _ReferralCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 10),
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: referral.conditionMet
-                        ? AppColors.success.withOpacity(0.1)
-                        : AppColors.primary.withOpacity(0.08),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Icon(
-                    referral.conditionMet
-                        ? Icons.check_circle_outline
-                        : Icons.store_outlined,
-                    color: referral.conditionMet
-                        ? AppColors.success
-                        : AppColors.primary,
-                    size: 22,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        referral.inviteeName,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 14,
-                        ),
-                      ),
-                      Text(
-                        'ИНН: ${referral.inviteeInn} · ${referral.region}',
-                        style: const TextStyle(
-                          color: AppColors.textSecondary,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            const Divider(height: 1),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                _step2('Регистрация', referral.isRegistered),
-                const SizedBox(width: 6),
-                Icon(
-                  Icons.arrow_forward_ios,
-                  size: 10,
-                  color: AppColors.textHint,
-                ),
-                const SizedBox(width: 6),
-                _step2('Первый заказ', referral.hasPurchase),
-                const SizedBox(width: 6),
-                Icon(
-                  Icons.arrow_forward_ios,
-                  size: 10,
-                  color: AppColors.textHint,
-                ),
-                const SizedBox(width: 6),
-                _step2('Подарок', referral.conditionMet),
-              ],
-            ),
-            if (referral.hasPurchase) ...[
-              const SizedBox(height: 10),
-              Text(
-                'Сумма заказа: ${fmt.format(referral.purchaseAmount)} ₽',
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: AppColors.textSecondary,
-                ),
-              ),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(color: Colors.white, border: Border.all(color: AppColors.border)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(referral.inviteeName.toUpperCase(), style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13)),
+              if (referral.conditionMet) const Icon(Icons.verified, color: AppColors.success, size: 18),
             ],
-            if (referral.gift != null && referral.conditionMet) ...[
-              const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: AppColors.success.withOpacity(0.08),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(
-                      Icons.card_giftcard,
-                      color: AppColors.success,
-                      size: 16,
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      referral.gift!,
-                      style: const TextStyle(
-                        color: AppColors.success,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+          ),
+          const SizedBox(height: 4),
+          Text('ИНН: ${referral.inviteeInn} · ${referral.region.toUpperCase()}', style: const TextStyle(color: AppColors.textSecondary, fontSize: 10, fontWeight: FontWeight.bold)),
+          const Divider(height: 24),
+          Row(
+            children: [
+              _stepIcon('РЕГИСТРАЦИЯ', referral.isRegistered),
+              _arrow(),
+              _stepIcon('ЗАКАЗЫ', referral.hasPurchase),
+              _arrow(),
+              _stepIcon('БОНУС', referral.conditionMet),
             ],
+          ),
+          if (referral.hasPurchase && !referral.conditionMet) ...[
+            const SizedBox(height: 12),
+            LinearProgressIndicator(
+              value: referral.purchaseAmount / 30000,
+              backgroundColor: AppColors.canvas,
+              color: AppColors.brandRed,
+              minHeight: 4,
+            ),
+            const SizedBox(height: 4),
+            Text('ДО БОНУСА: ${fmt.format(30000 - referral.purchaseAmount)} ₽', style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: AppColors.textSecondary)),
           ],
-        ),
+          if (referral.gift != null && referral.conditionMet) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(8),
+              color: AppColors.success.withValues(alpha: 0.1),
+              child: Row(
+                children: [
+                  const Icon(Icons.card_giftcard, size: 14, color: AppColors.success),
+                  const SizedBox(width: 8),
+                  Text(referral.gift!.toUpperCase(), style: const TextStyle(color: AppColors.success, fontSize: 11, fontWeight: FontWeight.w900)),
+                ],
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }
 
-  Widget _step2(String label, bool done) {
-    return Column(
-      children: [
-        Icon(
-          done ? Icons.check_circle : Icons.radio_button_unchecked,
-          size: 18,
-          color: done ? AppColors.success : AppColors.border,
-        ),
-        const SizedBox(height: 2),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 10,
-            color: done ? AppColors.success : AppColors.textHint,
-          ),
-        ),
-      ],
+  Widget _stepIcon(String label, bool done) {
+    return Expanded(
+      child: Column(
+        children: [
+          Icon(done ? Icons.check_box : Icons.check_box_outline_blank, size: 16, color: done ? AppColors.brandBlack : AppColors.border),
+          const SizedBox(height: 4),
+          Text(label, style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: done ? AppColors.brandBlack : AppColors.textHint)),
+        ],
+      ),
     );
   }
+
+  Widget _arrow() => const Padding(padding: EdgeInsets.symmetric(horizontal: 4), child: Icon(Icons.arrow_forward, size: 10, color: AppColors.border));
 }
+

@@ -281,7 +281,7 @@ class _OrderScreenState extends State<OrderScreen> {
             color: selected ? AppColors.brandRed : AppColors.border,
             width: selected ? 1.5 : 1,
           ),
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.zero,
         ),
         child: Row(
           children: [
@@ -478,7 +478,7 @@ class _OrderScreenState extends State<OrderScreen> {
         color: qty > 0 ? const Color(0xFFF01D2C).withValues(alpha: 0.05) : Colors.white,
         shape: BeveledRectangleBorder(
           side: BorderSide(color: qty > 0 ? const Color(0xFFF01D2C) : AppColors.border),
-          borderRadius: const BorderRadius.only(topRight: Radius.circular(15)),
+          borderRadius: BorderRadius.zero,
         ),
       ),
       padding: const EdgeInsets.all(16),

@@ -18,6 +18,9 @@ dependencies:
   flutter_svg: ^2.2.1
   shared_preferences: ^2.5.3
   image_picker: ^1.2.2
+  file_picker: ^8.1.7
+  url_launcher: ^6.3.0
+  share_plus: ^10.1.4
 
 dev_dependencies:
   flutter_test:
@@ -31,6 +34,17 @@ flutter:
   uses-material-design: true
   assets:
     - assets/
+  # fonts:
+  #   - family: TTOctosquares
+  #     fonts:
+  #       - asset: assets/fonts/TTOctosquares-Bold.ttf
+  #         weight: 700
+  #   - family: TTNeoris
+  #     fonts:
+  #       - asset: assets/fonts/TTNeoris-Regular.ttf
+  #         weight: 400
+  #       - asset: assets/fonts/TTNeoris-Bold.ttf
+  #         weight: 700
 
 flutter_launcher_icons:
   android: true

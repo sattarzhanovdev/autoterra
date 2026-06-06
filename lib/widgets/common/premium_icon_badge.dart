@@ -22,33 +22,19 @@ class PremiumIconBadge extends StatelessWidget {
       width: size,
       height: size,
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFFFFFFFF), Color(0xFFF1F1F1)],
-        ),
-        border: Border.all(color: const Color(0xFFE3E3E3), width: 1),
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.06),
-            blurRadius: 10,
-            offset: const Offset(0, 3),
-          ),
-        ],
+        color: Colors.white,
+        border: Border.all(color: AppColors.brandBlack, width: 1.5),
+        borderRadius: BorderRadius.zero,
       ),
       child: Stack(
         children: [
           Positioned(
-            top: 0,
-            left: 10,
-            right: 10,
+            top: 2,
+            left: 2,
             child: Container(
-              height: 2,
-              decoration: BoxDecoration(
-                color: AppColors.brandRed.withValues(alpha: 0.85),
-                borderRadius: BorderRadius.circular(2),
-              ),
+              width: 6,
+              height: 6,
+              color: AppColors.brandRed,
             ),
           ),
           Center(

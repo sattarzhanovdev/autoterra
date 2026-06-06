@@ -28,7 +28,10 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
   Future<_PurchasesPageData> _load() async {
     final repo = DataRepository();
     final results = await Future.wait([repo.orders(), repo.purchases()]);
-    return _PurchasesPageData(orders: results[0], purchases: results[1]);
+    return _PurchasesPageData(
+      orders: results[0] as List<Order>,
+      purchases: results[1] as List<Purchase>,
+    );
   }
 
   Future<void> _refresh() async {
@@ -182,14 +185,14 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
 }
 
 class _PurchasesPageData {
-  final List<Purchase> orders;
+  final List<Order> orders;
   final List<Purchase> purchases;
 
   const _PurchasesPageData({required this.orders, required this.purchases});
 }
 
 class _OrderCard extends StatelessWidget {
-  final Purchase order;
+  final Order order;
   final NumberFormat fmt;
 
   const _OrderCard({required this.order, required this.fmt});
@@ -254,8 +257,8 @@ class _OrderCard extends StatelessWidget {
     );
   }
 
-  _OrderStatusView _orderStatus(Purchase order) {
-    return _orderStatusView(order.orderStatus);
+  _OrderStatusView _orderStatus(Order order) {
+    return _orderStatusView(order.status);
   }
 
   void _showDetails(BuildContext context) {
@@ -269,21 +272,21 @@ class _OrderCard extends StatelessWidget {
 }
 
 class _OrderDetailsSheet extends StatelessWidget {
-  final Purchase order;
+  final Order order;
   final NumberFormat fmt;
 
   const _OrderDetailsSheet({required this.order, required this.fmt});
 
   @override
   Widget build(BuildContext context) {
-    final status = _orderStatusView(order.orderStatus);
+    final status = _orderStatusView(order.status);
     return Container(
       constraints: BoxConstraints(
         maxHeight: MediaQuery.of(context).size.height * 0.86,
       ),
       decoration: const BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.zero,
       ),
       child: Column(
         children: [
@@ -293,7 +296,7 @@ class _OrderDetailsSheet extends StatelessWidget {
             margin: const EdgeInsets.only(top: 12),
             decoration: BoxDecoration(
               color: AppColors.border,
-              borderRadius: BorderRadius.circular(2),
+              borderRadius: BorderRadius.zero,
             ),
           ),
           Padding(
@@ -453,27 +456,27 @@ class _OrderStatusView {
   const _OrderStatusView(this.label, this.description, this.color);
 }
 
-_OrderStatusView _orderStatusView(String? status) {
+_OrderStatusView _orderStatusView(OrderStatus status) {
   switch (status) {
-    case 'accepted':
+    case OrderStatus.accepted:
       return const _OrderStatusView(
         'Принят',
         'Дистрибьютор принял заказ в работу',
         AppColors.info,
       );
-    case 'done':
+    case OrderStatus.fulfilled:
       return const _OrderStatusView(
         'Выполнен',
         'Заказ выполнен дистрибьютором',
         AppColors.success,
       );
-    case 'rejected':
+    case OrderStatus.rejected:
       return const _OrderStatusView(
         'Отклонён',
         'Дистрибьютор отклонил заказ',
         AppColors.error,
       );
-    case 'pending':
+    case OrderStatus.newOrder:
     default:
       return const _OrderStatusView(
         'Отправлен',
@@ -607,7 +610,7 @@ class _PurchaseDetailsSheet extends StatelessWidget {
       ),
       decoration: const BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.zero,
       ),
       child: Column(
         children: [
@@ -617,7 +620,7 @@ class _PurchaseDetailsSheet extends StatelessWidget {
             margin: const EdgeInsets.only(top: 12),
             decoration: BoxDecoration(
               color: AppColors.border,
-              borderRadius: BorderRadius.circular(2),
+              borderRadius: BorderRadius.zero,
             ),
           ),
           Padding(

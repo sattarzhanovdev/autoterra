@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:file_picker/file_picker.dart';
 import '../../core/theme.dart';
 import '../../core/constants.dart';
 import '../../services/api_client.dart';
+import '../../services/data_repository.dart';
 
 class AddPurchaseScreen extends StatefulWidget {
   final ApiClient? api;
@@ -18,6 +20,7 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
   final _docNumCtrl = TextEditingController();
   final _amountCtrl = TextEditingController();
   DateTime? _date;
+  PlatformFile? _pickedFile;
   final List<_SkuEntry> _items = [];
   bool _loading = false;
 
@@ -42,6 +45,16 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
     setState(() => _items.removeAt(i));
   }
 
+  Future<void> _pickFile() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['jpg', 'jpeg', 'png', 'pdf'],
+    );
+    if (result != null) {
+      setState(() => _pickedFile = result.files.first);
+    }
+  }
+
   void _submit() async {
     if (!_formKey.currentState!.validate()) return;
     if (_date == null) {
@@ -64,7 +77,11 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
         }).toList(),
       };
 
-      await _api.createPurchase(purchaseData);
+      await DataRepository().createPurchase(
+        purchaseData,
+        fileBytes: _pickedFile?.bytes,
+        fileName: _pickedFile?.name,
+      );
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -97,7 +114,7 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
       context: context,
       builder: (_) => AlertDialog(
         backgroundColor: AppColors.brandBlack,
-        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+        shape: const BeveledRectangleBorder(),
         title: const Text(
           'ВНИМАНИЕ',
           style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
@@ -120,7 +137,7 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
             style: TextButton.styleFrom(
               backgroundColor: AppColors.brandRed,
               foregroundColor: Colors.white,
-              shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+              shape: const BeveledRectangleBorder(),
             ),
             child: const Text('ПОНЯТНО'),
           ),
@@ -149,7 +166,7 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
                 onPressed: _loading ? null : _submit,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.brandRed,
-                  shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+                  shape: const BeveledRectangleBorder(),
                 ),
                 child: _loading
                     ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
@@ -194,21 +211,6 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
                 initialDate: DateTime.now(),
                 firstDate: DateTime(2020),
                 lastDate: DateTime.now(),
-                builder: (context, child) {
-                  return Theme(
-                    data: Theme.of(context).copyWith(
-                      colorScheme: const ColorScheme.light(
-                        primary: AppColors.brandBlack,
-                        onPrimary: Colors.white,
-                        onSurface: AppColors.brandBlack,
-                      ),
-                      textButtonTheme: TextButtonThemeData(
-                        style: TextButton.styleFrom(foregroundColor: AppColors.brandRed),
-                      ),
-                    ),
-                    child: child!,
-                  );
-                },
               );
               if (date != null) setState(() => _date = date);
             },
@@ -243,10 +245,30 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
               return null;
             },
           ),
+          const SizedBox(height: 16),
+          _sectionTitle('ФАЙЛ (ЧЕК / НАКЛАДНАЯ)'),
+          const SizedBox(height: 8),
+          InkWell(
+            onTap: _pickFile,
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(color: AppColors.canvas, border: Border.all(color: AppColors.border)),
+              child: Row(
+                children: [
+                  Icon(Icons.file_present, color: _pickedFile != null ? AppColors.success : AppColors.brandRed),
+                  const SizedBox(width: 12),
+                  Expanded(child: Text(_pickedFile?.name ?? 'ВЫБРАТЬ ФАЙЛ (JPG, PDF)', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold))),
+                  if (_pickedFile != null) const Icon(Icons.check, color: AppColors.success),
+                ],
+              ),
+            ),
+          ),
         ],
       ),
     );
   }
+
+  Widget _sectionTitle(String title) => Text(title, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 0.5));
 
   Widget _buildItemsSection() {
     return Container(

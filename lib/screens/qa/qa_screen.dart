@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
 import '../../core/theme.dart';
 import '../../models/models.dart';
+import '../../services/data_repository.dart';
 
 class QaScreen extends StatefulWidget {
   const QaScreen({super.key});
@@ -12,12 +15,25 @@ class QaScreen extends StatefulWidget {
 class _QaScreenState extends State<QaScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabCtrl;
-  final _tickets = _mockTickets;
+  late Future<List<ExpertTicket>> _future;
 
   @override
   void initState() {
     super.initState();
     _tabCtrl = TabController(length: 2, vsync: this);
+    _future = DataRepository().tickets();
+  }
+
+  Future<void> _refresh() async {
+    final next = DataRepository().tickets();
+    setState(() => _future = next);
+    await next;
+  }
+
+  void _reload() {
+    setState(() {
+      _future = DataRepository().tickets();
+    });
   }
 
   @override
@@ -26,24 +42,16 @@ class _QaScreenState extends State<QaScreen>
     super.dispose();
   }
 
-  Future<void> _refresh() async {
-    await Future<void>.delayed(const Duration(milliseconds: 350));
-    if (mounted) setState(() {});
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Вопрос-Ответ'),
+        title: const Text('ВОПРОС-ОТВЕТ'),
         bottom: TabBar(
           controller: _tabCtrl,
-          labelColor: Colors.white,
-          unselectedLabelColor: Colors.white54,
-          indicatorColor: Colors.white,
           tabs: const [
-            Tab(text: 'Мои обращения'),
-            Tab(text: 'База знаний'),
+            Tab(text: 'МОИ ОБРАЩЕНИЯ'),
+            Tab(text: 'БАЗА ЗНАНИЙ'),
           ],
         ),
       ),
@@ -53,51 +61,63 @@ class _QaScreenState extends State<QaScreen>
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showNewTicket(),
-        backgroundColor: AppColors.info,
+        backgroundColor: AppColors.brandBlack,
         icon: const Icon(Icons.add, color: Colors.white),
         label: const Text(
-          'Задать вопрос',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+          'ЗАДАТЬ ВОПРОС',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
         ),
       ),
     );
   }
 
   Widget _buildTickets() {
-    if (_tickets.isEmpty) {
-      return RefreshIndicator(
-        onRefresh: _refresh,
-        child: ListView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          children: const [
-            SizedBox(height: 220),
-            Center(child: Text('Нет обращений')),
-          ],
-        ),
-      );
-    }
-    return RefreshIndicator(
-      onRefresh: _refresh,
-      child: ListView.separated(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.all(16),
-        itemCount: _tickets.length,
-        separatorBuilder: (_, __) => const SizedBox(height: 10),
-        itemBuilder: (context, i) => _TicketCard(
-          ticket: _tickets[i],
-          onTap: () => _showTicketDetail(_tickets[i]),
-        ),
-      ),
+    return FutureBuilder<List<ExpertTicket>>(
+      future: _future,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return const Center(child: CircularProgressIndicator(color: AppColors.brandRed));
+        }
+        if (snapshot.hasError) {
+          return Center(child: Text(snapshot.error.toString()));
+        }
+        final tickets = snapshot.data!;
+        if (tickets.isEmpty) {
+          return RefreshIndicator(
+            onRefresh: _refresh,
+            child: ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              children: const [
+                SizedBox(height: 220),
+                Center(child: Text('НЕТ АКТИВНЫХ ОБРАЩЕНИЙ')),
+              ],
+            ),
+          );
+        }
+        return RefreshIndicator(
+          onRefresh: _refresh,
+          child: ListView.separated(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.all(16),
+            itemCount: tickets.length,
+            separatorBuilder: (_, __) => const SizedBox(height: 12),
+            itemBuilder: (context, i) => _TicketCard(
+              ticket: tickets[i],
+              onTap: () => _showTicketDetail(tickets[i]),
+            ),
+          ),
+        );
+      },
     );
   }
 
   Widget _buildKnowledge() {
     final categories = [
-      'Дефекты и причины',
-      'Технология нанесения',
-      'Совместимость материалов',
-      'Условия сушки',
-      'Подбор системы',
+      'ДЕФЕКТЫ И ПРИЧИНЫ',
+      'ТЕХНОЛОГИЯ НАНЕСЕНИЯ',
+      'СОВМЕСТИМОСТЬ МАТЕРИАЛОВ',
+      'УСЛОВИЯ СУШКИ',
+      'ПОДБОР СИСТЕМЫ',
     ];
     return RefreshIndicator(
       onRefresh: _refresh,
@@ -105,31 +125,13 @@ class _QaScreenState extends State<QaScreen>
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.all(16),
         itemCount: categories.length,
-        itemBuilder: (context, i) => Card(
-          margin: const EdgeInsets.only(bottom: 10),
+        itemBuilder: (context, i) => Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          decoration: BoxDecoration(color: Colors.white, border: Border.all(color: AppColors.border)),
           child: ListTile(
-            leading: Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: AppColors.info.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: const Icon(
-                Icons.menu_book_outlined,
-                color: AppColors.info,
-                size: 20,
-              ),
-            ),
-            title: Text(
-              categories[i],
-              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-            ),
-            trailing: const Icon(
-              Icons.chevron_right,
-              size: 18,
-              color: AppColors.textHint,
-            ),
+            leading: const Icon(Icons.menu_book_outlined, color: AppColors.brandRed),
+            title: Text(categories[i], style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
+            trailing: const Icon(Icons.arrow_forward_ios, size: 14, color: AppColors.brandBlack),
             onTap: () {},
           ),
         ),
@@ -151,7 +153,7 @@ class _QaScreenState extends State<QaScreen>
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => const _NewTicketSheet(),
+      builder: (_) => _NewTicketSheet(onCreated: _reload),
     );
   }
 }
@@ -166,104 +168,38 @@ class _TicketCard extends StatelessWidget {
     Color statusColor;
     String statusLabel;
     switch (ticket.status) {
-      case TicketStatus.open:
-        statusColor = AppColors.info;
-        statusLabel = 'Открыто';
-        break;
-      case TicketStatus.aiAnswered:
-        statusColor = AppColors.warning;
-        statusLabel = 'Ответил AI';
-        break;
-      case TicketStatus.escalated:
-        statusColor = AppColors.accent;
-        statusLabel = 'У эксперта';
-        break;
-      case TicketStatus.expertAnswered:
-        statusColor = AppColors.success;
-        statusLabel = 'Ответ получен';
-        break;
-      case TicketStatus.closed:
-        statusColor = AppColors.textHint;
-        statusLabel = 'Закрыто';
-        break;
+      case TicketStatus.open: statusColor = AppColors.info; statusLabel = 'ОТКРЫТО'; break;
+      case TicketStatus.aiAnswered: statusColor = AppColors.warning; statusLabel = 'ОТВЕТИЛ AI'; break;
+      case TicketStatus.escalated: statusColor = AppColors.accent; statusLabel = 'У ЭКСПЕРТА'; break;
+      case TicketStatus.expertAnswered: statusColor = AppColors.success; statusLabel = 'ОТВЕТ ПОЛУЧЕН'; break;
+      case TicketStatus.closed: statusColor = AppColors.textHint; statusLabel = 'ЗАКРЫТО'; break;
     }
 
-    return Card(
+    return Container(
+      decoration: BoxDecoration(color: Colors.white, border: Border.all(color: AppColors.border)),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
         child: Padding(
-          padding: const EdgeInsets.all(14),
+          padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 3,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.info.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Text(
-                      ticket.category,
-                      style: const TextStyle(
-                        fontSize: 11,
-                        color: AppColors.info,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-                  const Spacer(),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 3,
-                    ),
-                    decoration: BoxDecoration(
-                      color: statusColor.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Text(
-                      statusLabel,
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: statusColor,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
+                  Text(ticket.category.toUpperCase(), style: const TextStyle(fontSize: 10, color: AppColors.textSecondary, fontWeight: FontWeight.w900)),
+                  Text(statusLabel, style: TextStyle(fontSize: 10, color: statusColor, fontWeight: FontWeight.w900)),
                 ],
               ),
-              const SizedBox(height: 10),
-              Text(
-                ticket.question,
-                style: const TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 14,
-                ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-              if (ticket.aiAnswer != null) ...[
-                const SizedBox(height: 8),
-                Text(
-                  'AI: ${ticket.aiAnswer}',
-                  style: const TextStyle(
-                    color: AppColors.textSecondary,
-                    fontSize: 12,
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-              const SizedBox(height: 8),
-              Text(
-                '${ticket.createdAt.day}.${ticket.createdAt.month}.${ticket.createdAt.year}',
-                style: const TextStyle(color: AppColors.textHint, fontSize: 11),
+              const SizedBox(height: 12),
+              Text(ticket.question, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14), maxLines: 2, overflow: TextOverflow.ellipsis),
+              const Divider(height: 24),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('${ticket.createdAt.day}.${ticket.createdAt.month}.${ticket.createdAt.year}', style: const TextStyle(color: AppColors.textHint, fontSize: 11, fontWeight: FontWeight.bold)),
+                  if (ticket.photo != null) const Icon(Icons.image_outlined, size: 16, color: AppColors.textHint),
+                ],
               ),
             ],
           ),
@@ -280,51 +216,34 @@ class _TicketDetailSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: MediaQuery.of(context).size.height * 0.8,
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
+      height: MediaQuery.of(context).size.height * 0.85,
+      decoration: const BoxDecoration(color: Colors.white),
       child: Column(
         children: [
-          Container(
-            width: 36,
-            height: 4,
-            margin: const EdgeInsets.only(top: 12),
-            decoration: BoxDecoration(
-              color: AppColors.border,
-              borderRadius: BorderRadius.circular(2),
-            ),
+          AppBar(
+            title: Text(ticket.category.toUpperCase(), style: const TextStyle(fontWeight: FontWeight.w900)),
+            automaticallyImplyLeading: false,
+            actions: [IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close))],
           ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    ticket.category,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 18,
-                    ),
-                  ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.close),
-                  onPressed: () => Navigator.pop(context),
-                ),
-              ],
-            ),
-          ),
-          const Divider(),
           Expanded(
             child: ListView(
               padding: const EdgeInsets.all(20),
               children: [
-                _bubble(ticket.question, isUser: true),
+                _bubble(ticket.question, isUser: true, photo: ticket.photo),
                 if (ticket.aiAnswer != null) _aiBubble(ticket.aiAnswer!),
-                if (ticket.expertAnswer != null)
-                  _expertBubble(ticket.expertAnswer!),
+                if (ticket.expertAnswer != null) _expertBubble(ticket.expertAnswer!),
+                if (ticket.status == TicketStatus.aiAnswered) ...[
+                  const SizedBox(height: 24),
+                  OutlinedButton(
+                    onPressed: () {}, // Escalation logic
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.brandRed,
+                      side: const BorderSide(color: AppColors.brandRed),
+                      minimumSize: const Size(double.infinity, 50),
+                    ),
+                    child: const Text('ПОЗВАТЬ ЭКСПЕРТА / ТЕХНОЛОГА', style: TextStyle(fontWeight: FontWeight.w900)),
+                  ),
+                ],
               ],
             ),
           ),
@@ -333,24 +252,29 @@ class _TicketDetailSheet extends StatelessWidget {
     );
   }
 
-  Widget _bubble(String text, {required bool isUser}) {
+  Widget _bubble(String text, {required bool isUser, String? photo}) {
     return Align(
       alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.all(12),
+        margin: const EdgeInsets.only(bottom: 16),
+        padding: const EdgeInsets.all(14),
         constraints: const BoxConstraints(maxWidth: 300),
-        decoration: BoxDecoration(
-          color: isUser ? AppColors.brandBlack : const Color(0xFFF5F5F5),
-          borderRadius: BorderRadius.zero,
-          border: isUser ? null : Border.all(color: AppColors.border.withValues(alpha: 0.5)),
-        ),
-        child: Text(
-          text,
-          style: TextStyle(
-            color: isUser ? Colors.white : AppColors.textPrimary,
-            fontSize: 14,
+        decoration: ShapeDecoration(
+          color: isUser ? AppColors.brandBlack : AppColors.canvas,
+          shape: BeveledRectangleBorder(
+            side: isUser ? BorderSide.none : const BorderSide(color: AppColors.border),
+            borderRadius: BorderRadius.zero,
           ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (photo != null) ...[
+              const Icon(Icons.image_outlined, color: Colors.white, size: 20),
+              const SizedBox(height: 8),
+            ],
+            Text(text, style: TextStyle(color: isUser ? Colors.white : AppColors.textPrimary, fontSize: 14, fontWeight: isUser ? FontWeight.w500 : FontWeight.bold)),
+          ],
         ),
       ),
     );
@@ -358,39 +282,18 @@ class _TicketDetailSheet extends StatelessWidget {
 
   Widget _aiBubble(String text) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF5F5F5),
-        borderRadius: BorderRadius.zero,
-        border: Border.all(color: AppColors.border.withValues(alpha: 0.5)),
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(14),
+      decoration: const ShapeDecoration(
+        color: AppColors.canvas,
+        shape: BeveledRectangleBorder(side: BorderSide(color: AppColors.brandRed, width: 1), borderRadius: BorderRadius.zero),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(
-            children: [
-              Icon(
-                Icons.smart_toy_outlined,
-                size: 14,
-                color: AppColors.brandRed,
-              ),
-              SizedBox(width: 6),
-              Text(
-                'AI-ответ',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.brandRed,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          Text(
-            text,
-            style: const TextStyle(fontSize: 14, color: AppColors.textPrimary),
-          ),
+          const Row(children: [Icon(Icons.smart_toy_outlined, size: 16, color: AppColors.brandRed), SizedBox(width: 8), Text('AI-ОТВЕТ', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: AppColors.brandRed))]),
+          const SizedBox(height: 8),
+          Text(text, style: const TextStyle(fontSize: 14, color: AppColors.textPrimary, fontWeight: FontWeight.bold)),
         ],
       ),
     );
@@ -398,39 +301,18 @@ class _TicketDetailSheet extends StatelessWidget {
 
   Widget _expertBubble(String text) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppColors.success.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.zero,
-        border: Border.all(color: AppColors.success.withValues(alpha: 0.2)),
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(14),
+      decoration: const ShapeDecoration(
+        color: AppColors.brandBlack,
+        shape: BeveledRectangleBorder(borderRadius: BorderRadius.zero),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(
-            children: [
-              Icon(
-                Icons.verified_user_outlined,
-                size: 14,
-                color: AppColors.success,
-              ),
-              SizedBox(width: 6),
-              Text(
-                'Ответ технолога',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.success,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          Text(
-            text,
-            style: const TextStyle(fontSize: 14, color: AppColors.textPrimary),
-          ),
+          const Row(children: [Icon(Icons.verified_user_outlined, size: 16, color: AppColors.success), SizedBox(width: 8), Text('ОТВЕТ ТЕХНОЛОГА', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: AppColors.success))]),
+          const SizedBox(height: 8),
+          Text(text, style: const TextStyle(fontSize: 14, color: Colors.white, fontWeight: FontWeight.bold)),
         ],
       ),
     );
@@ -438,7 +320,8 @@ class _TicketDetailSheet extends StatelessWidget {
 }
 
 class _NewTicketSheet extends StatefulWidget {
-  const _NewTicketSheet();
+  final VoidCallback onCreated;
+  const _NewTicketSheet({required this.onCreated});
 
   @override
   State<_NewTicketSheet> createState() => _NewTicketSheetState();
@@ -447,117 +330,82 @@ class _NewTicketSheet extends StatefulWidget {
 class _NewTicketSheetState extends State<_NewTicketSheet> {
   final _questionCtrl = TextEditingController();
   String? _category;
-  final _cats = [
-    'Дефекты',
-    'Технология',
-    'Совместимость',
-    'Подбор материала',
-    'Другое',
-  ];
+  XFile? _photo;
+  bool _saving = false;
+
+  final _cats = ['ДЕФЕКТЫ', 'ТЕХНОЛОГИЯ', 'СОВМЕСТИМОСТЬ', 'ПОДБОР МАТЕРИАЛА', 'ДРУГОЕ'];
+
+  Future<void> _pickImage() async {
+    final picker = ImagePicker();
+    final img = await picker.pickImage(source: ImageSource.camera);
+    if (img != null) setState(() => _photo = img);
+  }
+
+  Future<void> _submit() async {
+    if (_category == null || _questionCtrl.text.isEmpty) return;
+    setState(() => _saving = true);
+    try {
+      final bytes = _photo != null ? await _photo!.readAsBytes() : null;
+      await DataRepository().createExpertTicket({
+        'category': _category,
+        'question': _questionCtrl.text,
+      }, fileBytes: bytes, fileName: _photo?.name);
+      
+      if (!mounted) return;
+      widget.onCreated();
+      Navigator.pop(context);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: MediaQuery.of(context).size.height * 0.7,
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom,
-      ),
+      height: MediaQuery.of(context).size.height * 0.8,
+      decoration: const BoxDecoration(color: Colors.white),
+      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
       child: Column(
         children: [
-          Container(
-            width: 36,
-            height: 4,
-            margin: const EdgeInsets.only(top: 12),
-            decoration: BoxDecoration(
-              color: AppColors.border,
-              borderRadius: BorderRadius.circular(2),
-            ),
+          AppBar(
+            title: const Text('НОВЫЙ ВОПРОС', style: TextStyle(fontWeight: FontWeight.w900)),
+            automaticallyImplyLeading: false,
+            actions: [IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close))],
           ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-            child: Row(
-              children: [
-                const Text(
-                  'Задать вопрос эксперту',
-                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18),
-                ),
-                const Spacer(),
-                IconButton(
-                  icon: const Icon(Icons.close),
-                  onPressed: () => Navigator.pop(context),
-                ),
-              ],
-            ),
-          ),
-          const Divider(),
           Expanded(
             child: ListView(
               padding: const EdgeInsets.all(20),
               children: [
                 DropdownButtonFormField<String>(
                   value: _category,
-                  decoration: const InputDecoration(
-                    labelText: 'Категория вопроса *',
-                  ),
-                  items: _cats
-                      .map((c) => DropdownMenuItem(value: c, child: Text(c)))
-                      .toList(),
+                  decoration: const InputDecoration(labelText: 'КАТЕГОРИЯ ВОПРОСА *'),
+                  items: _cats.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
                   onChanged: (v) => setState(() => _category = v),
                 ),
                 const SizedBox(height: 16),
-                TextFormField(
-                  controller: _questionCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'Опишите вопрос или проблему *',
-                    alignLabelWithHint: true,
-                  ),
-                  maxLines: 5,
-                ),
-                const SizedBox(height: 12),
+                TextFormField(controller: _questionCtrl, decoration: const InputDecoration(labelText: 'ОПИШИТЕ ПРОБЛЕМУ *', alignLabelWithHint: true), maxLines: 5),
+                const SizedBox(height: 16),
                 GestureDetector(
-                  onTap: () {},
+                  onTap: _pickImage,
                   child: Container(
-                    height: 60,
-                    decoration: BoxDecoration(
-                      color: AppColors.surface,
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: AppColors.border),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.add_a_photo_outlined,
-                          color: AppColors.textHint,
-                        ),
-                        const SizedBox(width: 8),
-                        const Text(
-                          'Прикрепить фото/видео',
-                          style: TextStyle(
-                            color: AppColors.textSecondary,
-                            fontSize: 13,
-                          ),
-                        ),
-                      ],
-                    ),
+                    height: 100,
+                    decoration: BoxDecoration(color: AppColors.canvas, border: Border.all(color: AppColors.border)),
+                    child: _photo == null 
+                      ? const Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.add_a_photo, color: AppColors.brandRed), Text('ДОБАВИТЬ ФОТО ДЕФЕКТА', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold))])
+                      : Image.file(File(_photo!.path), fit: BoxFit.cover),
                   ),
                 ),
-                const SizedBox(height: 20),
-                ElevatedButton(
-                  onPressed: () {
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Вопрос отправлен. AI анализирует...'),
-                        backgroundColor: AppColors.info,
-                      ),
-                    );
-                  },
-                  child: const Text('Отправить вопрос'),
+                const SizedBox(height: 24),
+                SizedBox(
+                  height: 54,
+                  child: ElevatedButton(
+                    onPressed: _saving ? null : _submit,
+                    style: ElevatedButton.styleFrom(backgroundColor: AppColors.brandRed),
+                    child: Text(_saving ? 'ОТПРАВКА...' : 'ОТПРАВИТЬ ЭКСПЕРТУ'),
+                  ),
                 ),
               ],
             ),
@@ -568,29 +416,3 @@ class _NewTicketSheetState extends State<_NewTicketSheet> {
   }
 }
 
-final _mockTickets = [
-  ExpertTicket(
-    id: 't1',
-    clientId: 'c1',
-    question:
-        'Лак пузырится после полной сушки в камере при 60°С. Грунт высох нормально, шпатлёвка была зашлифована P400.',
-    category: 'Дефекты',
-    aiAnswer:
-        'Возможная причина: остаточная влага в шпатлёвке или несовместимость систем. Рекомендую: 1) Проверить полное высыхание шпатлёвки 2) Использовать изолирующий грунт 3) Снизить температуру в первые 10 мин сушки.',
-    expertAnswer:
-        'Подтверждаю - причина в ускоренной сушке. Шпатлёвка должна выходить при комнатной температуре минимум 2 ч перед камерой. Используйте наш грунт-изолятор (GRN-003) после шпатлёвки.',
-    status: TicketStatus.expertAnswered,
-    createdAt: DateTime(2025, 4, 20),
-  ),
-  ExpertTicket(
-    id: 't2',
-    clientId: 'c1',
-    question:
-        'Можно ли наносить наш 2K лак поверх однокомпонентного акрила другого бренда?',
-    category: 'Совместимость',
-    aiAnswer:
-        'Наш 2K лак совместим с большинством однокомпонентных акрилов, но нужна дополнительная проверка. Передаю технологу.',
-    status: TicketStatus.escalated,
-    createdAt: DateTime(2025, 5, 10),
-  ),
-];

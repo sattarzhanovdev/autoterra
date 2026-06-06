@@ -2,7 +2,9 @@ enum ClientStatus { newClient, pending, active, blocked, archived }
 
 enum ClientCategory { a, b, c }
 
-enum PurchaseStatus { pending, verified, rejected }
+enum PurchaseStatus { newPurchase, pending, pendingVerification, underReview, duplicateReview, verified, rejected }
+
+enum OrderStatus { newOrder, accepted, rejected, fulfilled }
 
 enum StockStatus { inStock, low, onOrder, outOfStock }
 
@@ -106,6 +108,38 @@ class Distributor {
   });
 }
 
+class Order {
+  final String id;
+  final String clientId;
+  final String clientName;
+  final String distributorId;
+  final String storeName;
+  final String documentNumber;
+  final DateTime date;
+  final double totalAmount;
+  final OrderStatus status;
+  final List<PurchaseItem> items;
+  final String? comment;
+  final String? rejectionReason;
+  final DateTime createdAt;
+
+  const Order({
+    required this.id,
+    required this.clientId,
+    required this.clientName,
+    required this.distributorId,
+    required this.storeName,
+    required this.documentNumber,
+    required this.date,
+    required this.totalAmount,
+    required this.status,
+    required this.items,
+    this.comment,
+    this.rejectionReason,
+    required this.createdAt,
+  });
+}
+
 class Purchase {
   final String id;
   final String clientId;
@@ -190,6 +224,13 @@ class ColorRequest {
   final String colorName;
   final bool urgent;
   final ColorRequestStatus status;
+  final String transferMethod;
+  final String? pickupAddress;
+  final DateTime? pickupTime;
+  final String? contactPerson;
+  final String? contactPhone;
+  final DateTime? slaDeadline;
+  final bool isOverdue;
   final String? recipe;
   final DateTime createdAt;
 
@@ -203,6 +244,13 @@ class ColorRequest {
     required this.colorName,
     this.urgent = false,
     required this.status,
+    required this.transferMethod,
+    this.pickupAddress,
+    this.pickupTime,
+    this.contactPerson,
+    this.contactPhone,
+    this.slaDeadline,
+    this.isOverdue = false,
     this.recipe,
     required this.createdAt,
   });
@@ -322,6 +370,8 @@ class ExpertTicket {
   final String? aiAnswer;
   final String? expertAnswer;
   final TicketStatus status;
+  final String? photo;
+  final String? videoLink;
   final DateTime createdAt;
 
   const ExpertTicket({
@@ -332,6 +382,8 @@ class ExpertTicket {
     this.aiAnswer,
     this.expertAnswer,
     required this.status,
+    this.photo,
+    this.videoLink,
     required this.createdAt,
   });
 }

@@ -70,13 +70,14 @@ class AppShapes {
 }
 
 class _AppFonts {
-  static TextStyle tektur({
+  static TextStyle octosquares({
     double? fontSize,
     FontWeight? fontWeight,
     Color? color,
     double? letterSpacing,
   }) {
     return TextStyle(
+      fontFamily: 'TTOctosquares',
       fontSize: fontSize,
       fontWeight: fontWeight,
       color: color,
@@ -84,44 +85,20 @@ class _AppFonts {
     );
   }
 
-  static TextStyle spaceGrotesk({
+  static TextStyle neoris({
     double? fontSize,
     FontWeight? fontWeight,
     Color? color,
     double? letterSpacing,
   }) {
     return TextStyle(
+      fontFamily: 'TTNeoris',
       fontSize: fontSize,
       fontWeight: fontWeight,
       color: color,
       letterSpacing: letterSpacing,
     );
   }
-
-  static TextStyle inter({
-    double? fontSize,
-    FontWeight? fontWeight,
-    Color? color,
-    double? letterSpacing,
-  }) {
-    return TextStyle(
-      fontSize: fontSize,
-      fontWeight: fontWeight,
-      color: color,
-      letterSpacing: letterSpacing,
-    );
-  }
-}
-
-class ChamferClipper extends CustomClipper<Path> {
-  final double cut;
-  const ChamferClipper({this.cut = AppShapes.chamferMd});
-
-  @override
-  Path getClip(Size size) => AppShapes.chamferPath(size, cut);
-
-  @override
-  bool shouldReclip(ChamferClipper old) => old.cut != cut;
 }
 
 class AppTheme {
@@ -143,21 +120,18 @@ class AppTheme {
         foregroundColor: Colors.white,
         elevation: 0,
         centerTitle: false,
-        titleTextStyle: _AppFonts.tektur(
+        titleTextStyle: _AppFonts.octosquares(
           fontSize: 16,
-          fontWeight: FontWeight.w700,
+          fontWeight: FontWeight.w900,
           color: Colors.white,
-          letterSpacing: 0.4,
+          letterSpacing: 0.8,
         ),
         iconTheme: const IconThemeData(color: Colors.white),
-        actionsIconTheme: const IconThemeData(color: Colors.white),
       ),
       cardTheme: CardThemeData(
         color: AppColors.surfaceCard,
         elevation: 0,
-        shadowColor: Colors.black.withValues(alpha: 0.08),
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.zero,
+        shape: const BeveledRectangleBorder(
           side: BorderSide(color: AppColors.border, width: 1),
         ),
         margin: EdgeInsets.zero,
@@ -168,11 +142,11 @@ class AppTheme {
           foregroundColor: Colors.white,
           elevation: 0,
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-          shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-          textStyle: _AppFonts.tektur(
-            fontSize: 14,
-            fontWeight: FontWeight.w700,
-            letterSpacing: 0.6,
+          shape: const BeveledRectangleBorder(),
+          textStyle: _AppFonts.octosquares(
+            fontSize: 13,
+            fontWeight: FontWeight.w900,
+            letterSpacing: 0.8,
           ),
         ),
       ),
@@ -181,128 +155,32 @@ class AppTheme {
           foregroundColor: AppColors.brandBlack,
           side: const BorderSide(color: AppColors.brandBlack, width: 1.5),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-          shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-          textStyle: _AppFonts.tektur(
-            fontSize: 14,
-            fontWeight: FontWeight.w700,
+          shape: const BeveledRectangleBorder(),
+          textStyle: _AppFonts.octosquares(
+            fontSize: 12,
+            fontWeight: FontWeight.w900,
           ),
-        ),
-      ),
-      textButtonTheme: TextButtonThemeData(
-        style: TextButton.styleFrom(
-          foregroundColor: AppColors.brandRed,
-          textStyle: _AppFonts.tektur(
-            fontSize: 13,
-            fontWeight: FontWeight.w700,
-          ),
-          shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: Colors.white,
-        border: const OutlineInputBorder(
-          borderRadius: BorderRadius.zero,
-          borderSide: BorderSide(color: AppColors.border),
-        ),
-        enabledBorder: const OutlineInputBorder(
-          borderRadius: BorderRadius.zero,
-          borderSide: BorderSide(color: AppColors.border),
-        ),
-        focusedBorder: const OutlineInputBorder(
-          borderRadius: BorderRadius.zero,
-          borderSide: BorderSide(color: AppColors.brandBlack, width: 2),
-        ),
-        errorBorder: const OutlineInputBorder(
-          borderRadius: BorderRadius.zero,
-          borderSide: BorderSide(color: AppColors.brandRed),
-        ),
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 14,
-        ),
-        labelStyle: _AppFonts.spaceGrotesk(
-          color: AppColors.textSecondary,
-          fontSize: 14,
-        ),
-        hintStyle: _AppFonts.spaceGrotesk(
-          color: AppColors.textHint,
-          fontSize: 14,
-        ),
-      ),
-      dividerTheme: const DividerThemeData(
-        color: AppColors.border,
-        thickness: 1,
-        space: 0,
-      ),
-      bottomNavigationBarTheme: BottomNavigationBarThemeData(
-        backgroundColor: AppColors.brandBlack,
-        selectedItemColor: AppColors.brandRed,
-        unselectedItemColor: Colors.white.withValues(alpha: 0.45),
-        type: BottomNavigationBarType.fixed,
-        elevation: 0,
-        selectedLabelStyle: _AppFonts.spaceGrotesk(
-          fontSize: 11,
-          fontWeight: FontWeight.w700,
-        ),
-        unselectedLabelStyle: _AppFonts.spaceGrotesk(fontSize: 11),
-      ),
-      chipTheme: ChipThemeData(
-        backgroundColor: AppColors.brandWhite,
-        selectedColor: AppColors.brandRed.withValues(alpha: 0.12),
-        labelStyle: _AppFonts.spaceGrotesk(
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
-        ),
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.zero,
-          side: BorderSide(color: AppColors.border),
-        ),
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      ),
-      floatingActionButtonTheme: const FloatingActionButtonThemeData(
-        backgroundColor: AppColors.brandRed,
-        foregroundColor: Colors.white,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.all(Radius.circular(6)),
-        ),
-        elevation: 0,
+        border: const OutlineInputBorder(borderRadius: BorderRadius.zero, borderSide: BorderSide(color: AppColors.border)),
+        enabledBorder: const OutlineInputBorder(borderRadius: BorderRadius.zero, borderSide: BorderSide(color: AppColors.border)),
+        focusedBorder: const OutlineInputBorder(borderRadius: BorderRadius.zero, borderSide: BorderSide(color: AppColors.brandBlack, width: 2)),
+        labelStyle: _AppFonts.octosquares(color: AppColors.textSecondary, fontSize: 11, fontWeight: FontWeight.bold),
+        hintStyle: _AppFonts.neoris(color: AppColors.textHint, fontSize: 14),
       ),
       tabBarTheme: TabBarThemeData(
-        labelColor: AppColors.brandRed,
+        labelColor: AppColors.brandBlack,
         unselectedLabelColor: AppColors.textSecondary,
         indicatorColor: AppColors.brandRed,
-        indicatorSize: TabBarIndicatorSize.tab,
-        labelStyle: _AppFonts.spaceGrotesk(
-          fontSize: 13,
-          fontWeight: FontWeight.w700,
-        ),
-        unselectedLabelStyle: _AppFonts.spaceGrotesk(fontSize: 13),
-        dividerColor: AppColors.border,
-      ),
-      snackBarTheme: SnackBarThemeData(
-        backgroundColor: AppColors.brandBlack,
-        contentTextStyle: _AppFonts.spaceGrotesk(
-          color: Colors.white,
-          fontSize: 14,
-        ),
-        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-        behavior: SnackBarBehavior.floating,
-      ),
-      dialogTheme: DialogThemeData(
-        backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-        titleTextStyle: _AppFonts.spaceGrotesk(
-          fontSize: 18,
-          fontWeight: FontWeight.w700,
-          color: AppColors.textPrimary,
-        ),
+        labelStyle: _AppFonts.octosquares(fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 0.5),
+        unselectedLabelStyle: _AppFonts.octosquares(fontSize: 11, fontWeight: FontWeight.w900),
       ),
       bottomSheetTheme: const BottomSheetThemeData(
         backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(10)),
-        ),
+        shape: BeveledRectangleBorder(),
         elevation: 0,
       ),
     );
@@ -310,74 +188,12 @@ class AppTheme {
 
   static TextTheme _buildTextTheme() {
     return TextTheme(
-      displayLarge: _AppFonts.spaceGrotesk(
-        fontSize: 28,
-        fontWeight: FontWeight.w700,
-        color: AppColors.textPrimary,
-      ),
-      displayMedium: _AppFonts.spaceGrotesk(
-        fontSize: 24,
-        fontWeight: FontWeight.w700,
-        color: AppColors.textPrimary,
-      ),
-      headlineLarge: _AppFonts.tektur(
-        fontSize: 22,
-        fontWeight: FontWeight.w700,
-        color: AppColors.textPrimary,
-      ),
-      headlineMedium: _AppFonts.tektur(
-        fontSize: 18,
-        fontWeight: FontWeight.w700,
-        color: AppColors.textPrimary,
-      ),
-      headlineSmall: _AppFonts.tektur(
-        fontSize: 15,
-        fontWeight: FontWeight.w700,
-        color: AppColors.textPrimary,
-      ),
-      titleLarge: _AppFonts.spaceGrotesk(
-        fontSize: 15,
-        fontWeight: FontWeight.w600,
-        color: AppColors.textPrimary,
-      ),
-      titleMedium: _AppFonts.spaceGrotesk(
-        fontSize: 14,
-        fontWeight: FontWeight.w600,
-        color: AppColors.textPrimary,
-      ),
-      bodyLarge: _AppFonts.inter(
-        fontSize: 15,
-        fontWeight: FontWeight.w400,
-        color: AppColors.textPrimary,
-      ),
-      bodyMedium: _AppFonts.inter(
-        fontSize: 14,
-        fontWeight: FontWeight.w400,
-        color: AppColors.textSecondary,
-      ),
-      bodySmall: _AppFonts.inter(
-        fontSize: 12,
-        fontWeight: FontWeight.w400,
-        color: AppColors.textHint,
-      ),
-      labelLarge: _AppFonts.tektur(
-        fontSize: 13,
-        fontWeight: FontWeight.w700,
-        color: AppColors.brandRed,
-        letterSpacing: 0.5,
-      ),
-      labelMedium: _AppFonts.tektur(
-        fontSize: 11,
-        fontWeight: FontWeight.w700,
-        color: AppColors.textSecondary,
-        letterSpacing: 0.6,
-      ),
-      labelSmall: _AppFonts.tektur(
-        fontSize: 10,
-        fontWeight: FontWeight.w700,
-        color: AppColors.textHint,
-        letterSpacing: 0.6,
-      ),
+      displayLarge: _AppFonts.octosquares(fontSize: 28, fontWeight: FontWeight.w900, color: AppColors.textPrimary),
+      headlineMedium: _AppFonts.octosquares(fontSize: 18, fontWeight: FontWeight.w900, color: AppColors.textPrimary),
+      titleLarge: _AppFonts.octosquares(fontSize: 15, fontWeight: FontWeight.w800, color: AppColors.textPrimary, letterSpacing: 0.5),
+      bodyLarge: _AppFonts.neoris(fontSize: 15, fontWeight: FontWeight.w400, color: AppColors.textPrimary),
+      bodyMedium: _AppFonts.neoris(fontSize: 14, fontWeight: FontWeight.w400, color: AppColors.textSecondary),
+      labelLarge: _AppFonts.octosquares(fontSize: 13, fontWeight: FontWeight.w900, color: AppColors.brandBlack, letterSpacing: 0.8),
     );
   }
 }
