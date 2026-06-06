@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../../core/theme.dart';
 import '../../models/models.dart' as app_models;
 import '../../services/data_repository.dart';
@@ -26,17 +27,32 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     await next;
   }
 
+  Future<void> _readAll() async {
+    try {
+      await DataRepository().markNotificationsRead();
+      _refresh();
+    } catch (e) {
+      //
+    }
+  }
+
+  void _handleTap(app_models.Notification n) {
+    if (n.relatedLink != null && n.relatedLink!.isNotEmpty) {
+      context.push(n.relatedLink!);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Уведомления'),
+        title: const Text('УВЕДОМЛЕНИЯ'),
         actions: [
           TextButton(
-            onPressed: () {},
+            onPressed: _readAll,
             child: const Text(
-              'Прочитать все',
-              style: TextStyle(color: Colors.white, fontSize: 13),
+              'ПРОЧИТАТЬ ВСЕ',
+              style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w900),
             ),
           ),
         ],
@@ -73,28 +89,28 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               children: [
                 if (unread.isNotEmpty) ...[
                   const Text(
-                    'Новые',
+                    'НОВЫЕ',
                     style: TextStyle(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 14,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 12,
                       color: AppColors.textSecondary,
                     ),
                   ),
-                  const SizedBox(height: 10),
-                  ...unread.map((n) => _NotifCard(notification: n)),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 12),
+                  ...unread.map((n) => _NotifCard(notification: n, onTap: () => _handleTap(n))),
+                  const SizedBox(height: 24),
                 ],
                 if (read.isNotEmpty) ...[
                   const Text(
-                    'Ранее',
+                    'ПРОЧИТАННЫЕ',
                     style: TextStyle(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 14,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 12,
                       color: AppColors.textSecondary,
                     ),
                   ),
-                  const SizedBox(height: 10),
-                  ...read.map((n) => _NotifCard(notification: n)),
+                  const SizedBox(height: 12),
+                  ...read.map((n) => _NotifCard(notification: n, onTap: () => _handleTap(n))),
                 ],
                 const SizedBox(height: 80),
               ],
@@ -108,87 +124,92 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
 class _NotifCard extends StatelessWidget {
   final app_models.Notification notification;
-  const _NotifCard({required this.notification});
+  final VoidCallback? onTap;
+  const _NotifCard({required this.notification, this.onTap});
 
   @override
   Widget build(BuildContext context) {
     final config = _getConfig(notification.type);
     return Container(
-      margin: const EdgeInsets.only(bottom: 10),
+      margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         color: notification.isRead
             ? Colors.white
-            : config.color.withOpacity(0.04),
-        borderRadius: BorderRadius.circular(12),
+            : config.color.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.zero,
         border: Border.all(
           color: notification.isRead
               ? AppColors.border
-              : config.color.withOpacity(0.2),
+              : config.color,
+          width: notification.isRead ? 1 : 1.5,
         ),
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            PremiumIconBadge(
-              icon: config.icon,
-              size: 40,
-              iconSize: 20,
-              iconColor: config.color,
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          notification.title,
-                          style: TextStyle(
-                            fontWeight: notification.isRead
-                                ? FontWeight.w500
-                                : FontWeight.w700,
-                            fontSize: 14,
-                          ),
-                        ),
-                      ),
-                      if (!notification.isRead)
-                        Container(
-                          width: 8,
-                          height: 8,
-                          decoration: const BoxDecoration(
-                            color: AppColors.accent,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    notification.body,
-                    style: const TextStyle(
-                      color: AppColors.textSecondary,
-                      fontSize: 13,
-                      height: 1.3,
-                    ),
-                    maxLines: 3,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    _formatTime(notification.createdAt),
-                    style: const TextStyle(
-                      color: AppColors.textHint,
-                      fontSize: 11,
-                    ),
-                  ),
-                ],
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              PremiumIconBadge(
+                icon: config.icon,
+                size: 40,
+                iconSize: 20,
+                iconColor: config.color,
               ),
-            ),
-          ],
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            notification.title.toUpperCase(),
+                            style: TextStyle(
+                              fontWeight: notification.isRead
+                                  ? FontWeight.w700
+                                  : FontWeight.w900,
+                              fontSize: 13,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ),
+                        if (!notification.isRead)
+                          Container(
+                            width: 6,
+                            height: 6,
+                            decoration: const BoxDecoration(
+                              color: AppColors.brandRed,
+                            ),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      notification.body,
+                      style: const TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        height: 1.3,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      _formatTime(notification.createdAt).toUpperCase(),
+                      style: const TextStyle(
+                        color: AppColors.textHint,
+                        fontSize: 9,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

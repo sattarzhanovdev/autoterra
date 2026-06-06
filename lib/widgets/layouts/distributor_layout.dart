@@ -34,7 +34,7 @@ class _DistributorLayoutState extends State<DistributorLayout> {
           onTap: (index) => setState(() => _currentIndex = index),
           backgroundColor: const Color(0xFF171717),
           selectedItemColor: const Color(0xFFF01D2C),
-          unselectedItemColor: Colors.white.withOpacity(0.5),
+          unselectedItemColor: Colors.white.withValues(alpha: 0.5),
           type: BottomNavigationBarType.fixed,
           items: const [
             BottomNavigationBarItem(icon: Icon(Icons.shopping_cart), label: 'ЗАКАЗЫ'),

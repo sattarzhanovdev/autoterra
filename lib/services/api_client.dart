@@ -129,6 +129,19 @@ class ApiClient {
     return (result['results'] as List<dynamic>).cast<Map<String, dynamic>>();
   }
 
+  Future<void> markNotificationsRead() async {
+    await _post('/notifications/read/', {});
+  }
+
+  Future<List<Map<String, dynamic>>> managerClients() async {
+    final result = await _get('/manager/clients/');
+    return (result['results'] as List<dynamic>).cast<Map<String, dynamic>>();
+  }
+
+  Future<Map<String, dynamic>> managerClientUnified(String clientId) async {
+    return _get('/manager/clients/$clientId/unified/');
+  }
+
   Future<Map<String, dynamic>> createExpertTicket(Map<String, dynamic> body, {List<int>? fileBytes, String? fileName}) {
     if (fileBytes != null && fileName != null) {
       return _multipartPost('/tickets/create/', body, fileBytes, fileName, fileField: 'photo');
@@ -271,6 +284,22 @@ class ApiClient {
       'status': status,
       if (reason != null) 'rejection_reason': reason,
     });
+  }
+
+  Future<Map<String, dynamic>> adminIntegrationTokens() async {
+    return _get('/admin/integration/tokens/');
+  }
+
+  Future<Map<String, dynamic>> adminIntegrationGenerate(String distributorId) async {
+    return _post('/admin/integration/generate/$distributorId/', {});
+  }
+
+  Future<Map<String, dynamic>> adminIntegrationLogs() async {
+    return _get('/admin/integration/logs/');
+  }
+
+  Future<Map<String, dynamic>> adminAnalytics() async {
+    return _get('/admin/analytics/');
   }
 
   Future<Map<String, dynamic>> _patch(String path, Map<String, dynamic> body) async {

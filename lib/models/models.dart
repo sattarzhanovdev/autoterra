@@ -395,6 +395,7 @@ class Notification {
   final String title;
   final String body;
   final NotificationType type;
+  final String? relatedLink;
   final bool isRead;
   final DateTime createdAt;
 
@@ -403,6 +404,7 @@ class Notification {
     required this.title,
     required this.body,
     required this.type,
+    this.relatedLink,
     this.isRead = false,
     required this.createdAt,
   });

@@ -159,6 +159,22 @@ class DataRepository {
     return _orderFromJson(result['order'] as Map<String, dynamic>);
   }
 
+  Future<Map<String, dynamic>> adminIntegrationTokens() {
+    return _api.adminIntegrationTokens();
+  }
+
+  Future<Map<String, dynamic>> adminIntegrationGenerate(String distributorId) {
+    return _api.adminIntegrationGenerate(distributorId);
+  }
+
+  Future<Map<String, dynamic>> adminIntegrationLogs() {
+    return _api.adminIntegrationLogs();
+  }
+
+  Future<Map<String, dynamic>> adminAnalytics() {
+    return _api.adminAnalytics();
+  }
+
   Future<List<CourierTask>> courierTasks() async {
     final items = await _api.courierTasks();
     return items.map(_courierTaskFromJson).toList();
@@ -208,6 +224,19 @@ class DataRepository {
   Future<List<Notification>> notifications() async {
     final items = await _api.notifications();
     return items.map(_notificationFromJson).toList();
+  }
+
+  Future<void> markNotificationsRead() async {
+    await _api.markNotificationsRead();
+  }
+
+  Future<List<Client>> managerClients() async {
+    final items = await _api.managerClients();
+    return items.map(_clientFromJson).toList();
+  }
+
+  Future<Map<String, dynamic>> managerClientUnified(String clientId) {
+    return _api.managerClientUnified(clientId);
   }
 
   Future<List<KnowledgeCard>> knowledgeCards() async {
@@ -423,6 +452,7 @@ class DataRepository {
       title: json['title'] as String,
       body: json['body'] as String,
       type: _notificationType(json['type'] as String),
+      relatedLink: json['relatedLink'] as String?,
       isRead: json['isRead'] as bool? ?? false,
       createdAt: DateTime.parse(json['createdAt'] as String),
     );

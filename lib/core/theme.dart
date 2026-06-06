@@ -178,6 +178,15 @@ class AppTheme {
         labelStyle: _AppFonts.octosquares(fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 0.5),
         unselectedLabelStyle: _AppFonts.octosquares(fontSize: 11, fontWeight: FontWeight.w900),
       ),
+      bottomNavigationBarTheme: BottomNavigationBarThemeData(
+        backgroundColor: AppColors.brandBlack,
+        selectedItemColor: AppColors.brandRed,
+        unselectedItemColor: Colors.white.withValues(alpha: 0.45),
+        type: BottomNavigationBarType.fixed,
+        elevation: 0,
+        selectedLabelStyle: _AppFonts.neoris(fontSize: 11, fontWeight: FontWeight.bold),
+        unselectedLabelStyle: _AppFonts.neoris(fontSize: 11),
+      ),
       bottomSheetTheme: const BottomSheetThemeData(
         backgroundColor: Colors.white,
         shape: BeveledRectangleBorder(),

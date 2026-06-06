@@ -22,7 +22,10 @@ import 'screens/orders/order_screen.dart';
 import 'screens/delivery/delivery_screen.dart';
 import 'screens/courier/courier_screen.dart';
 import 'screens/admin/admin_dashboard_screen.dart';
+import 'screens/admin/unified_client_card_screen.dart';
 import 'widgets/common/role_switcher_wrapper.dart';
+
+import 'widgets/layouts/admin_layout.dart';
 
 import 'widgets/layouts/courier_layout.dart';
 import 'widgets/layouts/distributor_layout.dart';
@@ -61,7 +64,8 @@ final _router = GoRouter(
         // Add roles-specific routes or just let shell handle it
         GoRoute(path: '/distributor-cabinet', builder: (ctx, _) => const DistributorCabinetScreen()),
         GoRoute(path: '/courier-cabinet', builder: (ctx, _) => const CourierScreen()),
-        GoRoute(path: '/admin-dashboard', builder: (ctx, _) => const AdminDashboardScreen()),
+        GoRoute(path: '/admin-dashboard', builder: (ctx, _) => const AdminLayout()),
+        GoRoute(path: '/unified-client/:id', builder: (ctx, state) => UnifiedClientCardScreen(clientId: state.pathParameters['id']!)),
       ],
     ),
     GoRoute(path: AppRoutes.addPurchase, builder: (ctx, _) => const AddPurchaseScreen()),
@@ -121,7 +125,7 @@ class _MainShell extends StatelessWidget {
           return CourierLayout(child: SizedBox());
         }
         if (role == UserRole.admin || role == UserRole.manager) {
-          return const AdminDashboardScreen();
+          return const AdminLayout();
         }
         if (role == UserRole.aiExpert) {
           return const AiAssistantScreen();
