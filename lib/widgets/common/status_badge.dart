@@ -98,6 +98,8 @@ class StatusBadge extends StatelessWidget {
         return const StatusBadge(label: 'ДОСТАВЛЕНО', color: AppColors.success, filled: true);
       case CourierTaskStatus.returned:
         return const StatusBadge(label: 'ВОЗВРАЩЕНО', color: AppColors.textSecondary);
+      case CourierTaskStatus.cancelled:
+        return const StatusBadge(label: 'ОТМЕНЕНА', color: AppColors.error);
     }
   }
 

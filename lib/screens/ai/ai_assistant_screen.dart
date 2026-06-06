@@ -12,7 +12,7 @@ class AiAssistantScreen extends StatefulWidget {
 class _AiAssistantScreenState extends State<AiAssistantScreen> {
   final _msgCtrl = TextEditingController();
   final _scrollCtrl = ScrollController();
-  final _api = const ApiClient();
+  final _api = ApiClient();
   final List<_Message> _messages = [
     _Message(
       text:
@@ -266,7 +266,7 @@ class _MessageBubble extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.only(bottom: 16),
       child: Row(
         mainAxisAlignment: message.isAi
             ? MainAxisAlignment.start
@@ -275,35 +275,28 @@ class _MessageBubble extends StatelessWidget {
         children: [
           if (message.isAi) ...[
             Container(
-              width: 30,
-              height: 30,
-              decoration: BoxDecoration(
-                color: AppColors.accent,
-                borderRadius: BorderRadius.circular(8),
+              width: 32,
+              height: 32,
+              decoration: const BoxDecoration(
+                color: AppColors.brandBlack,
+                borderRadius: BorderRadius.zero,
               ),
               child: const Icon(
                 Icons.smart_toy_outlined,
-                color: Colors.white,
-                size: 16,
+                color: AppColors.brandRed,
+                size: 18,
               ),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 10),
           ],
           Flexible(
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
-                color: message.isAi ? Colors.white : AppColors.primary,
-                borderRadius: BorderRadius.circular(16).copyWith(
-                  bottomLeft: message.isAi
-                      ? const Radius.circular(4)
-                      : const Radius.circular(16),
-                  bottomRight: message.isAi
-                      ? const Radius.circular(16)
-                      : const Radius.circular(4),
-                ),
+                color: message.isAi ? const Color(0xFFF5F5F5) : AppColors.brandBlack,
+                borderRadius: BorderRadius.zero,
                 border: message.isAi
-                    ? Border.all(color: AppColors.border)
+                    ? Border.all(color: AppColors.border.withValues(alpha: 0.5))
                     : null,
               ),
               child: Text(
@@ -311,7 +304,7 @@ class _MessageBubble extends StatelessWidget {
                 style: TextStyle(
                   color: message.isAi ? AppColors.textPrimary : Colors.white,
                   fontSize: 14,
-                  height: 1.4,
+                  height: 1.5,
                 ),
               ),
             ),

@@ -80,7 +80,7 @@ class DashboardData {
 class DataRepository {
   final ApiClient _api;
 
-  const DataRepository({ApiClient api = const ApiClient()}) : _api = api;
+  DataRepository({ApiClient? api}) : _api = api ?? ApiClient();
 
   Future<DashboardData> dashboard() async {
     final data = await _api.dashboard();
@@ -127,9 +127,55 @@ class DataRepository {
     return items.map(_colorRequestFromJson).toList();
   }
 
+  Future<List<Purchase>> distributorPurchases() async {
+    final items = await _api.distributorPurchases();
+    return items.map(_purchaseFromJson).toList();
+  }
+
+  Future<Purchase> verifyPurchase(String id, {required bool verify, String? reason}) async {
+    final result = await _api.verifyPurchase(
+      id, 
+      status: verify ? 'verified' : 'rejected',
+      reason: reason,
+    );
+    return _purchaseFromJson(result['purchase'] as Map<String, dynamic>);
+  }
+
+  Future<List<Purchase>> distributorOrders() async {
+    final items = await _api.distributorOrders();
+    return items.map(_purchaseFromJson).toList();
+  }
+
+  Future<Purchase> updateOrderStatus(String id, {required String status, String? reason}) async {
+    final result = await _api.updateOrderStatus(id, status: status, reason: reason);
+    return _purchaseFromJson(result['order'] as Map<String, dynamic>);
+  }
+
   Future<List<CourierTask>> courierTasks() async {
     final items = await _api.courierTasks();
     return items.map(_courierTaskFromJson).toList();
+  }
+
+  Future<List<CourierTask>> courierMyTasks() async {
+    final items = await _api.courierMyTasks();
+    return items.map(_courierTaskFromJson).toList();
+  }
+
+  Future<CourierTask> updateCourierTaskStatus(
+    String taskId, {
+    required String status,
+    String? courierComment,
+    List<int>? imageBytes,
+    String? fileName,
+  }) async {
+    final result = await _api.updateCourierTaskStatus(
+      taskId,
+      status: status,
+      courierComment: courierComment,
+      imageBytes: imageBytes,
+      fileName: fileName,
+    );
+    return _courierTaskFromJson(result['task'] as Map<String, dynamic>);
   }
 
   Future<List<Referral>> referrals() async {
@@ -158,6 +204,18 @@ class DataRepository {
     required String comment,
   }) async {
     await _api.createOrder(storeId: storeId, items: items, comment: comment);
+  }
+
+  Future<Map<String, dynamic>> register(Map<String, dynamic> data) {
+    return _api.register(data);
+  }
+
+  Future<List<Map<String, dynamic>>> getRegions() {
+    return _api.getRegions();
+  }
+
+  Future<Map<String, dynamic>> createPurchase(Map<String, dynamic> data) {
+    return _api.createPurchase(data);
   }
 
   static List<Map<String, dynamic>> _list(Object? value) {
@@ -225,6 +283,7 @@ class DataRepository {
     return Purchase(
       id: json['id'] as String,
       clientId: json['clientId'] as String,
+      clientName: json['clientName'] as String? ?? 'Неизвестно',
       distributorId: json['distributorId'] as String,
       documentNumber: json['documentNumber'] as String,
       date: DateTime.parse(json['date'] as String),
@@ -268,21 +327,7 @@ class DataRepository {
   }
 
   static CourierTask _courierTaskFromJson(Map<String, dynamic> json) {
-    return CourierTask(
-      id: json['id'] as String,
-      clientId: json['clientId'] as String,
-      type: json['type'] as String,
-      address: json['address'] as String,
-      scheduledTime: DateTime.parse(json['scheduledTime'] as String),
-      contactName: json['contactName'] as String,
-      contactPhone: json['contactPhone'] as String,
-      carDescription: json['carDescription'] as String,
-      status: _courierTaskStatus(json['status'] as String),
-      courierId: json['courierId'] as String?,
-      photoProof: json['photoProof'] as String?,
-      comment: json['comment'] as String?,
-      createdAt: DateTime.parse(json['createdAt'] as String),
-    );
+    return CourierTask.fromJson(json);
   }
 
   static Referral _referralFromJson(Map<String, dynamic> json) {
@@ -375,10 +420,18 @@ class DataRepository {
   }
 
   static CourierTaskStatus _courierTaskStatus(String value) {
-    return CourierTaskStatus.values.firstWhere(
-      (item) => item.name == value,
-      orElse: () => CourierTaskStatus.created,
-    );
+    switch (value) {
+      case 'in_progress':
+        return CourierTaskStatus.inProgress;
+      case 'delivered':
+        return CourierTaskStatus.delivered;
+      case 'returned':
+        return CourierTaskStatus.returned;
+      case 'cancelled':
+        return CourierTaskStatus.cancelled;
+      default:
+        return CourierTaskStatus.assigned;
+    }
   }
 
   static TicketStatus _ticketStatus(String value) {

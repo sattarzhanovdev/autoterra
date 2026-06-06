@@ -19,11 +19,11 @@ class _DistributorScreenState extends State<DistributorScreen> {
   @override
   void initState() {
     super.initState();
-    _future = const DataRepository().dashboard();
+    _future = DataRepository().dashboard();
   }
 
   Future<void> _refresh() async {
-    final next = const DataRepository().dashboard();
+    final next = DataRepository().dashboard();
     setState(() => _future = next);
     await next;
   }

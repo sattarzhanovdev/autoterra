@@ -341,9 +341,9 @@ class _TicketDetailSheet extends StatelessWidget {
         padding: const EdgeInsets.all(12),
         constraints: const BoxConstraints(maxWidth: 300),
         decoration: BoxDecoration(
-          color: isUser ? AppColors.primary : Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: isUser ? null : Border.all(color: AppColors.border),
+          color: isUser ? AppColors.brandBlack : const Color(0xFFF5F5F5),
+          borderRadius: BorderRadius.zero,
+          border: isUser ? null : Border.all(color: AppColors.border.withValues(alpha: 0.5)),
         ),
         child: Text(
           text,
@@ -361,27 +361,27 @@ class _TicketDetailSheet extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppColors.accent.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.accent.withOpacity(0.2)),
+        color: const Color(0xFFF5F5F5),
+        borderRadius: BorderRadius.zero,
+        border: Border.all(color: AppColors.border.withValues(alpha: 0.5)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
+          const Row(
             children: [
-              const Icon(
+              Icon(
                 Icons.smart_toy_outlined,
                 size: 14,
-                color: AppColors.accent,
+                color: AppColors.brandRed,
               ),
-              const SizedBox(width: 6),
-              const Text(
+              SizedBox(width: 6),
+              Text(
                 'AI-ответ',
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
-                  color: AppColors.accent,
+                  color: AppColors.brandRed,
                 ),
               ),
             ],
@@ -401,22 +401,22 @@ class _TicketDetailSheet extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppColors.success.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.success.withOpacity(0.2)),
+        color: AppColors.success.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.zero,
+        border: Border.all(color: AppColors.success.withValues(alpha: 0.2)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
+          const Row(
             children: [
-              const Icon(
+              Icon(
                 Icons.verified_user_outlined,
                 size: 14,
                 color: AppColors.success,
               ),
-              const SizedBox(width: 6),
-              const Text(
+              SizedBox(width: 6),
+              Text(
                 'Ответ технолога',
                 style: TextStyle(
                   fontSize: 12,

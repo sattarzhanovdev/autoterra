@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../../core/theme.dart';
 import '../../core/constants.dart';
 import '../../services/data_repository.dart';
+import '../../services/auth_service.dart';
 import '../../widgets/common/status_badge.dart';
 import '../../widgets/common/section_header.dart';
 
@@ -20,11 +21,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   void initState() {
     super.initState();
-    _future = const DataRepository().dashboard();
+    _future = DataRepository().dashboard();
   }
 
   Future<void> _refresh() async {
-    final next = const DataRepository().dashboard();
+    final next = DataRepository().dashboard();
     setState(() => _future = next);
     await next;
   }
@@ -393,7 +394,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 color: AppColors.error,
               ),
             ),
-            onTap: () => context.go(AppRoutes.login),
+            onTap: () async {
+              await authService.logout();
+              if (context.mounted) {
+                context.go(AppRoutes.login);
+              }
+            },
             contentPadding: EdgeInsets.zero,
             dense: true,
           ),

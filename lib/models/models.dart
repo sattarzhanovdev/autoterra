@@ -6,9 +6,11 @@ enum PurchaseStatus { pending, verified, rejected }
 
 enum StockStatus { inStock, low, onOrder, outOfStock }
 
-enum CourierTaskStatus { created, assigned, inProgress, delivered, returned }
+enum CourierTaskStatus { created, assigned, inProgress, delivered, returned, cancelled }
 
 enum ColorRequestStatus { created, inProgress, ready, delivered }
+
+enum UserRole { client, distributor, manager, admin, courier, aiExpert }
 
 class User {
   final String id;
@@ -27,8 +29,6 @@ class User {
     required this.createdAt,
   });
 }
-
-enum UserRole { superAdmin, importerManager, distributor, autoservice, courier }
 
 class Client {
   final String id;
@@ -109,6 +109,7 @@ class Distributor {
 class Purchase {
   final String id;
   final String clientId;
+  final String clientName;
   final String distributorId;
   final String documentNumber;
   final DateTime date;
@@ -122,6 +123,7 @@ class Purchase {
   const Purchase({
     required this.id,
     required this.clientId,
+    required this.clientName,
     required this.distributorId,
     required this.documentNumber,
     required this.date,
@@ -209,33 +211,79 @@ class ColorRequest {
 class CourierTask {
   final String id;
   final String clientId;
-  final String type; // 'pickup' | 'delivery' | 'return'
+  final String clientName;
+  final String taskType; // 'pickup' | 'delivery' | 'return'
+  final String typeDisplay;
   final String address;
-  final DateTime scheduledTime;
-  final String contactName;
-  final String contactPhone;
-  final String carDescription;
+  final String? contactName;
+  final String? contactPhone;
+  final String timeSlot;
   final CourierTaskStatus status;
-  final String? courierId;
+  final String statusDisplay;
+  final String? assignedCourierId;
   final String? photoProof;
   final String? comment;
+  final String? courierComment;
   final DateTime createdAt;
 
   const CourierTask({
     required this.id,
     required this.clientId,
-    this.type = 'pickup',
+    required this.clientName,
+    required this.taskType,
+    required this.typeDisplay,
     required this.address,
-    required this.scheduledTime,
-    required this.contactName,
-    required this.contactPhone,
-    required this.carDescription,
+    this.contactName,
+    this.contactPhone,
+    required this.timeSlot,
     required this.status,
-    this.courierId,
+    required this.statusDisplay,
+    this.assignedCourierId,
     this.photoProof,
     this.comment,
+    this.courierComment,
     required this.createdAt,
   });
+
+  String get type => taskType;
+
+  factory CourierTask.fromJson(Map<String, dynamic> json) {
+    return CourierTask(
+      id: json['id'].toString(),
+      clientId: json['clientId'].toString(),
+      clientName: json['clientName'] ?? '',
+      taskType: json['taskType'] ?? 'delivery',
+      typeDisplay: json['typeDisplay'] ?? '',
+      address: json['address'] ?? '',
+      contactName: json['contactName'],
+      contactPhone: json['contactPhone'],
+      timeSlot: json['timeSlot'] ?? '',
+      status: _parseStatus(json['status']),
+      statusDisplay: json['statusDisplay'] ?? '',
+      assignedCourierId: json['assignedCourierId']?.toString(),
+      photoProof: json['photoProof'],
+      comment: json['comment'],
+      courierComment: json['courierComment'],
+      createdAt: DateTime.parse(json['createdAt']),
+    );
+  }
+
+  static CourierTaskStatus _parseStatus(String? status) {
+    switch (status) {
+      case 'created':
+        return CourierTaskStatus.created;
+      case 'in_progress':
+        return CourierTaskStatus.inProgress;
+      case 'delivered':
+        return CourierTaskStatus.delivered;
+      case 'returned':
+        return CourierTaskStatus.returned;
+      case 'cancelled':
+        return CourierTaskStatus.cancelled;
+      default:
+        return CourierTaskStatus.assigned;
+    }
+  }
 }
 
 class Referral {

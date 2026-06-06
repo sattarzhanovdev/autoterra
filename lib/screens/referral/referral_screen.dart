@@ -18,11 +18,11 @@ class _ReferralScreenState extends State<ReferralScreen> {
   @override
   void initState() {
     super.initState();
-    _future = const DataRepository().referrals();
+    _future = DataRepository().referrals();
   }
 
   Future<void> _refresh() async {
-    final next = const DataRepository().referrals();
+    final next = DataRepository().referrals();
     setState(() => _future = next);
     await next;
   }

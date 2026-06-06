@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'core/constants.dart';
 import 'core/theme.dart';
+import 'models/models.dart';
 import 'services/api_client.dart';
+import 'services/auth_service.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/auth/register_screen.dart';
 import 'screens/home/home_screen.dart';
@@ -15,8 +17,15 @@ import 'screens/qa/qa_screen.dart';
 import 'screens/referral/referral_screen.dart';
 import 'screens/notifications/notifications_screen.dart';
 import 'screens/distributor/distributor_screen.dart';
+import 'screens/distributor/distributor_cabinet_screen.dart';
 import 'screens/orders/order_screen.dart';
 import 'screens/delivery/delivery_screen.dart';
+import 'screens/courier/courier_screen.dart';
+import 'screens/admin/admin_dashboard_screen.dart';
+import 'widgets/common/role_switcher_wrapper.dart';
+
+import 'widgets/layouts/courier_layout.dart';
+import 'widgets/layouts/distributor_layout.dart';
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
 final _shellNavigatorKey = GlobalKey<NavigatorState>();
@@ -24,6 +33,7 @@ final _shellNavigatorKey = GlobalKey<NavigatorState>();
 final _router = GoRouter(
   navigatorKey: _rootNavigatorKey,
   initialLocation: ApiClient.isAuthorized ? AppRoutes.home : AppRoutes.login,
+  refreshListenable: authService,
   redirect: (context, state) {
     final isAuthRoute =
         state.matchedLocation == AppRoutes.login ||
@@ -48,6 +58,10 @@ final _router = GoRouter(
         GoRoute(path: AppRoutes.colorCenter, builder: (ctx, _) => const ColorCenterScreen()),
         GoRoute(path: AppRoutes.aiAssistant, builder: (ctx, _) => const AiAssistantScreen()),
         GoRoute(path: AppRoutes.profile, builder: (ctx, _) => const ProfileScreen()),
+        // Add roles-specific routes or just let shell handle it
+        GoRoute(path: '/distributor-cabinet', builder: (ctx, _) => const DistributorCabinetScreen()),
+        GoRoute(path: '/courier-cabinet', builder: (ctx, _) => const CourierScreen()),
+        GoRoute(path: '/admin-dashboard', builder: (ctx, _) => const AdminDashboardScreen()),
       ],
     ),
     GoRoute(path: AppRoutes.addPurchase, builder: (ctx, _) => const AddPurchaseScreen()),
@@ -70,6 +84,7 @@ class AutoterraApp extends StatelessWidget {
       theme: AppTheme.light,
       routerConfig: _router,
       debugShowCheckedModeBanner: false,
+      builder: (context, child) => RoleSwitcherWrapper(child: child!),
     );
   }
 }
@@ -81,41 +96,87 @@ class _MainShell extends StatelessWidget {
   const _MainShell({required this.child, required this.location});
 
   int get _currentIndex {
-    if (location.startsWith(AppRoutes.purchases)) return 1;
-    if (location.startsWith(AppRoutes.colorCenter)) return 2;
-    if (location.startsWith(AppRoutes.aiAssistant)) return 3;
-    if (location.startsWith(AppRoutes.profile)) return 4;
-    return 0;
+    final role = authService.currentRole;
+    if (role == UserRole.client) {
+      if (location.startsWith(AppRoutes.purchases)) return 1;
+      if (location.startsWith(AppRoutes.colorCenter)) return 2;
+      if (location.startsWith(AppRoutes.aiAssistant)) return 3;
+      if (location.startsWith(AppRoutes.profile)) return 4;
+      return 0;
+    }
+    return 0; // For other roles, usually 0 is enough if they have 1 tab or different structure
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: child,
-      bottomNavigationBar: Container(
-        decoration: const BoxDecoration(
-          border: Border(top: BorderSide(color: AppColors.borderDark, width: 1)),
-        ),
-        child: BottomNavigationBar(
-          currentIndex: _currentIndex,
-          onTap: (i) {
-            switch (i) {
-              case 0: context.go(AppRoutes.home);
-              case 1: context.go(AppRoutes.purchases);
-              case 2: context.go(AppRoutes.colorCenter);
-              case 3: context.go(AppRoutes.aiAssistant);
-              case 4: context.go(AppRoutes.profile);
-            }
-          },
-          items: const [
-            BottomNavigationBarItem(icon: Icon(Icons.home_outlined), activeIcon: Icon(Icons.home), label: 'Главная'),
-            BottomNavigationBarItem(icon: Icon(Icons.receipt_long_outlined), activeIcon: Icon(Icons.receipt_long), label: 'Покупки'),
-            BottomNavigationBarItem(icon: Icon(Icons.palette_outlined), activeIcon: Icon(Icons.palette), label: 'Цвет'),
-            BottomNavigationBarItem(icon: Icon(Icons.smart_toy_outlined), activeIcon: Icon(Icons.smart_toy), label: 'AI'),
-            BottomNavigationBarItem(icon: Icon(Icons.person_outline), activeIcon: Icon(Icons.person), label: 'Профиль'),
-          ],
-        ),
-      ),
+    return ListenableBuilder(
+      listenable: authService,
+      builder: (context, _) {
+        final role = authService.currentRole;
+
+        if (role == UserRole.distributor) {
+          return DistributorLayout(child: DistributorOrdersTabsScreen());
+        }
+        if (role == UserRole.courier) {
+          return CourierLayout(child: SizedBox());
+        }
+        if (role == UserRole.admin || role == UserRole.manager) {
+          return const AdminDashboardScreen();
+        }
+        if (role == UserRole.aiExpert) {
+          return const AiAssistantScreen();
+        }
+
+        // Default Client Shell
+        return Scaffold(
+          body: child,
+          bottomNavigationBar: Container(
+            decoration: const BoxDecoration(
+              border: Border(
+                  top: BorderSide(color: AppColors.borderDark, width: 1)),
+            ),
+            child: BottomNavigationBar(
+              currentIndex: _currentIndex,
+              onTap: (i) {
+                switch (i) {
+                  case 0:
+                    context.go(AppRoutes.home);
+                  case 1:
+                    context.go(AppRoutes.purchases);
+                  case 2:
+                    context.go(AppRoutes.colorCenter);
+                  case 3:
+                    context.go(AppRoutes.aiAssistant);
+                  case 4:
+                    context.go(AppRoutes.profile);
+                }
+              },
+              items: const [
+                BottomNavigationBarItem(
+                    icon: Icon(Icons.home_outlined),
+                    activeIcon: Icon(Icons.home),
+                    label: 'Главная'),
+                BottomNavigationBarItem(
+                    icon: Icon(Icons.receipt_long_outlined),
+                    activeIcon: Icon(Icons.receipt_long),
+                    label: 'Покупки'),
+                BottomNavigationBarItem(
+                    icon: Icon(Icons.palette_outlined),
+                    activeIcon: Icon(Icons.palette),
+                    label: 'Цвет'),
+                BottomNavigationBarItem(
+                    icon: Icon(Icons.smart_toy_outlined),
+                    activeIcon: Icon(Icons.smart_toy),
+                    label: 'AI'),
+                BottomNavigationBarItem(
+                    icon: Icon(Icons.person_outline),
+                    activeIcon: Icon(Icons.person),
+                    label: 'Профиль'),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }

@@ -30,7 +30,7 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _loading = true);
     try {
-      await const ApiClient().login(
+      await ApiClient().login(
         phone: _phoneCtrl.text,
         password: _passwordCtrl.text,
       );

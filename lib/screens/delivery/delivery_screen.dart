@@ -21,17 +21,17 @@ class _DeliveryScreenState extends State<DeliveryScreen>
   void initState() {
     super.initState();
     _tabCtrl = TabController(length: 2, vsync: this);
-    _future = const DataRepository().courierTasks();
+    _future = DataRepository().courierTasks();
   }
 
   void _reload() {
     setState(() {
-      _future = const DataRepository().courierTasks();
+      _future = DataRepository().courierTasks();
     });
   }
 
   Future<void> _refresh() async {
-    final next = const DataRepository().courierTasks();
+    final next = DataRepository().courierTasks();
     setState(() => _future = next);
     await next;
   }
@@ -341,7 +341,7 @@ class _DeliveryScreenState extends State<DeliveryScreen>
                 onPressed: () async {
                   final messenger = ScaffoldMessenger.of(context);
                   final navigator = Navigator.of(ctx);
-                  await const ApiClient().createCourierTask({
+                  await ApiClient().createCourierTask({
                     'type': selectedType,
                     'address': addrCtrl.text,
                     'comment': commentCtrl.text,

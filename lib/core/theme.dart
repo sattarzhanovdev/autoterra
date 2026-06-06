@@ -156,9 +156,9 @@ class AppTheme {
         color: AppColors.surfaceCard,
         elevation: 0,
         shadowColor: Colors.black.withValues(alpha: 0.08),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(4),
-          side: const BorderSide(color: AppColors.border, width: 1),
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.zero,
+          side: BorderSide(color: AppColors.border, width: 1),
         ),
         margin: EdgeInsets.zero,
       ),
@@ -168,7 +168,7 @@ class AppTheme {
           foregroundColor: Colors.white,
           elevation: 0,
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+          shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
           textStyle: _AppFonts.tektur(
             fontSize: 14,
             fontWeight: FontWeight.w700,
@@ -181,7 +181,7 @@ class AppTheme {
           foregroundColor: AppColors.brandBlack,
           side: const BorderSide(color: AppColors.brandBlack, width: 1.5),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+          shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
           textStyle: _AppFonts.tektur(
             fontSize: 14,
             fontWeight: FontWeight.w700,
@@ -195,26 +195,26 @@ class AppTheme {
             fontSize: 13,
             fontWeight: FontWeight.w700,
           ),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+          shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: Colors.white,
         border: const OutlineInputBorder(
-          borderRadius: BorderRadius.all(Radius.circular(4)),
+          borderRadius: BorderRadius.zero,
           borderSide: BorderSide(color: AppColors.border),
         ),
         enabledBorder: const OutlineInputBorder(
-          borderRadius: BorderRadius.all(Radius.circular(4)),
+          borderRadius: BorderRadius.zero,
           borderSide: BorderSide(color: AppColors.border),
         ),
         focusedBorder: const OutlineInputBorder(
-          borderRadius: BorderRadius.all(Radius.circular(4)),
+          borderRadius: BorderRadius.zero,
           borderSide: BorderSide(color: AppColors.brandBlack, width: 2),
         ),
         errorBorder: const OutlineInputBorder(
-          borderRadius: BorderRadius.all(Radius.circular(4)),
+          borderRadius: BorderRadius.zero,
           borderSide: BorderSide(color: AppColors.brandRed),
         ),
         contentPadding: const EdgeInsets.symmetric(

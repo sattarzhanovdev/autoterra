@@ -1,5 +1,4 @@
 import 'dart:convert';
-
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -9,7 +8,9 @@ class ApiClient {
     defaultValue: 'http://89.111.132.221:8000/api',
   );
 
-  const ApiClient();
+  final http.Client _httpClient;
+
+  ApiClient({http.Client? client}) : _httpClient = client ?? _DefaultHttpClient();
   static const _tokenKey = 'auth_token';
   static String? _token;
 
@@ -130,8 +131,94 @@ class ApiClient {
     return result['answer'] as String;
   }
 
+  Future<Map<String, dynamic>> register(Map<String, dynamic> body) {
+    return _post('/auth/register/', body);
+  }
+
+  Future<List<Map<String, dynamic>>> getRegions() async {
+    final result = await _get('/regions/');
+    return (result['results'] as List<dynamic>).cast<Map<String, dynamic>>();
+  }
+
+  Future<Map<String, dynamic>> createPurchase(Map<String, dynamic> body) {
+    return _post('/purchases/create/', body);
+  }
+
+  Future<List<Map<String, dynamic>>> courierMyTasks() async {
+    final result = await _get('/courier/tasks/');
+    return (result['results'] as List<dynamic>).cast<Map<String, dynamic>>();
+  }
+
+  Future<Map<String, dynamic>> updateCourierTaskStatus(
+    String taskId, {
+    required String status,
+    String? courierComment,
+    List<int>? imageBytes,
+    String? fileName,
+  }) async {
+    final path = '/courier/tasks/$taskId/status/';
+    if (imageBytes != null && fileName != null) {
+      final request = http.MultipartRequest('POST', Uri.parse('$baseUrl$path'));
+      if (_token != null) {
+        request.headers['Authorization'] = 'Bearer $_token';
+      }
+      request.fields['status'] = status;
+      if (courierComment != null) {
+        request.fields['courier_comment'] = courierComment;
+      }
+      request.files.add(http.MultipartFile.fromBytes(
+        'proof_photo',
+        imageBytes,
+        filename: fileName,
+      ));
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+      return _decode(response);
+    } else {
+      return _patch(path, {
+        'status': status,
+        if (courierComment != null) 'courier_comment': courierComment,
+      });
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> distributorPurchases() async {
+    final result = await _get('/distributor/purchases/');
+    return (result['results'] as List<dynamic>).cast<Map<String, dynamic>>();
+  }
+
+  Future<Map<String, dynamic>> verifyPurchase(String id, {required String status, String? reason}) {
+    return _patch('/distributor/purchases/$id/verify/', {
+      'status': status,
+      if (reason != null) 'rejection_reason': reason,
+    });
+  }
+
+  Future<List<Map<String, dynamic>>> distributorOrders() async {
+    final result = await _get('/distributor/orders/');
+    return (result['results'] as List<dynamic>).cast<Map<String, dynamic>>();
+  }
+
+  Future<Map<String, dynamic>> updateOrderStatus(String id, {required String status, String? reason}) {
+    return _patch('/distributor/orders/$id/status/', {
+      'status': status,
+      if (reason != null) 'rejection_reason': reason,
+    });
+  }
+
+  Future<Map<String, dynamic>> _patch(String path, Map<String, dynamic> body) async {
+    final response = await _httpClient
+        .patch(
+          Uri.parse('$baseUrl$path'),
+          headers: _headers(),
+          body: jsonEncode(body),
+        )
+        .timeout(const Duration(seconds: 3));
+    return _decode(response);
+  }
+
   Future<Map<String, dynamic>> _get(String path) async {
-    final response = await http
+    final response = await _httpClient
         .get(Uri.parse('$baseUrl$path'), headers: _headers())
         .timeout(const Duration(seconds: 3));
     return _decode(response);
@@ -142,7 +229,7 @@ class ApiClient {
     Map<String, dynamic> body, {
     Duration timeout = const Duration(seconds: 3),
   }) async {
-    final response = await http
+    final response = await _httpClient
         .post(
           Uri.parse('$baseUrl$path'),
           headers: _headers(),
@@ -171,6 +258,14 @@ class ApiClient {
       throw ApiException('Unexpected API response', decoded);
     }
     return decoded;
+  }
+}
+
+class _DefaultHttpClient extends http.BaseClient {
+  final http.Client _inner = http.Client();
+  @override
+  Future<http.StreamedResponse> send(http.BaseRequest request) {
+    return _inner.send(request);
   }
 }
 

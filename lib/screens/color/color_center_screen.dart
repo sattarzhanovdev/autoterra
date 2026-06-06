@@ -24,17 +24,17 @@ class _ColorCenterScreenState extends State<ColorCenterScreen>
   void initState() {
     super.initState();
     _tabCtrl = TabController(length: 2, vsync: this);
-    _future = const DataRepository().colorRequests();
+    _future = DataRepository().colorRequests();
   }
 
   void _reload() {
     setState(() {
-      _future = const DataRepository().colorRequests();
+      _future = DataRepository().colorRequests();
     });
   }
 
   Future<void> _refresh() async {
-    final next = const DataRepository().colorRequests();
+    final next = DataRepository().colorRequests();
     setState(() => _future = next);
     await next;
   }
@@ -466,7 +466,7 @@ class _NewColorRequestSheetState extends State<_NewColorRequestSheet> {
   Future<void> _submit() async {
     setState(() => _saving = true);
     try {
-      await const ApiClient().createColorRequest({
+      await ApiClient().createColorRequest({
         'carBrand': _brandCtrl.text,
         'carModel': _modelCtrl.text,
         'vin': _vinCtrl.text,

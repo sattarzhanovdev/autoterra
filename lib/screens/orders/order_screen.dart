@@ -6,7 +6,8 @@ import '../../services/data_repository.dart';
 import '../../widgets/common/premium_icon_badge.dart';
 
 class OrderScreen extends StatefulWidget {
-  const OrderScreen({super.key});
+  final DataRepository? repository;
+  const OrderScreen({super.key, this.repository});
 
   @override
   State<OrderScreen> createState() => _OrderScreenState();
@@ -17,8 +18,8 @@ class _OrderScreenState extends State<OrderScreen> {
 
   final _commentCtrl = TextEditingController();
   final _searchCtrl = TextEditingController();
-  final _repo = const DataRepository();
-  late Future<OrderConfigData> _future = _repo.orderConfig();
+  late final DataRepository _repo;
+  late Future<OrderConfigData> _future;
   final Map<String, int> _qty = {};
   final Set<String> _stockWarnings = {};
   String _selectedCategory = _allCategories;
@@ -26,6 +27,13 @@ class _OrderScreenState extends State<OrderScreen> {
   bool _sending = false;
 
   int get _totalQty => _qty.values.fold(0, (sum, value) => sum + value);
+
+  @override
+  void initState() {
+    super.initState();
+    _repo = widget.repository ?? DataRepository();
+    _future = _repo.orderConfig();
+  }
 
   @override
   void dispose() {
@@ -48,6 +56,8 @@ class _OrderScreenState extends State<OrderScreen> {
   void _changeQty(ProductData product, int delta) {
     if (!_canOrder(product)) return;
     final current = _qty[product.id] ?? 0;
+    // Клиент не видит точного числа, но мы ограничиваем заказ остатком на бэкенде.
+    // Здесь используем product.quantity как лимит для безопасности UI.
     final maxQty = product.quantity;
     final requested = current + delta;
     final next = requested.clamp(0, maxQty);
@@ -446,132 +456,86 @@ class _OrderScreenState extends State<OrderScreen> {
   Widget _productTile(ProductData item) {
     final qty = _qty[item.id] ?? 0;
     final canOrder = _canOrder(item);
-    final showStockWarning =
-        _stockWarnings.contains(item.id) || qty >= item.quantity;
+    final showStockWarning = _stockWarnings.contains(item.id) || qty >= item.quantity;
+    
+    // Скрываем точное количество для клиента (ТЗ)
+    String stockStatusText;
+    Color stockColor;
+    if (item.quantity > 5) {
+      stockStatusText = 'В НАЛИЧИИ';
+      stockColor = AppColors.success;
+    } else if (item.quantity > 0) {
+      stockStatusText = 'МАЛО';
+      stockColor = AppColors.warning;
+    } else {
+      stockStatusText = 'ПОД ЗАКАЗ';
+      stockColor = AppColors.textHint;
+    }
+
     return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: qty > 0
-            ? AppColors.brandRed.withValues(alpha: 0.04)
-            : Colors.white,
-        border: Border.all(
-          color: qty > 0 ? AppColors.brandRed : AppColors.border,
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: ShapeDecoration(
+        color: qty > 0 ? const Color(0xFFF01D2C).withValues(alpha: 0.05) : Colors.white,
+        shape: BeveledRectangleBorder(
+          side: BorderSide(color: qty > 0 ? const Color(0xFFF01D2C) : AppColors.border),
+          borderRadius: const BorderRadius.only(topRight: Radius.circular(15)),
         ),
-        borderRadius: BorderRadius.circular(8),
       ),
+      padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const PremiumIconBadge(
-                icon: Icons.inventory_2_outlined,
-                size: 40,
-                iconSize: 20,
-              ),
-              const SizedBox(width: 10),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      item.name,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w800,
-                        fontSize: 14,
-                      ),
+                      item.name.toUpperCase(),
+                      style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 0.5),
                     ),
-                    const SizedBox(height: 3),
+                    const SizedBox(height: 4),
                     Text(
-                      '${item.category} · ${item.brand}',
-                      style: const TextStyle(
-                        color: AppColors.textSecondary,
-                        fontSize: 12,
-                      ),
-                    ),
-                    Text(
-                      'Артикул: ${item.sku}',
-                      style: const TextStyle(
-                        color: AppColors.textHint,
-                        fontSize: 11,
-                      ),
+                      '${item.brand} · ${item.sku}',
+                      style: const TextStyle(color: AppColors.textSecondary, fontSize: 11, fontWeight: FontWeight.bold),
                     ),
                   ],
                 ),
               ),
-              _stockPill(item.status),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: ShapeDecoration(
+                  color: stockColor.withValues(alpha: 0.1),
+                  shape: const BeveledRectangleBorder(borderRadius: BorderRadius.only(topRight: Radius.circular(5))),
+                ),
+                child: Text(
+                  stockStatusText,
+                  style: TextStyle(color: stockColor, fontSize: 10, fontWeight: FontWeight.w900),
+                ),
+              ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
           Row(
             children: [
               Text(
-                '${_formatVolume(item.volume)} л',
-                style: const TextStyle(
-                  color: AppColors.textSecondary,
-                  fontSize: 12,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Text(
                 '${_formatPrice(item.price)} ₽',
-                style: const TextStyle(
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.textPrimary,
-                ),
+                style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: Color(0xFF171717)),
               ),
               const Spacer(),
               if (!canOrder)
-                SizedBox(
-                  width: 128,
-                  height: 36,
-                  child: OutlinedButton(
-                    onPressed: null,
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 10),
-                      textStyle: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    child: const Text(
-                      'Нет в наличии',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                )
+                const Text('НЕТ В НАЛИЧИИ', style: TextStyle(color: AppColors.error, fontWeight: FontWeight.bold, fontSize: 12))
               else if (qty == 0)
-                SizedBox(
-                  width: 128,
-                  height: 36,
-                  child: OutlinedButton(
-                    onPressed: () => _changeQty(item, 1),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 10),
-                      textStyle: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    child: const Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.add, size: 18),
-                        SizedBox(width: 6),
-                        Flexible(
-                          child: Text(
-                            'Добавить',
-                            maxLines: 1,
-                            overflow: TextOverflow.visible,
-                          ),
-                        ),
-                      ],
-                    ),
+                ElevatedButton(
+                  onPressed: () => _changeQty(item, 1),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF171717),
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    minimumSize: const Size(100, 36),
                   ),
+                  child: const Text('ДОБАВИТЬ', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
                 )
               else
                 _qtyStepper(item, qty),
@@ -579,13 +543,9 @@ class _OrderScreenState extends State<OrderScreen> {
           ),
           if (showStockWarning && canOrder) ...[
             const SizedBox(height: 8),
-            Text(
-              'Доступно только ${item.quantity} шт. Больше остатка заказать нельзя.',
-              style: const TextStyle(
-                color: AppColors.error,
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-              ),
+            const Text(
+              'ДОСТИГНУТ МАКСИМАЛЬНЫЙ ОСТАТОК',
+              style: TextStyle(color: AppColors.error, fontSize: 10, fontWeight: FontWeight.w900),
             ),
           ],
         ],
@@ -700,7 +660,7 @@ class _OrderScreenState extends State<OrderScreen> {
       height: 36,
       decoration: BoxDecoration(
         border: Border.all(color: AppColors.border),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.zero,
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,

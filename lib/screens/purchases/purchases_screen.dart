@@ -26,7 +26,7 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
   }
 
   Future<_PurchasesPageData> _load() async {
-    final repo = const DataRepository();
+    final repo = DataRepository();
     final results = await Future.wait([repo.orders(), repo.purchases()]);
     return _PurchasesPageData(orders: results[0], purchases: results[1]);
   }

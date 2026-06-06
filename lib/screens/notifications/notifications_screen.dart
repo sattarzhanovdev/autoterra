@@ -17,11 +17,11 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   @override
   void initState() {
     super.initState();
-    _future = const DataRepository().notifications();
+    _future = DataRepository().notifications();
   }
 
   Future<void> _refresh() async {
-    final next = const DataRepository().notifications();
+    final next = DataRepository().notifications();
     setState(() => _future = next);
     await next;
   }
