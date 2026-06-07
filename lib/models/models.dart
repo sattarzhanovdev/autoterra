@@ -1,4 +1,4 @@
-enum ClientStatus { newClient, pending, active, blocked, archived }
+enum ClientStatus { newClient, pending, underReview, active, blocked, archived }
 
 enum ClientCategory { a, b, c }
 

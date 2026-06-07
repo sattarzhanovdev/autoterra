@@ -140,6 +140,11 @@ class DataRepository {
     return items.map(_purchaseFromJson).toList();
   }
 
+  Future<List<Client>> distributorClients() async {
+    final items = await _api.distributorClients();
+    return items.map(_clientFromJson).toList();
+  }
+
   Future<Purchase> verifyPurchase(String id, {required bool verify, String? reason}) async {
     final result = await _api.verifyPurchase(
       id, 

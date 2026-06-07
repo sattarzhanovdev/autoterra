@@ -44,8 +44,10 @@ void main() {
 
     await tester.enterText(find.byType(TextFormField).at(1), '15000'); // Сумма
 
-    // 4. Нажимаем кнопку отправки
-    await tester.tap(find.text('ОТПРАВИТЬ НА ПРОВЕРКУ'));
+    // 4. Нажимаем кнопку отправки (нужно проскроллить)
+    final submitButton = find.text('ОТПРАВИТЬ НА ПРОВЕРКУ');
+    await tester.ensureVisible(submitButton);
+    await tester.tap(submitButton);
     await tester.pump(); // Начинаем загрузку
     await tester.pumpAndSettle(); // Ждем завершения запроса и анимаций диалога
 

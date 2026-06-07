@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/theme.dart';
 import '../../core/constants.dart';
 import '../../services/api_client.dart';
+import '../../services/auth_service.dart';
 import '../../widgets/common/app_logo.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -30,10 +31,15 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _loading = true);
     try {
-      await ApiClient().login(
+      final response = await ApiClient().login(
         phone: _phoneCtrl.text,
         password: _passwordCtrl.text,
       );
+      
+      // Update auth service with backend user role
+      if (response['user'] != null) {
+        authService.updateFromBackendUser(response['user'] as Map<String, dynamic>);
+      }
     } catch (e) {
       if (!mounted) return;
       setState(() => _loading = false);

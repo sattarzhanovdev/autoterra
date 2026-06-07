@@ -42,6 +42,8 @@ class StatusBadge extends StatelessWidget {
         return const StatusBadge(label: 'На проверке', color: AppColors.warning);
       case ClientStatus.newClient:
         return const StatusBadge(label: 'Новый', color: AppColors.info);
+      case ClientStatus.underReview:
+        return const StatusBadge(label: 'На проверке', color: AppColors.warning);
       case ClientStatus.blocked:
         return const StatusBadge(label: 'Заблокирован', color: AppColors.error);
       case ClientStatus.archived:

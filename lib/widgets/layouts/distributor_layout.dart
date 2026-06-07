@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../core/theme.dart';
 import '../../models/models.dart';
 import '../../services/data_repository.dart';
+import '../../screens/distributor/distributor_clients_screen.dart';
 
 class DistributorLayout extends StatefulWidget {
   final Widget child;
@@ -16,7 +17,7 @@ class _DistributorLayoutState extends State<DistributorLayout> {
 
   final List<Widget> _screens = [
     const DistributorOrdersTabsScreen(),
-    const _PlaceholderScreen(title: 'КЛИЕНТЫ'),
+    const DistributorClientsScreen(),
     const _PlaceholderScreen(title: 'СКЛАД'),
     const DistributorReportsScreen(),
   ];

@@ -267,6 +267,11 @@ class ApiClient {
     return (result['results'] as List<dynamic>).cast<Map<String, dynamic>>();
   }
 
+  Future<List<Map<String, dynamic>>> distributorClients() async {
+    final result = await _get('/distributor/clients/');
+    return (result['results'] as List<dynamic>).cast<Map<String, dynamic>>();
+  }
+
   Future<Map<String, dynamic>> verifyPurchase(String id, {required String status, String? reason}) {
     return _patch('/distributor/purchases/$id/verify/', {
       'status': status,

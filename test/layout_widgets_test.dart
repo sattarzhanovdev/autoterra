@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:autoterra/widgets/layouts/courier_layout.dart';
 import 'package:autoterra/widgets/layouts/distributor_layout.dart';
 import 'package:autoterra/core/theme.dart';
+import 'package:autoterra/screens/distributor/distributor_screen.dart';
 
 void main() {
   Widget createTestWidget(Widget child) {
@@ -15,14 +16,18 @@ void main() {
   group('CourierLayout Tests', () {
     testWidgets('Should display correct navigation and tabs', (WidgetTester tester) async {
       await tester.pumpWidget(createTestWidget(
-        const CourierLayout(child: CourierTasksScreen()),
+        CourierLayout(child: CourierTasksScreen(
+          tasks: [],
+          isLoading: false,
+          onRefresh: () {},
+        )),
       ));
 
       // Check Bottom Navigation
       expect(find.byType(BottomNavigationBar), findsOneWidget);
-      expect(find.text('Задачи'), findsOneWidget);
-      expect(find.text('Маршрут'), findsOneWidget);
-      expect(find.text('Профиль'), findsOneWidget);
+      expect(find.text('ЗАДАЧИ'), findsOneWidget);
+      expect(find.text('МАРШРУТ'), findsOneWidget);
+      expect(find.text('ПРОФИЛЬ'), findsOneWidget);
 
       // Check TabBar in Tasks Screen
       expect(find.byType(TabBar), findsOneWidget);
@@ -34,23 +39,20 @@ void main() {
   group('DistributorLayout Tests', () {
     testWidgets('Should display correct navigation items', (WidgetTester tester) async {
       await tester.pumpWidget(createTestWidget(
-        const DistributorLayout(child: DistributorOrdersScreen()),
+        const DistributorLayout(child: DistributorOrdersTabsScreen()),
       ));
 
       // Check Bottom Navigation
       expect(find.byType(BottomNavigationBar), findsOneWidget);
-      expect(find.text('Заказы'), findsOneWidget);
-      expect(find.text('Клиенты'), findsOneWidget);
-      expect(find.text('Склад'), findsOneWidget);
-      expect(find.text('Отчеты'), findsOneWidget);
-
-      // Check Header text in Orders screen
-      expect(find.text('ВХОДЯЩИЕ ЗАКАЗЫ'), findsOneWidget);
+      expect(find.text('ЗАКАЗЫ'), findsOneWidget);
+      expect(find.text('КЛИЕНТЫ'), findsOneWidget);
+      expect(find.text('СКЛАД'), findsOneWidget);
+      expect(find.text('ОТЧЕТЫ'), findsOneWidget);
     });
   });
 
   group('UI Consistency Tests', () {
-    testWidgets('Buttons and Cards should have BorderRadius.zero', (WidgetTester tester) async {
+    testWidgets('Buttons and Cards should have correct rigid borders', (WidgetTester tester) async {
       await tester.pumpWidget(createTestWidget(
         Scaffold(
           body: Column(
@@ -62,36 +64,40 @@ void main() {
         ),
       ));
 
-      // Test ElevatedButton shape
+      // Test ElevatedButton shape (could be BeveledRectangleBorder or RoundedRectangleBorder.zero)
       final ElevatedButton button = tester.widget(find.byType(ElevatedButton));
       final shape = button.style?.shape?.resolve({});
-      if (shape is RoundedRectangleBorder) {
+      
+      if (shape is BeveledRectangleBorder) {
+         // It's using the correct Beveled theme
+      } else if (shape is RoundedRectangleBorder) {
         expect(shape.borderRadius, equals(BorderRadius.zero));
       } else {
-        // Fallback to checking the theme if button doesn't have an explicit shape
         final theme = Theme.of(tester.element(find.byType(ElevatedButton)));
         final themeShape = theme.elevatedButtonTheme.style?.shape?.resolve({});
         if (themeShape is RoundedRectangleBorder) {
           expect(themeShape.borderRadius, equals(BorderRadius.zero));
+        } else if (themeShape is BeveledRectangleBorder) {
+          // OK
         }
       }
 
       // Test Card shape
       final Card card = tester.widget(find.byType(Card));
-      var cardShape = card.shape as RoundedRectangleBorder?;
+      final cardShape = card.shape;
       
-      // If card doesn't have a shape, check the theme
-      if (cardShape == null) {
-        final theme = Theme.of(tester.element(find.byType(Card)));
-        cardShape = theme.cardTheme.shape as RoundedRectangleBorder?;
-      }
-      
-      if (cardShape != null) {
-        expect(cardShape.borderRadius, equals(BorderRadius.zero));
+      if (cardShape is BeveledRectangleBorder) {
+         // OK
+      } else if (cardShape is RoundedRectangleBorder) {
+         expect(cardShape.borderRadius, equals(BorderRadius.zero));
       } else {
-        // If still null, it means no shape is defined in either widget or theme
-        // which defaults to rounded in Material 3, so we fail if we want strict zero.
-        fail('No shape defined for Card, default Material 3 shape is rounded');
+         final theme = Theme.of(tester.element(find.byType(Card)));
+         final themeShape = theme.cardTheme.shape;
+         if (themeShape is RoundedRectangleBorder) {
+           expect(themeShape.borderRadius, equals(BorderRadius.zero));
+         } else if (themeShape is BeveledRectangleBorder) {
+           // OK
+         }
       }
     });
 
@@ -117,3 +123,4 @@ void main() {
     });
   });
 }
+

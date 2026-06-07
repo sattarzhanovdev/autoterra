@@ -44,7 +44,7 @@ void main() {
 
     // 6. Проверяем, что интерфейс сменился на курьерский
     // На экране должен быть заголовок кабинета курьера и не должно быть таббара
-    expect(find.text('Список задач курьера'), findsOneWidget);
+    expect(find.text('Кабинет курьера'), findsOneWidget);
     expect(find.byType(BottomNavigationBar), findsNothing);
 
     // 7. Проверяем, что состояние в AuthService обновилось
