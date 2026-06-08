@@ -223,14 +223,6 @@ class _ExpertProfileScreenState extends State<ExpertProfileScreen> {
           ),
           const Divider(),
           _actionTile(
-            Icons.security,
-            'БЕЗОПАСНОСТЬ',
-            () => ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Раздел управления безопасностью в разработке')),
-            ),
-          ),
-          const Divider(),
-          _actionTile(
             Icons.logout,
             'ВЫЙТИ ИЗ СИСТЕМЫ',
             () async {

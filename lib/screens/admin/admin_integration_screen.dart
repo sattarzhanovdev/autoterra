@@ -3,7 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import '../../core/theme.dart';
 import '../../services/data_repository.dart';
-import '../../widgets/common/app_logo.dart';
+import '../../services/auth_service.dart';
+import '../../models/models.dart';
 
 class AdminIntegrationScreen extends StatefulWidget {
   const AdminIntegrationScreen({super.key});
@@ -32,11 +33,12 @@ class _AdminIntegrationScreenState extends State<AdminIntegrationScreen> {
         _repo.adminIntegrationLogs(),
       ]);
       setState(() {
-        _tokens = (res[0]['results'] as List).cast<dynamic>();
-        _logs = (res[1]['results'] as List).cast<dynamic>();
+        _tokens = List<dynamic>.from(res[0]['results'] as List);
+        _logs = List<dynamic>.from(res[1]['results'] as List);
         _loading = false;
       });
     } catch (e) {
+      debugPrint('AdminIntegration Init Error: $e');
       // Mock data fallback
       setState(() {
         _tokens = [
@@ -71,11 +73,24 @@ class _AdminIntegrationScreenState extends State<AdminIntegrationScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final role = authService.currentRole;
+    final isGlobal = role == UserRole.admin;
+
     return Scaffold(
       backgroundColor: AppColors.canvas,
       appBar: AppBar(
-        title: const Text('ИНТЕГРАЦИИ 1С', style: TextStyle(fontWeight: FontWeight.w900)),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('ИНТЕГРАЦИИ 1С', style: TextStyle(fontWeight: FontWeight.w900)),
+            Text(
+              isGlobal ? 'ЦЕНТРАЛЬНЫЙ ОФИС' : 'РЕГИОНАЛЬНЫЙ МЕНЕДЖЕР',
+              style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Colors.white60, letterSpacing: 1),
+            ),
+          ],
+        ),
         backgroundColor: AppColors.brandBlack,
+        toolbarHeight: 80,
         actions: [
           IconButton(icon: const Icon(Icons.refresh, color: Colors.white), onPressed: _fetch),
         ],

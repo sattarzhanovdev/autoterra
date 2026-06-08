@@ -18,7 +18,7 @@ class _ExpertLayoutState extends State<ExpertLayout> {
   final List<Widget> _screens = [
     const AiAssistantScreen(),
     const QaScreen(),
-    const ExpertKnowledgeBaseScreen(),
+    const KnowledgeBaseScreen(),
     const ProfileScreen(),
   ];
 

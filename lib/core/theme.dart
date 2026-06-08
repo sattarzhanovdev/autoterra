@@ -172,8 +172,8 @@ class AppTheme {
         hintStyle: _AppFonts.neoris(color: AppColors.textHint, fontSize: 14),
       ),
       tabBarTheme: TabBarThemeData(
-        labelColor: AppColors.brandBlack,
-        unselectedLabelColor: AppColors.textSecondary,
+        labelColor: AppColors.brandRed,
+        unselectedLabelColor: Colors.white.withValues(alpha: 0.7),
         indicatorColor: AppColors.brandRed,
         labelStyle: _AppFonts.octosquares(fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 0.5),
         unselectedLabelStyle: _AppFonts.octosquares(fontSize: 11, fontWeight: FontWeight.w900),

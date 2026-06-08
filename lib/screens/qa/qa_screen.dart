@@ -7,6 +7,7 @@ import '../../core/theme.dart';
 import '../../models/models.dart';
 import '../../services/data_repository.dart';
 import '../../services/auth_service.dart';
+import '../../widgets/common/status_badge.dart';
 
 class QaScreen extends StatefulWidget {
   const QaScreen({super.key});
@@ -15,28 +16,21 @@ class QaScreen extends StatefulWidget {
   State<QaScreen> createState() => _QaScreenState();
 }
 
-class _QaScreenState extends State<QaScreen>
-    with SingleTickerProviderStateMixin {
-  late TabController _tabCtrl;
+class _QaScreenState extends State<QaScreen> {
   late Future<List<ExpertTicket>> _future;
-  late Future<List<KnowledgeCard>> _knowledgeFuture;
 
   @override
   void initState() {
     super.initState();
-    _tabCtrl = TabController(length: 2, vsync: this);
     _future = DataRepository().tickets();
-    _knowledgeFuture = DataRepository().knowledgeCards();
   }
 
   Future<void> _refresh() async {
     final next = DataRepository().tickets();
-    final nextKnowledge = DataRepository().knowledgeCards();
     setState(() {
       _future = next;
-      _knowledgeFuture = nextKnowledge;
     });
-    await Future.wait([next, nextKnowledge]);
+    await next;
   }
 
   void _reload() {
@@ -46,35 +40,19 @@ class _QaScreenState extends State<QaScreen>
   }
 
   @override
-  void dispose() {
-    _tabCtrl.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     final isExpert = authService.currentRole == UserRole.aiExpert;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('ВОПРОС-ОТВЕТ'),
-        bottom: TabBar(
-          controller: _tabCtrl,
-          labelColor: AppColors.brandBlack,
-          unselectedLabelColor: AppColors.brandBlack.withValues(alpha: 0.9),
-          labelStyle: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 1),
-          unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 1),
-          indicatorColor: AppColors.brandRed,
-          indicatorWeight: 3,
-          tabs: [
-            Tab(text: isExpert ? 'ВСЕ ЗАЯВКИ' : 'МОИ ОБРАЩЕНИЯ'),
-            Tab(text: 'БАЗА ЗНАНИЙ'),
-          ],
-        ),
+        title: Text(isExpert ? 'ВСЕ ЗАЯВКИ' : 'МОИ ОБРАЩЕНИЯ'),
+        actions: [
+          IconButton(
+            onPressed: _refresh,
+            icon: const Icon(Icons.refresh),
+          ),
+        ],
       ),
-      body: TabBarView(
-        controller: _tabCtrl,
-        children: [_buildTickets(), _buildKnowledge()],
-      ),
+      body: _buildTickets(),
       floatingActionButton: isExpert ? null : FloatingActionButton.extended(
         onPressed: () => _showNewTicket(),
         backgroundColor: AppColors.brandBlack,
@@ -127,47 +105,11 @@ class _QaScreenState extends State<QaScreen>
     );
   }
 
-  Widget _buildKnowledge() {
-    return FutureBuilder<List<KnowledgeCard>>(
-      future: _knowledgeFuture,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState != ConnectionState.done) {
-          return const Center(child: CircularProgressIndicator(color: AppColors.brandRed));
-        }
-        if (snapshot.hasError) {
-          return Center(child: Text(snapshot.error.toString()));
-        }
-        final cards = snapshot.data!.where((c) => c.isApproved).toList();
-        if (cards.isEmpty) {
-          return RefreshIndicator(
-            onRefresh: _refresh,
-            child: ListView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              children: const [
-                SizedBox(height: 220),
-                Center(child: Text('БАЗА ЗНАНИЙ ПУСТА')),
-              ],
-            ),
-          );
-        }
-        return RefreshIndicator(
-          onRefresh: _refresh,
-          child: ListView.separated(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.all(16),
-            itemCount: cards.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 12),
-            itemBuilder: (context, i) => _KnowledgeItemCard(card: cards[i]),
-          ),
-        );
-      },
-    );
-  }
-
   void _showTicketDetail(ExpertTicket ticket) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
       backgroundColor: Colors.transparent,
       builder: (_) => _TicketDetailSheet(ticket: ticket, onUpdated: _reload),
     );
@@ -177,6 +119,7 @@ class _QaScreenState extends State<QaScreen>
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
       backgroundColor: Colors.transparent,
       builder: (_) => _NewTicketSheet(onCreated: _reload),
     );
@@ -204,9 +147,11 @@ class _TicketCard extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white, 
-        border: Border.all(
-          color: isExpert && ticket.risk == 'high' ? AppColors.error : AppColors.border,
-          width: isExpert && ticket.risk == 'high' ? 2 : 1,
+        border: Border(
+          top: const BorderSide(color: AppColors.brandRed, width: 3),
+          left: BorderSide(color: isExpert && ticket.risk == 'high' ? AppColors.brandRed : AppColors.border, width: isExpert && ticket.risk == 'high' ? 4 : 1),
+          right: BorderSide(color: AppColors.border, width: 1),
+          bottom: BorderSide(color: AppColors.border, width: 1),
         ),
       ),
       child: InkWell(
@@ -221,18 +166,18 @@ class _TicketCard extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      Text(ticket.category.toUpperCase(), style: const TextStyle(fontSize: 10, color: AppColors.textSecondary, fontWeight: FontWeight.w900)),
+                      Text(ticket.category.toUpperCase(), style: const TextStyle(fontSize: 10, color: AppColors.brandRed, fontWeight: FontWeight.w900)),
                       if (isExpert && ticket.risk == 'high') ...[
                         const SizedBox(width: 8),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                          color: AppColors.error,
-                          child: const Text('РИСК: ВЫСОКИЙ', style: TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.w900)),
+                          color: AppColors.brandRed,
+                          child: const Text('КРИТИЧЕСКИЙ РИСК', style: TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.w900)),
                         ),
                       ],
                     ],
                   ),
-                  Text(statusLabel, style: TextStyle(fontSize: 10, color: statusColor, fontWeight: FontWeight.w900)),
+                  StatusBadge.fromTicketStatus(ticket.status),
                 ],
               ),
               const SizedBox(height: 12),
@@ -249,43 +194,6 @@ class _TicketCard extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
-}
-
-class _KnowledgeItemCard extends StatelessWidget {
-  final KnowledgeCard card;
-  const _KnowledgeItemCard({required this.card});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(color: Colors.white, border: Border.all(color: AppColors.border)),
-      child: ExpansionTile(
-        title: Text(card.problem.toUpperCase(), style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13)),
-        childrenPadding: const EdgeInsets.all(16),
-        expandedAlignment: Alignment.centerLeft,
-        children: [
-          _info('ПРИЧИНЫ', card.causes),
-          const SizedBox(height: 12),
-          _info('РЕШЕНИЕ', card.solution),
-          if (card.skus.isNotEmpty) ...[
-            const SizedBox(height: 12),
-            _info('РЕКОМЕНДУЕМЫЕ МАТЕРИАЛЫ', card.skus.join(', ')),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _info(String label, String value) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: const TextStyle(color: AppColors.brandRed, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1)),
-        const SizedBox(height: 4),
-        Text(value, style: const TextStyle(fontSize: 13, height: 1.4, fontWeight: FontWeight.w500)),
-      ],
     );
   }
 }
@@ -311,16 +219,17 @@ class _TicketDetailSheetState extends State<_TicketDetailSheet> {
   @override
   Widget build(BuildContext context) {
     final isExpert = authService.currentRole == UserRole.aiExpert;
-    return Container(
-      height: MediaQuery.of(context).size.height * 0.85,
-      decoration: const BoxDecoration(color: Colors.white),
-      child: Column(
-        children: [
-          AppBar(
-            title: Text(_ticket.category.toUpperCase(), style: const TextStyle(fontWeight: FontWeight.w900)),
-            automaticallyImplyLeading: false,
-            actions: [IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close))],
-          ),
+    return SafeArea(
+      child: Container(
+        height: MediaQuery.of(context).size.height * 0.85,
+        decoration: const BoxDecoration(color: Colors.white),
+        child: Column(
+          children: [
+            AppBar(
+              title: Text(_ticket.category.toUpperCase(), style: const TextStyle(fontWeight: FontWeight.w900)),
+              automaticallyImplyLeading: false,
+              actions: [IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close))],
+            ),
           Expanded(
             child: ListView(
               padding: const EdgeInsets.all(20),
@@ -357,8 +266,9 @@ class _TicketDetailSheetState extends State<_TicketDetailSheet> {
           ),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _preAnalysisSection(ExpertTicket t) {
     return Container(
@@ -484,6 +394,7 @@ class _ExpertAnswerForm extends StatefulWidget {
 
 class _ExpertAnswerFormState extends State<_ExpertAnswerForm> {
   final _ctrl = TextEditingController();
+  final _causesCtrl = TextEditingController();
   bool _createKB = true;
   bool _loading = false;
 
@@ -494,6 +405,7 @@ class _ExpertAnswerFormState extends State<_ExpertAnswerForm> {
       final updated = await DataRepository().expertAnswerTicket(
         widget.ticketId,
         answer: _ctrl.text.trim(),
+        causes: _causesCtrl.text.trim(),
         createKnowledgeCard: _createKB,
       );
       widget.onSubmitted(updated);
@@ -511,13 +423,26 @@ class _ExpertAnswerFormState extends State<_ExpertAnswerForm> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('ОТВЕТ ЭКСПЕРТА', style: TextStyle(fontWeight: FontWeight.w900, color: AppColors.brandRed, fontSize: 12)),
+        if (_createKB) ...[
+          const Text('ПРИЧИНЫ ВОЗНИКНОВЕНИЯ (для БЗ)', style: TextStyle(fontWeight: FontWeight.w900, color: AppColors.textSecondary, fontSize: 12)),
+          const SizedBox(height: 8),
+          TextField(
+            controller: _causesCtrl,
+            maxLines: 2,
+            decoration: const InputDecoration(
+              hintText: 'Почему возникла эта проблема...',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          const SizedBox(height: 16),
+        ],
+        const Text('РЕШЕНИЕ / ОТВЕТ ЭКСПЕРТА', style: TextStyle(fontWeight: FontWeight.w900, color: AppColors.brandRed, fontSize: 12)),
         const SizedBox(height: 8),
         TextField(
           controller: _ctrl,
-          maxLines: 6,
+          maxLines: 4,
           decoration: const InputDecoration(
-            hintText: 'Введите техническую рекомендацию...',
+            hintText: 'Техническая рекомендация...',
             border: OutlineInputBorder(),
           ),
         ),
@@ -608,23 +533,24 @@ class _NewTicketSheetState extends State<_NewTicketSheet> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: MediaQuery.of(context).size.height * 0.8,
-      decoration: const BoxDecoration(color: Colors.white),
-      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-      child: Column(
-        children: [
-          AppBar(
-            title: const Text('НОВЫЙ ВОПРОС', style: TextStyle(fontWeight: FontWeight.w900)),
-            automaticallyImplyLeading: false,
-            actions: [IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close))],
-          ),
+    return SafeArea(
+      child: Container(
+        height: MediaQuery.of(context).size.height * 0.8,
+        decoration: const BoxDecoration(color: Colors.white),
+        padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+        child: Column(
+          children: [
+            AppBar(
+              title: const Text('НОВЫЙ ВОПРОС', style: TextStyle(fontWeight: FontWeight.w900)),
+              automaticallyImplyLeading: false,
+              actions: [IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close))],
+            ),
           Expanded(
             child: ListView(
               padding: const EdgeInsets.all(20),
               children: [
                 DropdownButtonFormField<String>(
-                  initialValue: _category,
+                  value: _category,
                   decoration: const InputDecoration(labelText: 'КАТЕГОРИЯ ВОПРОСА *'),
                   items: _cats.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
                   onChanged: (v) => setState(() => _category = v),
@@ -658,7 +584,7 @@ class _NewTicketSheetState extends State<_NewTicketSheet> {
           ),
         ],
       ),
-    );
-  }
+    ),
+  );
 }
-
+}

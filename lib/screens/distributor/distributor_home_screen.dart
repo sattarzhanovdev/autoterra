@@ -76,6 +76,8 @@ class _DistributorHomeScreenState extends State<DistributorHomeScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        const SectionHeader(title: 'ЧТО НУЖНО СДЕЛАТЬ?'),
+                        const SizedBox(height: 20),
                         _buildMetricsGrid(data.metrics),
                         const SizedBox(height: 24),
                         const SectionHeader(title: 'НОВЫЕ ЗАКАЗЫ'),
@@ -106,6 +108,7 @@ class _DistributorHomeScreenState extends State<DistributorHomeScreen> {
 
   Widget _buildMetricsGrid(DistributorDashboardMetrics metrics) {
     return GridView.count(
+      padding: EdgeInsets.zero,
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       crossAxisCount: 2,

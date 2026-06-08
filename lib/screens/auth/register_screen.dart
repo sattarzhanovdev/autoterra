@@ -20,6 +20,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   // Page 1 fields
   final _innCtrl = TextEditingController();
   final _nameCtrl = TextEditingController();
+  final _addressCtrl = TextEditingController();
   String? _selectedRegionId;
   List<Map<String, dynamic>> _regions = [];
 
@@ -55,6 +56,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     _pageCtrl.dispose();
     _innCtrl.dispose();
     _nameCtrl.dispose();
+    _addressCtrl.dispose();
     _contactCtrl.dispose();
     _phoneCtrl.dispose();
     _passwordCtrl.dispose();
@@ -92,6 +94,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         'region_id': int.parse(_selectedRegionId!),
         'company_name': _nameCtrl.text,
         'contact_name': _contactCtrl.text,
+        'store_address': _addressCtrl.text,
       });
 
       if (mounted) {
@@ -317,6 +320,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 border: OutlineInputBorder(borderRadius: BorderRadius.zero),
               ),
               validator: (v) => v!.isEmpty ? 'Введите название' : null,
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: _addressCtrl,
+              decoration: const InputDecoration(
+                labelText: 'АДРЕС МАГАЗИНА/ТОЧКИ *',
+                border: OutlineInputBorder(borderRadius: BorderRadius.zero),
+                prefixIcon: Icon(Icons.location_on_outlined, size: 20),
+              ),
+              validator: (v) => v!.isEmpty ? 'Введите адрес' : null,
             ),
             const SizedBox(height: 16),
             DropdownButtonFormField<String>(

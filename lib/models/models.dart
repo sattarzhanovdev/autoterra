@@ -152,6 +152,9 @@ class Order {
   final List<PurchaseItem> items;
   final String? comment;
   final String? rejectionReason;
+  final String? courierId;
+  final String? courierName;
+  final DateTime? estimatedDeliveryDate;
   final DateTime createdAt;
 
   const Order({
@@ -169,6 +172,9 @@ class Order {
     required this.items,
     this.comment,
     this.rejectionReason,
+    this.courierId,
+    this.courierName,
+    this.estimatedDeliveryDate,
     required this.createdAt,
   });
 }

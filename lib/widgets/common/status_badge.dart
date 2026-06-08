@@ -115,6 +115,21 @@ class StatusBadge extends StatelessWidget {
     }
   }
 
+  static StatusBadge fromTicketStatus(TicketStatus status) {
+    switch (status) {
+      case TicketStatus.open:
+        return const StatusBadge(label: 'ОТКРЫТО', color: AppColors.info);
+      case TicketStatus.aiAnswered:
+        return const StatusBadge(label: 'ОТВЕТИЛ AI', color: AppColors.accent);
+      case TicketStatus.escalated:
+        return const StatusBadge(label: 'У ЭКСПЕРТА', color: AppColors.brandRed, filled: true);
+      case TicketStatus.expertAnswered:
+        return const StatusBadge(label: 'РЕШЕНО', color: AppColors.success, filled: true);
+      case TicketStatus.closed:
+        return const StatusBadge(label: 'ЗАКРЫТО', color: AppColors.textHint);
+    }
+  }
+
   static StatusBadge fromPartnerStatus(String status) {
     Color color;
     switch (status) {

@@ -226,12 +226,22 @@ class DataRepository {
     return items.map((i) => _productFromJson(i as Map<String, dynamic>)).toList();
   }
 
+  Future<List<Map<String, dynamic>>> distributorCouriers() async {
+    return _api.distributorCouriers();
+  }
+
   Future<void> distributorStockUpload(List<Map<String, dynamic>> items) async {
     await _api.distributorStockUpload(items);
   }
 
-  Future<Order> updateOrderStatus(String id, {required String status, String? reason}) async {
-    final result = await _api.updateOrderStatus(id, status: status, reason: reason);
+  Future<Order> updateOrderStatus(String id, {required String status, String? reason, String? courierId, String? estimatedDeliveryDate}) async {
+    final result = await _api.updateOrderStatus(
+      id, 
+      status: status, 
+      reason: reason,
+      courierId: courierId,
+      estimatedDeliveryDate: estimatedDeliveryDate,
+    );
     return _orderFromJson(result['order'] as Map<String, dynamic>);
   }
 
@@ -247,8 +257,12 @@ class DataRepository {
     return _api.adminIntegrationLogs();
   }
 
-  Future<Map<String, dynamic>> adminAnalytics() {
-    return _api.adminAnalytics();
+  Future<Map<String, dynamic>> adminAnalytics({String? regionId, String? distributorId}) {
+    return _api.adminAnalytics(regionId: regionId, distributorId: distributorId);
+  }
+
+  Future<void> createCourierTask(Map<String, dynamic> data) async {
+    await _api.createCourierTask(data);
   }
 
   Future<List<CourierTask>> courierTasks() async {
@@ -281,11 +295,13 @@ class DataRepository {
   Future<ExpertTicket> expertAnswerTicket(
     String ticketId, {
     required String answer,
+    String? causes,
     bool createKnowledgeCard = false,
   }) async {
     final result = await _api.expertAnswerTicket(
       ticketId,
       answer: answer,
+      causes: causes,
       createKnowledgeCard: createKnowledgeCard,
     );
     return _ticketFromJson(result['ticket'] as Map<String, dynamic>);
@@ -353,11 +369,17 @@ class DataRepository {
     return items.map(_knowledgeCardFromJson).toList();
   }
 
-  Future<KnowledgeCard> updateKnowledgeCard(String id, {bool? isApproved, String? problem, String? solution}) async {
+  Future<KnowledgeCard> createKnowledgeCard(Map<String, dynamic> data) async {
+    final result = await _api.createKnowledgeCard(data);
+    return _knowledgeCardFromJson(result['card'] as Map<String, dynamic>);
+  }
+
+  Future<KnowledgeCard> updateKnowledgeCard(String id, {bool? isApproved, String? problem, String? solution, String? causes}) async {
     final result = await _api.updateKnowledgeCard(id, {
       if (isApproved != null) 'status': isApproved ? 'approved' : 'draft',
       if (problem != null) 'problem': problem,
       if (solution != null) 'solution': solution,
+      if (causes != null) 'causes': causes,
     });
     return _knowledgeCardFromJson(result['card'] as Map<String, dynamic>);
   }
@@ -497,6 +519,9 @@ class DataRepository {
       items: _list(json['items']).map((item) => _purchaseItemFromJson(item)).toList(),
       comment: _toString(json['comment']),
       rejectionReason: _toString(json['rejectionReason']),
+      courierId: _toString(json['courierId']),
+      courierName: _toString(json['courierName']),
+      estimatedDeliveryDate: json['estimatedDeliveryDate'] != null ? DateTime.tryParse(json['estimatedDeliveryDate'].toString()) : null,
       createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? '') ?? DateTime.now(),
     );
   }

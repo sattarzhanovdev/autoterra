@@ -364,6 +364,7 @@ class _OrderCard extends StatelessWidget {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
       backgroundColor: Colors.transparent,
       builder: (_) => _OrderDetailsSheet(order: order, fmt: fmt, isDistributor: isDistributor, onUpdate: onUpdate),
     );
@@ -382,68 +383,65 @@ class _OrderDetailsSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final status = _orderStatusView(order.status);
     final canAction = isDistributor && order.status == OrderStatus.newOrder;
-    return Container(
-      constraints: BoxConstraints(
-        maxHeight: MediaQuery.of(context).size.height * 0.86,
-      ),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.zero,
-      ),
-      child: Column(
-        children: [
-          Container(
-            width: 36,
-            height: 4,
-            margin: const EdgeInsets.only(top: 12),
-            decoration: BoxDecoration(
-              color: AppColors.border,
-              borderRadius: BorderRadius.zero,
+    return SafeArea(
+      child: Container(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.9,
+        ),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.zero,
+        ),
+        child: Column(
+          children: [
+            Container(
+              width: 36,
+              height: 4,
+              margin: const EdgeInsets.only(top: 12),
+              decoration: BoxDecoration(
+                color: AppColors.border,
+                borderRadius: BorderRadius.zero,
+              ),
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(20),
-            child: Row(
-              children: [
-                const PremiumIconBadge(
-                  icon: Icons.shopping_bag_outlined,
-                  size: 44,
-                  iconSize: 22,
-                  iconColor: AppColors.brandRed,
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        order.documentNumber,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w800,
-                          fontSize: 18,
-                        ),
-                      ),
-                      Text(
-                        status.description,
-                        style: TextStyle(
-                          color: AppColors.textSecondary,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 10, 8, 10),
+              child: Row(
+                children: [
+                  const PremiumIconBadge(
+                    icon: Icons.shopping_bag_outlined,
+                    size: 44,
+                    iconSize: 22,
+                    iconColor: AppColors.brandRed,
                   ),
-                ),
-                Text(
-                  status.label,
-                  style: TextStyle(
-                    color: status.color,
-                    fontWeight: FontWeight.w800,
-                    fontSize: 12,
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          order.documentNumber,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w800,
+                            fontSize: 18,
+                          ),
+                        ),
+                        Text(
+                          status.description,
+                          style: TextStyle(
+                            color: AppColors.textSecondary,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.close, color: AppColors.textHint),
+                  ),
+                ],
+              ),
             ),
-          ),
           const Divider(height: 1),
           Expanded(
             child: ListView(
@@ -457,6 +455,16 @@ class _OrderDetailsSheet extends StatelessWidget {
                     'ru_RU',
                   ).format(order.date),
                 ),
+                if (order.estimatedDeliveryDate != null)
+                  InfoRow(
+                    label: 'Ожидаемая дата доставки',
+                    value: DateFormat('dd.MM.yyyy', 'ru_RU').format(order.estimatedDeliveryDate!),
+                  ),
+                if (order.courierName != null && order.courierName!.isNotEmpty)
+                  InfoRow(
+                    label: 'Курьер',
+                    value: order.courierName!,
+                  ),
                 InfoRow(label: 'Позиций', value: '${order.items.length}'),
                 InfoRow(
                   label: 'Итого',
@@ -575,30 +583,147 @@ class _OrderDetailsSheet extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 
   Future<void> _handleUpdate(BuildContext context, String status) async {
-    final confirmed = await showDialog<bool>(
+    if (status == 'rejected') {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Отклонить заказ?'),
+          content: const Text('Заказ будет отменен.'),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('ОТМЕНА')),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context, true),
+              style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+              child: const Text('ПОДТВЕРДИТЬ'),
+            ),
+          ],
+        ),
+      );
+
+      if (confirmed != true) return;
+
+      try {
+        await DataRepository().updateOrderStatus(order.id, status: status);
+        if (context.mounted) Navigator.pop(context); // Close sheet
+        onUpdate?.call();
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Ошибка: $e')));
+        }
+      }
+      return;
+    }
+
+    // For 'accepted' status, show a detailed dialog
+    String? selectedCourierId;
+    DateTime? selectedDate = DateTime.now().add(const Duration(days: 1)); // Default tomorrow
+    bool loadingCouriers = true;
+    List<Map<String, dynamic>> couriers = [];
+
+    final result = await showDialog<Map<String, dynamic>>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(status == 'rejected' ? 'Отклонить заказ?' : 'Взять в работу?'),
-        content: Text(status == 'rejected' ? 'Заказ будет отменен.' : 'Статус заказа изменится на "Принят".'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('ОТМЕНА')),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(backgroundColor: status == 'rejected' ? AppColors.error : AppColors.brandBlack),
-            child: const Text('ПОДТВЕРДИТЬ'),
-          ),
-        ],
+      builder: (context) => StatefulBuilder(
+        builder: (ctx, setS) {
+          if (loadingCouriers) {
+            DataRepository().distributorCouriers().then((data) {
+              if (ctx.mounted) {
+                setS(() {
+                  couriers = data;
+                  loadingCouriers = false;
+                });
+              }
+            }).catchError((e) {
+              if (ctx.mounted) {
+                setS(() => loadingCouriers = false);
+              }
+            });
+          }
+
+          return AlertDialog(
+            title: const Text('Принять заказ в работу', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Укажите детали доставки (необязательно):', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                  const SizedBox(height: 16),
+                  const Text('КУРЬЕР', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 10, color: AppColors.brandRed)),
+                  const SizedBox(height: 4),
+                  if (loadingCouriers)
+                    const CircularProgressIndicator()
+                  else
+                    DropdownButtonFormField<String>(
+                      value: selectedCourierId,
+                      decoration: const InputDecoration(contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8)),
+                      items: [
+                        const DropdownMenuItem(value: null, child: Text('Не назначен')),
+                        ...couriers.map((c) => DropdownMenuItem(value: c['id'].toString(), child: Text(c['name']))),
+                      ],
+                      onChanged: (v) => setS(() => selectedCourierId = v),
+                    ),
+                  const SizedBox(height: 16),
+                  const Text('ОЖИДАЕМАЯ ДАТА', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 10, color: AppColors.brandRed)),
+                  const SizedBox(height: 4),
+                  InkWell(
+                    onTap: () async {
+                      final picked = await showDatePicker(
+                        context: ctx,
+                        initialDate: selectedDate ?? DateTime.now(),
+                        firstDate: DateTime.now().subtract(const Duration(days: 1)),
+                        lastDate: DateTime.now().add(const Duration(days: 30)),
+                      );
+                      if (picked != null) {
+                        setS(() => selectedDate = picked);
+                      }
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                      decoration: BoxDecoration(border: Border.all(color: AppColors.border), borderRadius: BorderRadius.circular(4)),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(selectedDate != null ? DateFormat('dd.MM.yyyy').format(selectedDate!) : 'Не указана'),
+                          const Icon(Icons.calendar_today, size: 18, color: AppColors.brandRed),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('ОТМЕНА', style: TextStyle(color: AppColors.textSecondary, fontWeight: FontWeight.bold))),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(ctx, {
+                    'courierId': selectedCourierId,
+                    'date': selectedDate != null ? DateFormat('yyyy-MM-dd').format(selectedDate!) : null,
+                  });
+                },
+                style: ElevatedButton.styleFrom(backgroundColor: AppColors.brandBlack),
+                child: const Text('В РАБОТУ', style: TextStyle(fontWeight: FontWeight.w900)),
+              ),
+            ],
+          );
+        },
       ),
     );
 
-    if (confirmed != true) return;
+    if (result == null) return;
 
     try {
-      await DataRepository().updateOrderStatus(order.id, status: status);
+      await DataRepository().updateOrderStatus(
+        order.id, 
+        status: status,
+        courierId: result['courierId'] as String?,
+        estimatedDeliveryDate: result['date'] as String?,
+      );
       if (context.mounted) Navigator.pop(context); // Close sheet
       onUpdate?.call();
     } catch (e) {
@@ -827,6 +952,7 @@ class _PurchaseCard extends StatelessWidget {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
       backgroundColor: Colors.transparent,
       builder: (_) => _PurchaseDetailsSheet(purchase: purchase, fmt: fmt, isDistributor: isDistributor, onUpdate: onUpdate),
     );
@@ -851,42 +977,48 @@ class _PurchaseDetailsSheet extends StatelessWidget {
       purchase.status == PurchaseStatus.duplicateReview
     );
 
-    return Container(
-      constraints: BoxConstraints(
-        maxHeight: MediaQuery.of(context).size.height * 0.85,
-      ),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.zero,
-      ),
-      child: Column(
-        children: [
-          Container(
-            width: 36,
-            height: 4,
-            margin: const EdgeInsets.only(top: 12),
-            decoration: BoxDecoration(
-              color: AppColors.border,
-              borderRadius: BorderRadius.zero,
+    return SafeArea(
+      child: Container(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.9,
+        ),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.zero,
+        ),
+        child: Column(
+          children: [
+            Container(
+              width: 36,
+              height: 4,
+              margin: const EdgeInsets.only(top: 12),
+              decoration: BoxDecoration(
+                color: AppColors.border,
+                borderRadius: BorderRadius.zero,
+              ),
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(20),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    purchase.documentNumber,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 18,
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 10, 8, 10),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      purchase.documentNumber,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 18,
+                      ),
                     ),
                   ),
-                ),
-                StatusBadge.fromPurchaseStatus(purchase.status),
-              ],
+                  StatusBadge.fromPurchaseStatus(purchase.status),
+                  const SizedBox(width: 8),
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.close, color: AppColors.textHint),
+                  ),
+                ],
+              ),
             ),
-          ),
           const Divider(height: 1),
           Expanded(
             child: ListView(
@@ -992,8 +1124,9 @@ class _PurchaseDetailsSheet extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 
   Future<void> _handleVerify(BuildContext context, bool verify) async {
     final confirmed = await showDialog<bool>(

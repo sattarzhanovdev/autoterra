@@ -48,7 +48,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
       next = DataRepository().me();
     }
     
-    setState(() => _future = next);
+    setState(() {
+      _future = next;
+    });
     await next;
   }
 
@@ -258,14 +260,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
           Expanded(child: _expertStatCard('РЕЙТИНГ', stats['rating']?.toString() ?? '0', Icons.star_outline)),
         ],
       );
-    } else if (role == UserRole.manager || role == UserRole.admin) {
-      return _buildActionCard(
-        Icons.dashboard_outlined,
-        'Панель управления',
-        'Просмотр аналитики и логов системы',
-        () => adminLayoutKey.currentState?.setTab(0),
-        AppColors.brandRed,
-      );
     } else if (role == UserRole.client && data is DashboardData) {
       return _buildPartnerProgress(data.client);
     }
@@ -419,6 +413,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildUnifiedSettingsSection(BuildContext context) {
+    final role = authService.currentRole;
+    final hasSupportAccess = role != UserRole.distributor && role != UserRole.courier;
+
     return AppCard(
       child: Column(
         children: [
@@ -427,12 +424,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
             'Уведомления',
             () => context.push(AppRoutes.notifications),
           ),
-          const Divider(height: 1),
-          _settingItem(
-            Icons.help_outline,
-            'Поддержка и FAQ',
-            () => context.push(AppRoutes.qa),
-          ),
+          if (hasSupportAccess) ...[
+            const Divider(height: 1),
+            _settingItem(
+              Icons.help_outline,
+              'Поддержка и FAQ',
+              () => context.push(AppRoutes.qa),
+            ),
+          ],
           const Divider(height: 16),
           ListTile(
             leading: Container(

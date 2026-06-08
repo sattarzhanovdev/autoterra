@@ -55,10 +55,6 @@ class _ColorCenterScreenState extends State<ColorCenterScreen>
         title: const Text('ПОДБОР ЦВЕТА'),
         bottom: TabBar(
           controller: _tabCtrl,
-          labelColor: AppColors.brandRed,
-          unselectedLabelColor: Colors.white,
-          indicatorColor: AppColors.brandRed,
-          indicatorWeight: 3,
           tabs: const [
             Tab(text: 'ЗАЯВКИ'),
             Tab(text: 'ИСТОРИЯ'),
@@ -269,6 +265,7 @@ class _ColorCenterScreenState extends State<ColorCenterScreen>
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
       backgroundColor: Colors.transparent,
       builder: (_) => _NewColorRequestSheet(onCreated: _reload),
     );
@@ -434,16 +431,17 @@ class _NewColorRequestSheetState extends State<_NewColorRequestSheet> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: MediaQuery.of(context).size.height * 0.9,
-      decoration: const BoxDecoration(color: Colors.white),
-      child: Column(
-        children: [
-          AppBar(
-            title: const Text('НОВАЯ ЗАЯВКА', style: TextStyle(fontWeight: FontWeight.w900)),
-            automaticallyImplyLeading: false,
-            actions: [IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close))],
-          ),
+    return SafeArea(
+      child: Container(
+        height: MediaQuery.of(context).size.height * 0.9,
+        decoration: const BoxDecoration(color: Colors.white),
+        child: Column(
+          children: [
+            AppBar(
+              title: const Text('НОВАЯ ЗАЯВКА', style: TextStyle(fontWeight: FontWeight.w900)),
+              automaticallyImplyLeading: false,
+              actions: [IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close))],
+            ),
           Expanded(
             child: ListView(
               padding: const EdgeInsets.all(20),
@@ -526,8 +524,9 @@ class _NewColorRequestSheetState extends State<_NewColorRequestSheet> {
           ),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _sectionTitle(String title) => Text(title, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 0.5));
 

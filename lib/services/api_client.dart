@@ -5,7 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 class ApiClient {
   static const String baseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'https://sigmaadil.pythonanywhere.com/api',
+    defaultValue: 'https://neuro-map.online/api',
   );
 
   final http.Client _httpClient;
@@ -72,17 +72,17 @@ class ApiClient {
 
   Future<List<Map<String, dynamic>>> products() async {
     final result = await _get('/products/');
-    return (result['results'] as List<dynamic>).cast<Map<String, dynamic>>();
+    return (result['results'] as List).map((e) => Map<String, dynamic>.from(e as Map)).toList();
   }
 
   Future<List<Map<String, dynamic>>> stores() async {
     final result = await _get('/stores/');
-    return (result['results'] as List<dynamic>).cast<Map<String, dynamic>>();
+    return (result['results'] as List).map((e) => Map<String, dynamic>.from(e as Map)).toList();
   }
 
   Future<List<Map<String, dynamic>>> orders() async {
     final result = await _get('/orders/');
-    return (result['results'] as List<dynamic>).cast<Map<String, dynamic>>();
+    return (result['results'] as List).map((e) => Map<String, dynamic>.from(e as Map)).toList();
   }
 
   Future<Map<String, dynamic>> createOrder({
@@ -99,17 +99,17 @@ class ApiClient {
 
   Future<List<Map<String, dynamic>>> purchases() async {
     final result = await _get('/purchases/');
-    return (result['results'] as List<dynamic>).cast<Map<String, dynamic>>();
+    return (result['results'] as List).map((e) => Map<String, dynamic>.from(e as Map)).toList();
   }
 
   Future<List<Map<String, dynamic>>> colorRequests() async {
     final result = await _get('/color-requests/');
-    return (result['results'] as List<dynamic>).cast<Map<String, dynamic>>();
+    return (result['results'] as List).map((e) => Map<String, dynamic>.from(e as Map)).toList();
   }
 
   Future<List<Map<String, dynamic>>> courierTasks() async {
     final result = await _get('/courier-tasks/');
-    return (result['results'] as List<dynamic>).cast<Map<String, dynamic>>();
+    return (result['results'] as List).map((e) => Map<String, dynamic>.from(e as Map)).toList();
   }
 
   Future<Map<String, dynamic>> createCourierTask(Map<String, dynamic> body) {
@@ -134,17 +134,17 @@ class ApiClient {
 
   Future<List<Map<String, dynamic>>> referrals() async {
     final result = await _get('/referrals/');
-    return (result['results'] as List<dynamic>).cast<Map<String, dynamic>>();
+    return (result['results'] as List).map((e) => Map<String, dynamic>.from(e as Map)).toList();
   }
 
   Future<List<Map<String, dynamic>>> tickets() async {
     final result = await _get('/tickets/');
-    return (result['results'] as List<dynamic>).cast<Map<String, dynamic>>();
+    return (result['results'] as List).map((e) => Map<String, dynamic>.from(e as Map)).toList();
   }
 
   Future<List<Map<String, dynamic>>> notifications() async {
     final result = await _get('/notifications/');
-    return (result['results'] as List<dynamic>).cast<Map<String, dynamic>>();
+    return (result['results'] as List).map((e) => Map<String, dynamic>.from(e as Map)).toList();
   }
 
   Future<void> markNotificationsRead() async {
@@ -169,7 +169,7 @@ class ApiClient {
 
   Future<List<Map<String, dynamic>>> managerClients() async {
     final result = await _get('/manager/clients/');
-    return (result['results'] as List<dynamic>).cast<Map<String, dynamic>>();
+    return (result['results'] as List).map((e) => Map<String, dynamic>.from(e as Map)).toList();
   }
 
   Future<Map<String, dynamic>> managerClientUnified(String clientId) async {
@@ -185,7 +185,11 @@ class ApiClient {
 
   Future<List<Map<String, dynamic>>> knowledgeCards() async {
     final result = await _get('/knowledge-cards/');
-    return (result['results'] as List<dynamic>).cast<Map<String, dynamic>>();
+    return (result['results'] as List).map((e) => Map<String, dynamic>.from(e as Map)).toList();
+  }
+
+  Future<Map<String, dynamic>> createKnowledgeCard(Map<String, dynamic> body) {
+    return _post('/knowledge-cards/create/', body);
   }
 
   Future<Map<String, dynamic>> updateKnowledgeCard(String id, Map<String, dynamic> body) {
@@ -195,10 +199,12 @@ class ApiClient {
   Future<Map<String, dynamic>> expertAnswerTicket(
     String ticketId, {
     required String answer,
+    String? causes,
     bool createKnowledgeCard = false,
   }) {
     return _post('/tickets/$ticketId/expert-answer/', {
       'answer': answer,
+      if (causes != null) 'causes': causes,
       'createKnowledgeCard': createKnowledgeCard,
     });
   }
@@ -218,7 +224,12 @@ class ApiClient {
 
   Future<List<Map<String, dynamic>>> getRegions() async {
     final result = await _get('/regions/');
-    return (result['results'] as List<dynamic>).cast<Map<String, dynamic>>();
+    return (result['results'] as List).map((e) => Map<String, dynamic>.from(e as Map)).toList();
+  }
+
+  Future<List<Map<String, dynamic>>> getDistributors() async {
+    final result = await _get('/distributors/');
+    return (result['results'] as List).map((e) => Map<String, dynamic>.from(e as Map)).toList();
   }
 
   Future<Map<String, dynamic>> createPurchase(Map<String, dynamic> body, {List<int>? fileBytes, String? fileName}) {
@@ -271,14 +282,9 @@ class ApiClient {
     }
   }
 
-  Future<List<Map<String, dynamic>>> getDistributors() async {
-    final result = await _get('/distributors/');
-    return (result['results'] as List<dynamic>).cast<Map<String, dynamic>>();
-  }
-
   Future<List<Map<String, dynamic>>> courierMyTasks() async {
     final result = await _get('/courier/tasks/');
-    return (result['results'] as List<dynamic>).cast<Map<String, dynamic>>();
+    return (result['results'] as List).map((e) => Map<String, dynamic>.from(e as Map)).toList();
   }
 
   Future<Map<String, dynamic>> updateCourierTaskStatus(
@@ -321,7 +327,7 @@ class ApiClient {
 
   Future<List<Map<String, dynamic>>> distributorClients() async {
     final result = await _get('/distributor/clients/');
-    return (result['results'] as List<dynamic>).cast<Map<String, dynamic>>();
+    return (result['results'] as List).map((e) => Map<String, dynamic>.from(e as Map)).toList();
   }
 
   Future<Map<String, dynamic>> verifyPurchase(String id, {required String status, String? reason}) {
@@ -334,7 +340,7 @@ class ApiClient {
   Future<List<Map<String, dynamic>>> distributorOrders({String? status}) async {
     final query = status != null ? '?status=$status' : '';
     final result = await _get('/distributor/orders/$query');
-    return (result['results'] as List<dynamic>).cast<Map<String, dynamic>>();
+    return (result['results'] as List).map((e) => Map<String, dynamic>.from(e as Map)).toList();
   }
 
   Future<List<Map<String, dynamic>>> distributorPurchases({String? status, bool? toVerify}) async {
@@ -344,22 +350,29 @@ class ApiClient {
     
     final queryString = params.isEmpty ? '' : '?${params.entries.map((e) => "${e.key}=${e.value}").join('&')}';
     final result = await _get('/distributor/purchases/$queryString');
-    return (result['results'] as List<dynamic>).cast<Map<String, dynamic>>();
+    return (result['results'] as List).map((e) => Map<String, dynamic>.from(e as Map)).toList();
+  }
+
+  Future<List<Map<String, dynamic>>> distributorCouriers() async {
+    final result = await _get('/distributor/couriers/');
+    return List<Map<String, dynamic>>.from(result['results']);
   }
 
   Future<Map<String, dynamic>> distributorIntegration() => _get('/distributor/integration/');
   Future<Map<String, dynamic>> generateIntegrationToken() => _post('/distributor/integration/generate/', {});
 
-  Future<Map<String, dynamic>> updateOrderStatus(String id, {required String status, String? reason}) {
+  Future<Map<String, dynamic>> updateOrderStatus(String id, {required String status, String? reason, String? courierId, String? estimatedDeliveryDate}) {
     return _patch('/distributor/orders/$id/status/', {
       'status': status,
       if (reason != null) 'rejection_reason': reason,
+      if (courierId != null) 'courier_id': courierId,
+      if (estimatedDeliveryDate != null) 'estimated_delivery_date': estimatedDeliveryDate,
     });
   }
 
   Future<List<Map<String, dynamic>>> distributorStock() async {
     final result = await _get('/distributor/stock/');
-    return (result['results'] as List<dynamic>).cast<Map<String, dynamic>>();
+    return (result['results'] as List).map((e) => Map<String, dynamic>.from(e as Map)).toList();
   }
 
   Future<Map<String, dynamic>> adminIntegrationTokens() async {
@@ -374,8 +387,13 @@ class ApiClient {
     return _get('/admin/integration/logs/');
   }
 
-  Future<Map<String, dynamic>> adminAnalytics() async {
-    return _get('/admin/analytics/');
+  Future<Map<String, dynamic>> adminAnalytics({String? regionId, String? distributorId}) async {
+    String path = '/admin/analytics/';
+    final params = <String>[];
+    if (regionId != null) params.add('region=$regionId');
+    if (distributorId != null) params.add('distributor=$distributorId');
+    if (params.isNotEmpty) path += '?${params.join('&')}';
+    return _get(path);
   }
 
   Future<Map<String, dynamic>> test1CIntegration(List<dynamic> payload) {
@@ -454,16 +472,36 @@ class ApiClient {
   }
 
   Map<String, dynamic> _decode(http.Response response) {
-    final decoded = jsonDecode(utf8.decode(response.bodyBytes));
+    String bodyString;
+    try {
+      bodyString = utf8.decode(response.bodyBytes);
+    } catch (e) {
+      throw ApiException('Failed to decode response body', e.toString());
+    }
+
+    dynamic decoded;
+    try {
+      decoded = jsonDecode(bodyString);
+    } catch (e) {
+      // If it's not JSON, it might be an HTML error page from the server
+      final snippet = bodyString.length > 100 ? '${bodyString.substring(0, 100)}...' : bodyString;
+      throw ApiException(
+        'Server returned non-JSON response (Status ${response.statusCode})',
+        'Snippet: $snippet',
+      );
+    }
+
     if (response.statusCode < 200 || response.statusCode >= 300) {
       final detail = decoded is Map<String, dynamic>
           ? decoded['detail']?.toString()
           : null;
       throw ApiException(detail ?? 'API error ${response.statusCode}', decoded);
     }
+
     if (decoded is! Map<String, dynamic>) {
-      throw ApiException('Unexpected API response', decoded);
+      throw ApiException('Unexpected API response format', decoded);
     }
+
     return decoded;
   }
 }

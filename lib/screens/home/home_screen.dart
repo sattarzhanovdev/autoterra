@@ -257,7 +257,7 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
       ),
       _QuickAction(
         Icons.help_outline_rounded,
-        'Вопрос-ответ',
+        'Мои обращения',
         () => context.push(AppRoutes.qa),
       ),
       _QuickAction(

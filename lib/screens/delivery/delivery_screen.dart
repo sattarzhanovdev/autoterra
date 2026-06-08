@@ -233,14 +233,21 @@ class _DeliveryScreenState extends State<DeliveryScreen>
 
   void _showNewDeliveryDialog(BuildContext context) {
     final addrCtrl = TextEditingController();
+    final contactCtrl = TextEditingController();
+    final phoneCtrl = TextEditingController();
+    final timeSlotCtrl = TextEditingController(text: '10:00 - 18:00');
     final commentCtrl = TextEditingController();
     String selectedType = 'delivery';
+    bool saving = false;
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
       builder: (_) => StatefulBuilder(
-        builder: (ctx, setS) => Padding(
+        builder: (ctx, setS) => Container(
+          decoration: const BoxDecoration(color: Colors.white),
           padding: EdgeInsets.fromLTRB(
             16,
             20,
@@ -251,111 +258,137 @@ class _DeliveryScreenState extends State<DeliveryScreen>
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Text(
-                'Новая заявка',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'НОВАЯ ЗАЯВКА КУРЬЕРУ',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: 1),
+                  ),
+                  IconButton(onPressed: () => Navigator.pop(ctx), icon: const Icon(Icons.close)),
+                ],
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  _typeBtn(setS, 'delivery', 'ДОСТАВКА', selectedType == 'delivery', (v) => selectedType = v),
+                  const SizedBox(width: 8),
+                  _typeBtn(setS, 'return', 'ВОЗВРАТ', selectedType == 'return', (v) => selectedType = v),
+                ],
+              ),
+              const SizedBox(height: 20),
+              TextField(
+                controller: addrCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'АДРЕС *',
+                  prefixIcon: Icon(Icons.location_on_outlined, size: 20),
+                ),
+              ),
+              const SizedBox(height: 12),
               Row(
                 children: [
                   Expanded(
-                    child: GestureDetector(
-                      onTap: () => setS(() => selectedType = 'delivery'),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        decoration: BoxDecoration(
-                          color: selectedType == 'delivery'
-                              ? AppColors.brandBlack
-                              : Colors.white,
-                          border: Border.all(
-                            color: selectedType == 'delivery'
-                                ? AppColors.brandBlack
-                                : AppColors.border,
-                          ),
-                        ),
-                        child: Text(
-                          'Доставка заказа',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontWeight: FontWeight.w700,
-                            fontSize: 13,
-                            color: selectedType == 'delivery'
-                                ? Colors.white
-                                : AppColors.textPrimary,
-                          ),
-                        ),
-                      ),
+                    child: TextField(
+                      controller: contactCtrl,
+                      decoration: const InputDecoration(labelText: 'КОНТАКТНОЕ ЛИЦО'),
                     ),
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 12),
                   Expanded(
-                    child: GestureDetector(
-                      onTap: () => setS(() => selectedType = 'return'),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        decoration: BoxDecoration(
-                          color: selectedType == 'return'
-                              ? AppColors.brandBlack
-                              : Colors.white,
-                          border: Border.all(
-                            color: selectedType == 'return'
-                                ? AppColors.brandBlack
-                                : AppColors.border,
-                          ),
-                        ),
-                        child: Text(
-                          'Возврат лючка',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontWeight: FontWeight.w700,
-                            fontSize: 13,
-                            color: selectedType == 'return'
-                                ? Colors.white
-                                : AppColors.textPrimary,
-                          ),
-                        ),
-                      ),
+                    child: TextField(
+                      controller: phoneCtrl,
+                      decoration: const InputDecoration(labelText: 'ТЕЛЕФОН'),
                     ),
                   ),
                 ],
               ),
               const SizedBox(height: 12),
               TextField(
-                controller: addrCtrl,
+                controller: timeSlotCtrl,
                 decoration: const InputDecoration(
-                  labelText: 'Адрес',
-                  prefixIcon: Icon(Icons.location_on_outlined),
+                  labelText: 'ВРЕМЕННОЙ ИНТЕРВАЛ',
+                  prefixIcon: Icon(Icons.access_time, size: 20),
                 ),
               ),
               const SizedBox(height: 12),
               TextField(
                 controller: commentCtrl,
                 decoration: const InputDecoration(
-                  labelText: 'Комментарий',
-                  prefixIcon: Icon(Icons.comment_outlined),
+                  labelText: 'КОММЕНТАРИЙ',
+                  prefixIcon: Icon(Icons.comment_outlined, size: 20),
                 ),
                 maxLines: 2,
               ),
-              const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: () async {
-                  final messenger = ScaffoldMessenger.of(context);
-                  final navigator = Navigator.of(ctx);
-                  await ApiClient().createCourierTask({
-                    'type': selectedType,
-                    'address': addrCtrl.text,
-                    'comment': commentCtrl.text,
-                  });
-                  if (!context.mounted) return;
-                  _reload();
-                  navigator.pop();
-                  messenger.showSnackBar(
-                    const SnackBar(content: Text('Заявка на доставку создана')),
-                  );
-                },
-                child: const Text('СОЗДАТЬ ЗАЯВКУ'),
+              const SizedBox(height: 24),
+              SizedBox(
+                height: 54,
+                child: ElevatedButton(
+                  onPressed: saving ? null : () async {
+                    if (addrCtrl.text.isEmpty) {
+                      ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(content: Text('Укажите адрес')));
+                      return;
+                    }
+                    
+                    setS(() => saving = true);
+                    try {
+                      await DataRepository().createCourierTask({
+                        'type': selectedType,
+                        'address': addrCtrl.text.trim(),
+                        'contactName': contactCtrl.text.trim(),
+                        'contactPhone': phoneCtrl.text.trim(),
+                        'timeSlot': timeSlotCtrl.text.trim(),
+                        'comment': commentCtrl.text.trim(),
+                      });
+                      if (!context.mounted) return;
+                      _reload();
+                      Navigator.pop(ctx);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Заявка успешно создана'), backgroundColor: AppColors.success),
+                      );
+                    } catch (e) {
+                      if (ctx.mounted) {
+                        setS(() => saving = false);
+                        ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(content: Text('Ошибка: $e')));
+                      }
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.brandBlack,
+                    shape: const BeveledRectangleBorder(),
+                  ),
+                  child: saving 
+                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                    : const Text('ОТПРАВИТЬ ЗАЯВКУ', style: TextStyle(fontWeight: FontWeight.w900)),
+                ),
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _typeBtn(StateSetter setS, String val, String label, bool active, ValueChanged<String> onSelect) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: () {
+          setS(() => onSelect(val));
+        },
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+            color: active ? AppColors.brandBlack : Colors.white,
+            border: Border.all(color: active ? AppColors.brandBlack : AppColors.border),
+          ),
+          child: Text(
+            label,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontWeight: FontWeight.w900,
+              fontSize: 12,
+              color: active ? Colors.white : AppColors.brandBlack,
+              letterSpacing: 0.5,
+            ),
           ),
         ),
       ),

@@ -27,6 +27,7 @@ import 'widgets/common/role_switcher_wrapper.dart';
 import 'widgets/layouts/admin_layout.dart';
 import 'widgets/layouts/courier_layout.dart';
 import 'widgets/layouts/expert_layout.dart';
+import 'screens/expert/expert_knowledge_base_screen.dart';
 
 import 'screens/distributor/distributor_clients_screen.dart';
 import 'screens/distributor/distributor_stock_screen.dart';
@@ -69,7 +70,7 @@ final GoRouter _router = GoRouter(
         GoRoute(path: AppRoutes.distributorClients, builder: (ctx, _) => const DistributorClientsScreen()),
         GoRoute(path: AppRoutes.distributorStock, builder: (ctx, _) => const DistributorStockScreen()),
         GoRoute(path: AppRoutes.distributorIntegration, builder: (ctx, _) => const DistributorIntegrationScreen()),
-        // Add roles-specific routes or just let shell handle it
+        
         GoRoute(path: '/distributor-cabinet', builder: (ctx, _) => const DistributorCabinetScreen()),
         GoRoute(path: '/courier-cabinet', builder: (ctx, _) => const CourierScreen()),
         GoRoute(path: AppRoutes.admin, builder: (ctx, _) => AdminLayout()),
@@ -78,6 +79,7 @@ final GoRouter _router = GoRouter(
     ),
     GoRoute(path: AppRoutes.addPurchase, builder: (ctx, _) => const AddPurchaseScreen()),
     GoRoute(path: AppRoutes.qa, builder: (ctx, _) => const QaScreen()),
+    GoRoute(path: '/knowledge-base', builder: (ctx, _) => const KnowledgeBaseScreen()),
     GoRoute(path: AppRoutes.referral, builder: (ctx, _) => const ReferralScreen()),
     GoRoute(path: AppRoutes.notifications, builder: (ctx, _) => const NotificationsScreen()),
     GoRoute(path: AppRoutes.distributor, builder: (ctx, _) => const DistributorScreen()),
