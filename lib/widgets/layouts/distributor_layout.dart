@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import '../../core/theme.dart';
 import '../../models/models.dart';
 import '../../services/data_repository.dart';
+import '../../widgets/common/app_logo.dart';
 import '../../screens/distributor/distributor_clients_screen.dart';
+import '../../screens/distributor/distributor_stock_screen.dart';
 
 class DistributorLayout extends StatefulWidget {
   final Widget child;
@@ -18,7 +20,7 @@ class _DistributorLayoutState extends State<DistributorLayout> {
   final List<Widget> _screens = [
     const DistributorOrdersTabsScreen(),
     const DistributorClientsScreen(),
-    const _PlaceholderScreen(title: 'СКЛАД'),
+    const DistributorStockScreen(),
     const DistributorReportsScreen(),
   ];
 
@@ -59,7 +61,7 @@ class DistributorOrdersTabsScreen extends StatelessWidget {
       child: Scaffold(
         appBar: AppBar(
           backgroundColor: const Color(0xFF171717),
-          title: const Text('УПРАВЛЕНИЕ ЗАКАЗАМИ', style: TextStyle(letterSpacing: 1.5, fontWeight: FontWeight.w900)),
+          title: const Text('УПРАВЛЕНИЕ ЗАКАЗАМИ', style: TextStyle(fontWeight: FontWeight.w900)),
           bottom: const TabBar(
             indicatorColor: Color(0xFFF01D2C),
             indicatorWeight: 4,
@@ -154,7 +156,7 @@ class PurchaseVerificationCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 8),
-          Text(purchase.clientName.toUpperCase(), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12)),
+          Text((purchase.clientName ?? '').toUpperCase(), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12)),
           const Divider(),
           ...purchase.items.map((it) => Text('• ${it.name} x ${it.quantity}', style: const TextStyle(fontSize: 12))),
           const SizedBox(height: 16),
@@ -292,7 +294,7 @@ class OrderProcessCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 8),
-          Text(order.clientName.toUpperCase(), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12)),
+          Text((order.clientName ?? '').toUpperCase(), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12)),
           if (order.storeName.isNotEmpty)
             Text('ВЫДАЧА: ${order.storeName.toUpperCase()}', style: const TextStyle(color: Color(0xFF171717), fontSize: 10, fontWeight: FontWeight.bold)),
           const Divider(),
@@ -396,19 +398,6 @@ class DistributorReportsScreen extends StatelessWidget {
         onTap: onTap,
         trailing: onTap != null ? const Icon(Icons.chevron_right) : const Text('СКОРО', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: AppColors.textHint)),
       ),
-    );
-  }
-}
-
-class _PlaceholderScreen extends StatelessWidget {
-  final String title;
-  const _PlaceholderScreen({required this.title});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(backgroundColor: Colors.black, title: Text(title)),
-      body: Center(child: Text('РАЗДЕЛ $title В РАЗРАБОТКЕ')),
     );
   }
 }

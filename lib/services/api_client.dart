@@ -5,27 +5,32 @@ import 'package:shared_preferences/shared_preferences.dart';
 class ApiClient {
   static const String baseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'http://89.111.132.221:8000/api',
+    defaultValue: 'https://sigmaadil.pythonanywhere.com/api',
   );
 
   final http.Client _httpClient;
 
   ApiClient({http.Client? client}) : _httpClient = client ?? _DefaultHttpClient();
   static const _tokenKey = 'auth_token';
+  static const _roleKey = 'user_role';
   static String? _token;
+  static String? _role;
 
   static bool get isAuthorized => _token != null;
+  static String? get role => _role;
 
   static Future<void> loadSavedToken() async {
     final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString(_tokenKey);
-    _token = token?.isEmpty == true ? null : token;
+    _token = prefs.getString(_tokenKey);
+    _role = prefs.getString(_roleKey);
   }
 
   static Future<void> clearToken() async {
     _token = null;
+    _role = null;
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_tokenKey);
+    await prefs.remove(_roleKey);
   }
 
   Future<Map<String, dynamic>> login({
@@ -37,15 +42,28 @@ class ApiClient {
       'password': password,
     });
     _token = result['token'] as String?;
+    
+    if (result.containsKey('user')) {
+      final user = result['user'] as Map<String, dynamic>;
+      _role = user['role'] as String?;
+    }
+
     if (_token != null) {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_tokenKey, _token!);
+      if (_role != null) {
+        await prefs.setString(_roleKey, _role!);
+      }
     }
     return result;
   }
 
   Future<Map<String, dynamic>> dashboard() {
     return _get('/dashboard/');
+  }
+
+  Future<Map<String, dynamic>> distributorDashboard() {
+    return _get('/distributor/dashboard/');
   }
 
   Future<Map<String, dynamic>> me() => _get('/auth/me/');
@@ -68,12 +86,12 @@ class ApiClient {
   }
 
   Future<Map<String, dynamic>> createOrder({
-    required String storeId,
+    String? storeId,
     required List<Map<String, dynamic>> items,
     required String comment,
   }) {
     return _post('/orders/create/', {
-      'storeId': storeId,
+      if (storeId != null) 'storeId': storeId,
       'items': items,
       'comment': comment,
     });
@@ -133,6 +151,22 @@ class ApiClient {
     await _post('/notifications/read/', {});
   }
 
+  Future<Map<String, dynamic>> sendNotification({
+    required String userId,
+    required String title,
+    required String body,
+    String type = 'info',
+    String? relatedLink,
+  }) {
+    return _post('/notifications/send/', {
+      'userId': userId,
+      'title': title,
+      'body': body,
+      'type': type,
+      if (relatedLink != null) 'relatedLink': relatedLink,
+    });
+  }
+
   Future<List<Map<String, dynamic>>> managerClients() async {
     final result = await _get('/manager/clients/');
     return (result['results'] as List<dynamic>).cast<Map<String, dynamic>>();
@@ -152,6 +186,21 @@ class ApiClient {
   Future<List<Map<String, dynamic>>> knowledgeCards() async {
     final result = await _get('/knowledge-cards/');
     return (result['results'] as List<dynamic>).cast<Map<String, dynamic>>();
+  }
+
+  Future<Map<String, dynamic>> updateKnowledgeCard(String id, Map<String, dynamic> body) {
+    return _post('/knowledge-cards/$id/update/', body);
+  }
+
+  Future<Map<String, dynamic>> expertAnswerTicket(
+    String ticketId, {
+    required String answer,
+    bool createKnowledgeCard = false,
+  }) {
+    return _post('/tickets/$ticketId/expert-answer/', {
+      'answer': answer,
+      'createKnowledgeCard': createKnowledgeCard,
+    });
   }
 
   Future<String> aiChat(String message) async {
@@ -193,30 +242,33 @@ class ApiClient {
     String fileName, {
     String fileField = 'file',
   }) async {
-    final request = http.MultipartRequest('POST', Uri.parse('$baseUrl$path'));
-    if (_token != null) {
-      request.headers['Authorization'] = 'Bearer $_token';
-    }
-    
-    // Add text fields
-    body.forEach((key, value) {
-      if (value is List || value is Map) {
-        request.fields[key] = jsonEncode(value);
-      } else {
-        request.fields[key] = value.toString();
+    try {
+      final request = http.MultipartRequest('POST', Uri.parse('$baseUrl$path'));
+      if (_token != null) {
+        request.headers['Authorization'] = 'Bearer $_token';
       }
-    });
+      
+      body.forEach((key, value) {
+        if (value is List || value is Map) {
+          request.fields[key] = jsonEncode(value);
+        } else {
+          request.fields[key] = value.toString();
+        }
+      });
 
-    // Add file
-    request.files.add(http.MultipartFile.fromBytes(
-      fileField,
-      fileBytes,
-      filename: fileName,
-    ));
+      request.files.add(http.MultipartFile.fromBytes(
+        fileField,
+        fileBytes,
+        filename: fileName,
+      ));
 
-    final streamedResponse = await request.send();
-    final response = await http.Response.fromStream(streamedResponse);
-    return _decode(response);
+      final streamedResponse = await request.send().timeout(const Duration(seconds: 30));
+      final response = await http.Response.fromStream(streamedResponse);
+      return _decode(response);
+    } catch (e) {
+      _handleError(e);
+      rethrow;
+    }
   }
 
   Future<List<Map<String, dynamic>>> getDistributors() async {
@@ -238,33 +290,33 @@ class ApiClient {
   }) async {
     final path = '/courier/tasks/$taskId/status/';
     if (imageBytes != null && fileName != null) {
-      final request = http.MultipartRequest('POST', Uri.parse('$baseUrl$path'));
-      if (_token != null) {
-        request.headers['Authorization'] = 'Bearer $_token';
+      try {
+        final request = http.MultipartRequest('POST', Uri.parse('$baseUrl$path'));
+        if (_token != null) {
+          request.headers['Authorization'] = 'Bearer $_token';
+        }
+        request.fields['status'] = status;
+        if (courierComment != null) {
+          request.fields['courier_comment'] = courierComment;
+        }
+        request.files.add(http.MultipartFile.fromBytes(
+          'proof_photo',
+          imageBytes,
+          filename: fileName,
+        ));
+        final streamedResponse = await request.send().timeout(const Duration(seconds: 30));
+        final response = await http.Response.fromStream(streamedResponse);
+        return _decode(response);
+      } catch (e) {
+        _handleError(e);
+        rethrow;
       }
-      request.fields['status'] = status;
-      if (courierComment != null) {
-        request.fields['courier_comment'] = courierComment;
-      }
-      request.files.add(http.MultipartFile.fromBytes(
-        'proof_photo',
-        imageBytes,
-        filename: fileName,
-      ));
-      final streamedResponse = await request.send();
-      final response = await http.Response.fromStream(streamedResponse);
-      return _decode(response);
     } else {
       return _patch(path, {
         'status': status,
         if (courierComment != null) 'courier_comment': courierComment,
       });
     }
-  }
-
-  Future<List<Map<String, dynamic>>> distributorPurchases() async {
-    final result = await _get('/distributor/purchases/');
-    return (result['results'] as List<dynamic>).cast<Map<String, dynamic>>();
   }
 
   Future<List<Map<String, dynamic>>> distributorClients() async {
@@ -279,16 +331,35 @@ class ApiClient {
     });
   }
 
-  Future<List<Map<String, dynamic>>> distributorOrders() async {
-    final result = await _get('/distributor/orders/');
+  Future<List<Map<String, dynamic>>> distributorOrders({String? status}) async {
+    final query = status != null ? '?status=$status' : '';
+    final result = await _get('/distributor/orders/$query');
     return (result['results'] as List<dynamic>).cast<Map<String, dynamic>>();
   }
+
+  Future<List<Map<String, dynamic>>> distributorPurchases({String? status, bool? toVerify}) async {
+    final Map<String, String> params = {};
+    if (status != null) params['status'] = status;
+    if (toVerify == true) params['to_verify'] = 'true';
+    
+    final queryString = params.isEmpty ? '' : '?${params.entries.map((e) => "${e.key}=${e.value}").join('&')}';
+    final result = await _get('/distributor/purchases/$queryString');
+    return (result['results'] as List<dynamic>).cast<Map<String, dynamic>>();
+  }
+
+  Future<Map<String, dynamic>> distributorIntegration() => _get('/distributor/integration/');
+  Future<Map<String, dynamic>> generateIntegrationToken() => _post('/distributor/integration/generate/', {});
 
   Future<Map<String, dynamic>> updateOrderStatus(String id, {required String status, String? reason}) {
     return _patch('/distributor/orders/$id/status/', {
       'status': status,
       if (reason != null) 'rejection_reason': reason,
     });
+  }
+
+  Future<List<Map<String, dynamic>>> distributorStock() async {
+    final result = await _get('/distributor/stock/');
+    return (result['results'] as List<dynamic>).cast<Map<String, dynamic>>();
   }
 
   Future<Map<String, dynamic>> adminIntegrationTokens() async {
@@ -307,38 +378,72 @@ class ApiClient {
     return _get('/admin/analytics/');
   }
 
-  Future<Map<String, dynamic>> _patch(String path, Map<String, dynamic> body) async {
-    final response = await _httpClient
-        .patch(
-          Uri.parse('$baseUrl$path'),
-          headers: _headers(),
-          body: jsonEncode(body),
-        )
-        .timeout(const Duration(seconds: 3));
-    return _decode(response);
+  Future<Map<String, dynamic>> test1CIntegration(List<dynamic> payload) {
+    // Increased timeout for integration testing
+    return _post('/integration/erp/stock-update/?dry_run=true', payload, timeout: const Duration(seconds: 60));
+  }
+
+  Future<void> distributorStockUpload(List<Map<String, dynamic>> items) async {
+    await _post('/distributor/stock/upload/', {'items': items}, timeout: const Duration(seconds: 60));
+  }
+
+  Future<Map<String, dynamic>> _patch(String path, dynamic body) async {
+    try {
+      final response = await _httpClient
+          .patch(
+            Uri.parse('$baseUrl$path'),
+            headers: _headers(),
+            body: jsonEncode(body),
+          )
+          .timeout(const Duration(seconds: 15));
+      return _decode(response);
+    } catch (e) {
+      _handleError(e);
+      rethrow;
+    }
   }
 
   Future<Map<String, dynamic>> _get(String path, {Map<String, String>? params}) async {
-    final uri = Uri.parse('$baseUrl$path').replace(queryParameters: params);
-    final response = await _httpClient
-        .get(uri, headers: _headers())
-        .timeout(const Duration(seconds: 3));
-    return _decode(response);
+    try {
+      final uri = Uri.parse('$baseUrl$path').replace(queryParameters: params);
+      final response = await _httpClient
+          .get(uri, headers: _headers())
+          .timeout(const Duration(seconds: 15));
+      return _decode(response);
+    } catch (e) {
+      _handleError(e);
+      rethrow;
+    }
   }
 
   Future<Map<String, dynamic>> _post(
     String path,
-    Map<String, dynamic> body, {
-    Duration timeout = const Duration(seconds: 3),
+    dynamic body, {
+    Duration timeout = const Duration(seconds: 15),
   }) async {
-    final response = await _httpClient
-        .post(
-          Uri.parse('$baseUrl$path'),
-          headers: _headers(),
-          body: jsonEncode(body),
-        )
-        .timeout(timeout);
-    return _decode(response);
+    try {
+      final response = await _httpClient
+          .post(
+            Uri.parse('$baseUrl$path'),
+            headers: _headers(),
+            body: jsonEncode(body),
+          )
+          .timeout(timeout);
+      return _decode(response);
+    } catch (e) {
+      _handleError(e);
+      rethrow;
+    }
+  }
+
+  void _handleError(Object e) {
+    final errStr = e.toString().toLowerCase();
+    if (errStr.contains('socketexception') || errStr.contains('host lookup') || errStr.contains('connection refused')) {
+      throw const ApiException('Сервер недоступен. Проверьте интернет-соединение или статус сервера.');
+    }
+    if (errStr.contains('timeoutexception')) {
+      throw const ApiException('Превышено время ожидания. Сервер отвечает слишком долго.');
+    }
   }
 
   Map<String, String> _headers() {

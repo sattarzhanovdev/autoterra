@@ -2,20 +2,28 @@ import 'package:flutter/material.dart';
 import '../../core/theme.dart';
 import '../../screens/admin/admin_dashboard_screen.dart';
 import '../../screens/admin/admin_integration_screen.dart';
+import '../../screens/profile/profile_screen.dart';
+
+final GlobalKey<AdminLayoutState> adminLayoutKey = GlobalKey<AdminLayoutState>();
 
 class AdminLayout extends StatefulWidget {
-  const AdminLayout({super.key});
+  AdminLayout() : super(key: adminLayoutKey);
 
   @override
-  State<AdminLayout> createState() => _AdminLayoutState();
+  State<AdminLayout> createState() => AdminLayoutState();
 }
 
-class _AdminLayoutState extends State<AdminLayout> {
+class AdminLayoutState extends State<AdminLayout> {
   int _currentIndex = 0;
+
+  void setTab(int index) {
+    setState(() => _currentIndex = index);
+  }
 
   final List<Widget> _screens = [
     const AdminDashboardScreen(),
     const AdminIntegrationScreen(),
+    const ProfileScreen(),
   ];
 
   @override
@@ -36,6 +44,7 @@ class _AdminLayoutState extends State<AdminLayout> {
           items: const [
             BottomNavigationBarItem(icon: Icon(Icons.dashboard_outlined), activeIcon: Icon(Icons.dashboard), label: 'ДАШБОРД'),
             BottomNavigationBarItem(icon: Icon(Icons.sync_alt_outlined), activeIcon: Icon(Icons.sync_alt), label: 'ИНТЕГРАЦИИ 1С'),
+            BottomNavigationBarItem(icon: Icon(Icons.person_outline), activeIcon: Icon(Icons.person), label: 'ПРОФИЛЬ'),
           ],
         ),
       ),

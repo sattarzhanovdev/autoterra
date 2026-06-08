@@ -21,19 +21,20 @@ class PremiumIconBadge extends StatelessWidget {
     return Container(
       width: size,
       height: size,
-      decoration: BoxDecoration(
+      decoration: const ShapeDecoration(
         color: Colors.white,
-        border: Border.all(color: AppColors.brandBlack, width: 1.5),
-        borderRadius: BorderRadius.zero,
+        shape: BeveledRectangleBorder(
+          side: BorderSide(color: AppColors.brandBlack, width: 1.0),
+        ),
       ),
       child: Stack(
         children: [
           Positioned(
-            top: 2,
-            left: 2,
+            top: 1,
+            left: 1,
             child: Container(
-              width: 6,
-              height: 6,
+              width: 5,
+              height: 5,
               color: AppColors.brandRed,
             ),
           ),

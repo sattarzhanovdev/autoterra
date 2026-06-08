@@ -23,20 +23,20 @@ class AppColors {
   static const textOnDark = Color(0xFFF5F5F5);
   static const textOnDarkMuted = Color(0xFF9A9A9A);
 
-  static const success = Color(0xFF1A9E5C);
-  static const warning = Color(0xFFD4920A);
+  static const success = brandBlack;
+  static const warning = Color(0xFF5A5A5A);
   static const error = brandRed;
-  static const info = Color(0xFF3A6EA5);
+  static const info = Color(0xFF9A9A9A);
 
   // Status
-  static const statusNew = Color(0xFF3A6EA5);
-  static const statusActive = Color(0xFF1A9E5C);
-  static const statusPending = Color(0xFFD4920A);
+  static const statusNew = Color(0xFF9A9A9A);
+  static const statusActive = brandBlack;
+  static const statusPending = Color(0xFF5A5A5A);
   static const statusBlocked = brandRed;
 
   // Category
   static const categoryA = brandRed;
-  static const categoryB = Color(0xFF3A6EA5);
+  static const categoryB = brandBlack;
   static const categoryC = Color(0xFF5A5A5A);
 }
 
@@ -192,6 +192,15 @@ class AppTheme {
         shape: BeveledRectangleBorder(),
         elevation: 0,
       ),
+      pageTransitionsTheme: const PageTransitionsTheme(
+        builders: {
+          TargetPlatform.android: NoTransitionsBuilder(),
+          TargetPlatform.iOS: NoTransitionsBuilder(),
+          TargetPlatform.linux: NoTransitionsBuilder(),
+          TargetPlatform.macOS: NoTransitionsBuilder(),
+          TargetPlatform.windows: NoTransitionsBuilder(),
+        },
+      ),
     );
   }
 
@@ -204,5 +213,20 @@ class AppTheme {
       bodyMedium: _AppFonts.neoris(fontSize: 14, fontWeight: FontWeight.w400, color: AppColors.textSecondary),
       labelLarge: _AppFonts.octosquares(fontSize: 13, fontWeight: FontWeight.w900, color: AppColors.brandBlack, letterSpacing: 0.8),
     );
+  }
+}
+
+class NoTransitionsBuilder extends PageTransitionsBuilder {
+  const NoTransitionsBuilder();
+
+  @override
+  Widget buildTransitions<T>(
+    PageRoute<T>? route,
+    BuildContext? context,
+    Animation<double> animation,
+    Animation<double> secondaryAnimation,
+    Widget child,
+  ) {
+    return child;
   }
 }

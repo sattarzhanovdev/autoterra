@@ -43,44 +43,47 @@ class _RoleSwitcherButtonState extends State<_RoleSwitcherButton> {
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
         if (_isOpen)
-          Container(
-            width: 200,
-            decoration: const BoxDecoration(
-              color: Color(0xFF171717),
-              borderRadius: BorderRadius.zero,
+          Card(
+            margin: const EdgeInsets.only(bottom: 8),
+            color: const Color(0xFF171717),
+            shape: const BeveledRectangleBorder(
+              side: BorderSide(color: Color(0xFFF01D2C), width: 0.5),
             ),
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: UserRole.values.map((role) {
-                final isSelected = authService.currentRole == role;
-                return GestureDetector(
-                  onTap: () {
-                    authService.setRole(role);
-                    setState(() => _isOpen = false);
-                  },
-                  child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 12,
-                    ),
-                    color: Colors.transparent,
-                    child: Text(
-                      role.name.toUpperCase(),
-                      style: TextStyle(
-                        color: isSelected
-                            ? const Color(0xFFF01D2C)
-                            : Colors.white,
-                        fontWeight:
-                            isSelected ? FontWeight.bold : FontWeight.normal,
-                        fontSize: 12,
-                        decoration: TextDecoration.none,
+            child: Container(
+              width: 200,
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: UserRole.values.map((role) {
+                  final isSelected = authService.currentRole == role;
+                  return GestureDetector(
+                    onTap: () {
+                      authService.setRole(role);
+                      setState(() => _isOpen = false);
+                    },
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                      color: Colors.transparent,
+                      child: Text(
+                        role.label.toUpperCase(),
+                        style: TextStyle(
+                          color: isSelected
+                              ? const Color(0xFFF01D2C)
+                              : Colors.white,
+                          fontWeight: FontWeight.w900,
+                          fontSize: 11,
+                          letterSpacing: 0.5,
+                          decoration: TextDecoration.none,
+                        ),
                       ),
                     ),
-                  ),
-                );
-              }).toList(),
+                  );
+                }).toList(),
+              ),
             ),
           ),
         GestureDetector(
@@ -90,9 +93,9 @@ class _RoleSwitcherButtonState extends State<_RoleSwitcherButton> {
           child: Container(
             width: 40,
             height: 40,
-            decoration: const BoxDecoration(
+            decoration: const ShapeDecoration(
               color: Color(0xFF171717),
-              borderRadius: BorderRadius.zero,
+              shape: BeveledRectangleBorder(),
             ),
             child: const Icon(
               Icons.admin_panel_settings,

@@ -94,10 +94,10 @@ class _DistributorClientsScreenState extends State<DistributorClientsScreen> {
         style: const TextStyle(color: Colors.white),
         decoration: InputDecoration(
           hintText: 'ПОИСК ПО НАЗВАНИЮ, ИНН ИЛИ ГОРОДУ',
-          hintStyle: TextStyle(color: Colors.white.withOpacity(0.3), fontSize: 12, fontWeight: FontWeight.bold),
+          hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.3), fontSize: 12, fontWeight: FontWeight.bold),
           prefixIcon: const Icon(Icons.search, color: Color(0xFFF01D2C)),
           filled: true,
-          fillColor: Colors.white.withOpacity(0.05),
+          fillColor: Colors.white.withValues(alpha: 0.05),
           border: const OutlineInputBorder(borderSide: BorderSide.none),
           contentPadding: const EdgeInsets.symmetric(vertical: 0),
         ),
@@ -193,7 +193,7 @@ class ClientListCard extends StatelessWidget {
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-      decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(2)),
+      decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(2)),
       child: Text(label, style: TextStyle(color: color, fontSize: 8, fontWeight: FontWeight.w900)),
     );
   }

@@ -14,6 +14,19 @@ enum ColorRequestStatus { created, inProgress, ready, delivered }
 
 enum UserRole { client, distributor, manager, admin, courier, aiExpert }
 
+extension UserRoleExtension on UserRole {
+  String get label {
+    switch (this) {
+      case UserRole.client: return 'Автосервис';
+      case UserRole.distributor: return 'Дистрибьютор';
+      case UserRole.manager: return 'Менеджер';
+      case UserRole.admin: return 'Импортер';
+      case UserRole.courier: return 'Курьер';
+      case UserRole.aiExpert: return 'AI Эксперт';
+    }
+  }
+}
+
 class User {
   final String id;
   final String phone;
@@ -34,6 +47,7 @@ class User {
 
 class Client {
   final String id;
+  final String? externalId;
   final String inn;
   final String name;
   final ClientCategory category;
@@ -50,6 +64,7 @@ class Client {
 
   const Client({
     required this.id,
+    this.externalId,
     required this.inn,
     required this.name,
     required this.category,
@@ -90,6 +105,7 @@ class Client {
 
 class Distributor {
   final String id;
+  final String? externalId;
   final String name;
   final String inn;
   final List<String> regions;
@@ -99,6 +115,7 @@ class Distributor {
 
   const Distributor({
     required this.id,
+    this.externalId,
     required this.name,
     required this.inn,
     required this.regions,
@@ -108,10 +125,24 @@ class Distributor {
   });
 }
 
+class DistributorDashboardMetrics {
+  final int clients;
+  final int purchasesToVerify;
+  final int ordersToProcess;
+
+  const DistributorDashboardMetrics({
+    required this.clients,
+    required this.purchasesToVerify,
+    required this.ordersToProcess,
+  });
+}
+
 class Order {
   final String id;
+  final String? externalId;
   final String clientId;
-  final String clientName;
+  final String? clientName;
+  final String? clientInn;
   final String distributorId;
   final String storeName;
   final String documentNumber;
@@ -125,8 +156,10 @@ class Order {
 
   const Order({
     required this.id,
+    this.externalId,
     required this.clientId,
-    required this.clientName,
+    this.clientName,
+    this.clientInn,
     required this.distributorId,
     required this.storeName,
     required this.documentNumber,
@@ -143,7 +176,8 @@ class Order {
 class Purchase {
   final String id;
   final String clientId;
-  final String clientName;
+  final String? clientName;
+  final String? clientInn;
   final String distributorId;
   final String documentNumber;
   final DateTime date;
@@ -157,7 +191,8 @@ class Purchase {
   const Purchase({
     required this.id,
     required this.clientId,
-    required this.clientName,
+    this.clientName,
+    this.clientInn,
     required this.distributorId,
     required this.documentNumber,
     required this.date,
@@ -194,6 +229,7 @@ class PurchaseItem {
 
 class StockItem {
   final String id;
+  final String? externalId;
   final String distributorId;
   final String sku;
   final String name;
@@ -204,6 +240,7 @@ class StockItem {
 
   const StockItem({
     required this.id,
+    this.externalId,
     required this.distributorId,
     required this.sku,
     required this.name,
@@ -367,7 +404,10 @@ class ExpertTicket {
   final String clientId;
   final String question;
   final String category;
+  final String risk;
   final String? aiAnswer;
+  final String? aiDraftAnswer;
+  final List<String> similarCases;
   final String? expertAnswer;
   final TicketStatus status;
   final String? photo;
@@ -379,7 +419,10 @@ class ExpertTicket {
     required this.clientId,
     required this.question,
     required this.category,
+    this.risk = 'low',
     this.aiAnswer,
+    this.aiDraftAnswer,
+    this.similarCases = const [],
     this.expertAnswer,
     required this.status,
     this.photo,

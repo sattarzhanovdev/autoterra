@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../core/theme.dart';
 import '../../services/api_client.dart';
+import '../../widgets/common/app_logo.dart';
 
 class AiAssistantScreen extends StatefulWidget {
   const AiAssistantScreen({super.key});
@@ -81,37 +82,7 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Row(
-          children: [
-            Container(
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(
-                color: AppColors.accent.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Icon(
-                Icons.smart_toy_outlined,
-                color: Colors.white,
-                size: 18,
-              ),
-            ),
-            const SizedBox(width: 10),
-            const Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'AI-помощник',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                ),
-                Text(
-                  'AutoTerra Assistant',
-                  style: TextStyle(fontSize: 11, color: Colors.white70),
-                ),
-              ],
-            ),
-          ],
-        ),
+        title: const Text('AI-ПОМОЩНИК', style: TextStyle(fontWeight: FontWeight.w900)),
       ),
       body: Column(
         children: [
@@ -125,8 +96,9 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
                 padding: const EdgeInsets.all(16),
                 itemCount: _messages.length + (_isTyping ? 1 : 0),
                 itemBuilder: (context, i) {
-                  if (_isTyping && i == _messages.length)
+                  if (_isTyping && i == _messages.length) {
                     return _TypingBubble();
+                  }
                   return _MessageBubble(message: _messages[i]);
                 },
               ),
@@ -170,7 +142,7 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
-                          color: AppColors.primary.withOpacity(0.3),
+                          color: AppColors.primary.withValues(alpha: 0.3),
                         ),
                       ),
                       child: Text(
@@ -370,7 +342,7 @@ class _TypingBubble extends StatelessWidget {
       width: 8,
       height: 8,
       decoration: BoxDecoration(
-        color: AppColors.primary.withOpacity(0.6),
+        color: AppColors.primary.withValues(alpha: 0.6),
         shape: BoxShape.circle,
       ),
     );

@@ -36,16 +36,16 @@ void main() {
     await tester.pump(); // Ждем появления меню
 
     // 5. Выбираем роль курьера из списка (названия в апперкейсе)
-    final courierOption = find.text('COURIER');
+    final courierOption = find.text('КУРЬЕР');
     expect(courierOption, findsOneWidget);
     
     await tester.tap(courierOption);
     await tester.pumpAndSettle();
 
     // 6. Проверяем, что интерфейс сменился на курьерский
-    // На экране должен быть заголовок кабинета курьера и не должно быть таббара
-    expect(find.text('Кабинет курьера'), findsOneWidget);
-    expect(find.byType(BottomNavigationBar), findsNothing);
+    // На экране должен быть заголовок кабинета курьера
+    expect(find.text('ЛОГИСТИКА / КУРЬЕР'), findsOneWidget);
+    expect(find.byType(BottomNavigationBar), findsOneWidget);
 
     // 7. Проверяем, что состояние в AuthService обновилось
     expect(authService.currentRole, UserRole.courier);

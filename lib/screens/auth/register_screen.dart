@@ -21,7 +21,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _innCtrl = TextEditingController();
   final _nameCtrl = TextEditingController();
   String? _selectedRegionId;
-  String? _selectedCategory;
   List<Map<String, dynamic>> _regions = [];
 
   // Page 2 fields
@@ -130,6 +129,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           }
         }
         
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(finalMsg), 
@@ -139,6 +139,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         );
       }
     } catch (e) {
+      if (!mounted) return;
       setState(() => _loading = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(e.toString()), backgroundColor: AppColors.brandRed),
@@ -237,7 +238,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               height: 1,
               color: _currentPage >= 1
                   ? AppColors.brandRed
-                  : Colors.white.withOpacity(0.2),
+                  : Colors.white.withValues(alpha: 0.2),
             ),
           ),
           _stepItem(2, 'КОНТАКТЫ', _currentPage >= 1),
@@ -253,13 +254,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
           width: 32,
           height: 32,
           decoration: BoxDecoration(
-            color: active ? AppColors.brandRed : Colors.white.withOpacity(0.1),
+            color: active ? AppColors.brandRed : Colors.white.withValues(alpha: 0.1),
             borderRadius: BorderRadius.zero,
             border: Border.all(color: active ? AppColors.brandRed : Colors.white24),
           ),
           child: Center(
             child: Text(
-              '$n',
+              n.toString(),
               style: const TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.bold,
@@ -319,7 +320,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             ),
             const SizedBox(height: 16),
             DropdownButtonFormField<String>(
-              value: _selectedRegionId,
+              initialValue: _selectedRegionId,
               decoration: const InputDecoration(
                 labelText: 'РЕГИОН *',
                 border: OutlineInputBorder(borderRadius: BorderRadius.zero),

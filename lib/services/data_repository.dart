@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import '../models/models.dart';
 import 'api_client.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -78,6 +79,18 @@ class DashboardData {
   });
 }
 
+class DistributorDashboardData {
+  final DistributorDashboardMetrics metrics;
+  final List<Order> recentOrders;
+  final List<Purchase> pendingPurchases;
+
+  const DistributorDashboardData({
+    required this.metrics,
+    required this.recentOrders,
+    required this.pendingPurchases,
+  });
+}
+
 class DataRepository {
   final ApiClient _api;
 
@@ -94,17 +107,41 @@ class DataRepository {
     final data = await _api.dashboard();
     return DashboardData(
       client: _clientFromJson(data['client'] as Map<String, dynamic>),
-      distributor: _distributorFromJson(
+      distributor: distributorFromJson(
         data['distributor'] as Map<String, dynamic>,
       ),
-      unreadCount: (data['unreadCount'] as num).toInt(),
+      unreadCount: (data['unreadCount'] as num? ?? 0).toInt(),
       recentPurchases: _list(
-        data['recentPurchases'],
+        data['recentPurchases'] ?? [],
       ).map((item) => _purchaseFromJson(item)).toList(),
       activeColorRequests: _list(
-        data['activeColorRequests'],
+        data['activeColorRequests'] ?? [],
       ).map((item) => _colorRequestFromJson(item)).toList(),
       fromBackend: true,
+    );
+  }
+
+  Future<DistributorDashboardData> distributorDashboard() async {
+    final data = await _api.distributorDashboard();
+    final orders = await _api.distributorOrders();
+    final purchases = await _api.distributorPurchases(toVerify: true);
+
+    return DistributorDashboardData(
+      metrics: _distributorMetricsFromJson(
+        data['metrics'] ?? data,
+      ),
+      recentOrders: orders.map((item) => _orderFromJson(item)).toList(),
+      pendingPurchases: purchases.map((item) => _purchaseFromJson(item)).toList(),
+    );
+  }
+
+  static DistributorDashboardMetrics _distributorMetricsFromJson(
+    Map<String, dynamic> json,
+  ) {
+    return DistributorDashboardMetrics(
+      clients: (json['clients'] as num? ?? 0).toInt(),
+      purchasesToVerify: (json['purchasesToVerify'] as num? ?? 0).toInt(),
+      ordersToProcess: (json['ordersToProcess'] as num? ?? 0).toInt(),
     );
   }
 
@@ -112,7 +149,7 @@ class DataRepository {
     final data = await _api.orderConfig();
     return OrderConfigData(
       client: _clientFromJson(data['client'] as Map<String, dynamic>),
-      distributor: _distributorFromJson(
+      distributor: distributorFromJson(
         data['distributor'] as Map<String, dynamic>,
       ),
       stores: _list(data['stores']).map(_storeFromJson).toList(),
@@ -121,13 +158,25 @@ class DataRepository {
   }
 
   Future<List<Purchase>> purchases() async {
-    final items = await _api.purchases();
-    return items.map(_purchaseFromJson).toList();
+    final items = (ApiClient.role == 'distributor') 
+        ? await _api.distributorPurchases()
+        : await _api.purchases();
+    return compute(_parsePurchaseList, items);
+  }
+
+  static List<Purchase> _parsePurchaseList(List<dynamic> items) {
+    return items.map((i) => _purchaseFromJson(i as Map<String, dynamic>)).toList();
   }
 
   Future<List<Order>> orders() async {
-    final items = await _api.orders();
-    return items.map(_orderFromJson).toList();
+    final items = (ApiClient.role == 'distributor')
+        ? await _api.distributorOrders()
+        : await _api.orders();
+    return compute(_parseOrderList, items);
+  }
+
+  static List<Order> _parseOrderList(List<dynamic> items) {
+    return items.map((i) => _orderFromJson(i as Map<String, dynamic>)).toList();
   }
 
   Future<List<ColorRequest>> colorRequests() async {
@@ -135,8 +184,8 @@ class DataRepository {
     return items.map(_colorRequestFromJson).toList();
   }
 
-  Future<List<Purchase>> distributorPurchases() async {
-    final items = await _api.distributorPurchases();
+  Future<List<Purchase>> distributorPurchases({String? status, bool? toVerify}) async {
+    final items = await _api.distributorPurchases(status: status, toVerify: toVerify);
     return items.map(_purchaseFromJson).toList();
   }
 
@@ -154,9 +203,31 @@ class DataRepository {
     return _purchaseFromJson(result['purchase'] as Map<String, dynamic>);
   }
 
+  Future<Map<String, dynamic>> distributorIntegration() {
+    return _api.distributorIntegration();
+  }
+
+  Future<void> generateIntegrationToken() async {
+    await _api.generateIntegrationToken();
+  }
+
   Future<List<Order>> distributorOrders() async {
     final items = await _api.distributorOrders();
     return items.map(_orderFromJson).toList();
+  }
+
+  Future<List<ProductData>> distributorStock() async {
+    final items = await _api.distributorStock();
+    // Use compute for large lists to keep UI responsive
+    return compute(_parseProductList, items);
+  }
+
+  static List<ProductData> _parseProductList(List<dynamic> items) {
+    return items.map((i) => _productFromJson(i as Map<String, dynamic>)).toList();
+  }
+
+  Future<void> distributorStockUpload(List<Map<String, dynamic>> items) async {
+    await _api.distributorStockUpload(items);
   }
 
   Future<Order> updateOrderStatus(String id, {required String status, String? reason}) async {
@@ -207,6 +278,19 @@ class DataRepository {
     return _courierTaskFromJson(result['task'] as Map<String, dynamic>);
   }
 
+  Future<ExpertTicket> expertAnswerTicket(
+    String ticketId, {
+    required String answer,
+    bool createKnowledgeCard = false,
+  }) async {
+    final result = await _api.expertAnswerTicket(
+      ticketId,
+      answer: answer,
+      createKnowledgeCard: createKnowledgeCard,
+    );
+    return _ticketFromJson(result['ticket'] as Map<String, dynamic>);
+  }
+
   Future<Map<String, dynamic>> managerDashboard({String? regionId, String? distributorId}) {
     return _api.managerDashboard(regionId: regionId, distributorId: distributorId);
   }
@@ -235,6 +319,22 @@ class DataRepository {
     await _api.markNotificationsRead();
   }
 
+  Future<void> sendNotification({
+    required String userId,
+    required String title,
+    required String body,
+    String type = 'info',
+    String? relatedLink,
+  }) async {
+    await _api.sendNotification(
+      userId: userId,
+      title: title,
+      body: body,
+      type: type,
+      relatedLink: relatedLink,
+    );
+  }
+
   Future<List<Client>> managerClients() async {
     final items = await _api.managerClients();
     return items.map(_clientFromJson).toList();
@@ -244,13 +344,26 @@ class DataRepository {
     return _api.managerClientUnified(clientId);
   }
 
+  Future<Map<String, dynamic>> me() {
+    return _api.me();
+  }
+
   Future<List<KnowledgeCard>> knowledgeCards() async {
     final items = await _api.knowledgeCards();
     return items.map(_knowledgeCardFromJson).toList();
   }
 
+  Future<KnowledgeCard> updateKnowledgeCard(String id, {bool? isApproved, String? problem, String? solution}) async {
+    final result = await _api.updateKnowledgeCard(id, {
+      if (isApproved != null) 'status': isApproved ? 'approved' : 'draft',
+      if (problem != null) 'problem': problem,
+      if (solution != null) 'solution': solution,
+    });
+    return _knowledgeCardFromJson(result['card'] as Map<String, dynamic>);
+  }
+
   Future<void> createOrder({
-    required String storeId,
+    String? storeId,
     required List<Map<String, dynamic>> items,
     required String comment,
   }) async {
@@ -281,115 +394,140 @@ class DataRepository {
     return _api.createExpertTicket(data, fileBytes: fileBytes, fileName: fileName);
   }
 
+  Future<Map<String, dynamic>> test1CIntegration(List<dynamic> payload) {
+    return _api.test1CIntegration(payload);
+  }
+
   static List<Map<String, dynamic>> _list(Object? value) {
+    if (value == null) return [];
     return (value as List<dynamic>).cast<Map<String, dynamic>>();
+  }
+
+  static double _toDouble(dynamic value) {
+    if (value == null) return 0.0;
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value) ?? 0.0;
+    return 0.0;
+  }
+
+  static int _toInt(dynamic value) {
+    if (value == null) return 0;
+    if (value is num) return value.toInt();
+    if (value is String) return int.tryParse(value) ?? 0;
+    return 0;
+  }
+
+  static String? _toString(dynamic value) {
+    if (value == null || value.toString().isEmpty) return null;
+    return value.toString();
   }
 
   static Client _clientFromJson(Map<String, dynamic> json) {
     return Client(
-      id: json['id'] as String,
-      inn: json['inn'] as String,
-      name: json['name'] as String,
-      category: _clientCategory(json['category'] as String),
-      region: json['region'] as String,
-      city: json['city'] as String,
-      contact: json['contact'] as String,
-      phone: json['phone'] as String,
-      distributorId: json['distributorId'] as String,
-      managerId: json['managerId'] as String?,
-      status: _clientStatus(json['status'] as String),
-      partnerStatus: json['partnerStatus'] as String? ?? 'Silver',
-      totalPurchases: (json['totalPurchases'] as num).toDouble(),
-      createdAt: DateTime.parse(json['createdAt'] as String),
+      id: json['id'].toString(),
+      externalId: _toString(json['externalId']),
+      inn: json['inn'].toString(),
+      name: json['name']?.toString() ?? 'Без названия',
+      category: _clientCategory(json['category']?.toString() ?? 'b'),
+      region: json['region']?.toString() ?? '',
+      city: json['city']?.toString() ?? '',
+      contact: json['contact']?.toString() ?? '',
+      phone: json['phone']?.toString() ?? '',
+      distributorId: json['distributorId']?.toString() ?? '',
+      managerId: _toString(json['managerId']),
+      status: _clientStatus(json['status']?.toString() ?? 'active'),
+      partnerStatus: json['partnerStatus']?.toString() ?? 'Silver',
+      totalPurchases: _toDouble(json['totalPurchases']),
+      createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? '') ?? DateTime.now(),
     );
   }
 
-  static Distributor _distributorFromJson(Map<String, dynamic> json) {
+  static Distributor distributorFromJson(Map<String, dynamic> json) {
     return Distributor(
-      id: json['id'] as String,
-      name: json['name'] as String,
-      inn: json['inn'] as String,
-      regions: (json['regions'] as List<dynamic>).cast<String>(),
-      phone: json['phone'] as String,
-      email: json['email'] as String,
+      id: json['id'].toString(),
+      externalId: _toString(json['externalId']),
+      name: json['name']?.toString() ?? 'Неизвестно',
+      inn: json['inn']?.toString() ?? '',
+      regions: (json['regions'] as List<dynamic>?)?.cast<String>() ?? [],
+      phone: json['phone']?.toString() ?? '',
+      email: json['email']?.toString() ?? '',
       isActive: json['isActive'] as bool? ?? true,
     );
   }
 
   static StoreData _storeFromJson(Map<String, dynamic> json) {
     return StoreData(
-      id: json['id'] as String,
-      name: json['name'] as String,
-      address: json['address'] as String,
+      id: json['id'].toString(),
+      name: json['name']?.toString() ?? '',
+      address: json['address']?.toString() ?? '',
       isActive: json['isActive'] as bool? ?? true,
-      createdAt: DateTime.parse(json['createdAt'] as String),
+      createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? '') ?? DateTime.now(),
     );
   }
 
   static ProductData _productFromJson(Map<String, dynamic> json) {
     return ProductData(
-      id: json['id'] as String,
-      distributorId: json['distributorId'] as String,
-      sku: json['sku'] as String,
-      name: json['name'] as String,
-      category: json['category'] as String,
-      brand: json['brand'] as String,
-      volume: (json['volume'] as num).toDouble(),
-      price: (json['price'] as num).toDouble(),
-      quantity: (json['quantity'] as num).toInt(),
-      status: _stockStatus(json['status'] as String),
-      updatedAt: DateTime.parse(json['updatedAt'] as String),
+      id: json['id'].toString(),
+      distributorId: json['distributorId']?.toString() ?? '',
+      sku: json['sku']?.toString() ?? '',
+      name: json['name']?.toString() ?? '',
+      category: json['category']?.toString() ?? '',
+      brand: json['brand']?.toString() ?? '',
+      volume: _toDouble(json['volume']),
+      price: _toDouble(json['price']),
+      quantity: _toInt(json['quantity']),
+      status: _stockStatus(json['status']?.toString() ?? 'inStock'),
+      updatedAt: DateTime.tryParse(json['updatedAt']?.toString() ?? '') ?? DateTime.now(),
     );
   }
 
   static Order _orderFromJson(Map<String, dynamic> json) {
     return Order(
-      id: json['id'] as String,
-      clientId: json['clientId'] as String,
-      clientName: json['clientName'] as String? ?? 'Неизвестно',
-      distributorId: json['distributorId'] as String,
-      storeName: json['storeName'] as String? ?? '',
-      documentNumber: json['documentNumber'] as String,
-      date: DateTime.parse(json['date'] as String),
-      totalAmount: (json['totalAmount'] as num).toDouble(),
-      status: _orderStatus(json['status'] as String),
-      items: _list(
-        json['items'],
-      ).map((item) => _purchaseItemFromJson(item)).toList(),
-      comment: json['comment'] as String?,
-      rejectionReason: json['rejectionReason'] as String?,
-      createdAt: DateTime.parse(json['createdAt'] as String),
+      id: json['id'].toString(),
+      externalId: _toString(json['externalId']),
+      clientId: json['clientId']?.toString() ?? '',
+      clientName: _toString(json['clientName']),
+      clientInn: _toString(json['clientInn']),
+      distributorId: json['distributorId']?.toString() ?? '',
+      storeName: json['storeName']?.toString() ?? '',
+      documentNumber: json['documentNumber']?.toString() ?? '',
+      date: DateTime.tryParse(json['date']?.toString() ?? '') ?? DateTime.now(),
+      totalAmount: _toDouble(json['totalAmount']),
+      status: _orderStatus(json['status']?.toString() ?? 'new'),
+      items: _list(json['items']).map((item) => _purchaseItemFromJson(item)).toList(),
+      comment: _toString(json['comment']),
+      rejectionReason: _toString(json['rejectionReason']),
+      createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? '') ?? DateTime.now(),
     );
   }
 
   static Purchase _purchaseFromJson(Map<String, dynamic> json) {
     return Purchase(
-      id: json['id'] as String,
-      clientId: json['clientId'] as String,
-      clientName: json['clientName'] as String? ?? 'Неизвестно',
-      distributorId: json['distributorId'] as String,
-      documentNumber: json['documentNumber'] as String,
-      date: DateTime.parse(json['date'] as String),
-      totalAmount: (json['totalAmount'] as num).toDouble(),
-      status: _purchaseStatus(json['status'] as String),
-      orderStatus: json['orderStatus'] as String?,
-      items: _list(
-        json['items'],
-      ).map((item) => _purchaseItemFromJson(item)).toList(),
-      documentUrl: json['documentUrl'] as String?,
-      createdAt: DateTime.parse(json['createdAt'] as String),
+      id: json['id'].toString(),
+      clientId: json['clientId']?.toString() ?? '',
+      clientName: _toString(json['clientName']),
+      clientInn: _toString(json['clientInn']),
+      distributorId: json['distributorId']?.toString() ?? '',
+      documentNumber: json['documentNumber']?.toString() ?? '',
+      date: DateTime.tryParse(json['date']?.toString() ?? '') ?? DateTime.now(),
+      totalAmount: _toDouble(json['totalAmount']),
+      status: _purchaseStatus(json['status']?.toString() ?? 'pending'),
+      orderStatus: _toString(json['orderStatus']),
+      items: _list(json['items']).map((item) => _purchaseItemFromJson(item)).toList(),
+      documentUrl: _toString(json['documentUrl']),
+      createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? '') ?? DateTime.now(),
     );
   }
 
   static PurchaseItem _purchaseItemFromJson(Map<String, dynamic> json) {
     return PurchaseItem(
-      sku: json['sku'] as String,
-      name: json['name'] as String,
-      category: json['category'] as String,
-      quantity: (json['quantity'] as num).toInt(),
-      volume: (json['volume'] as num).toDouble(),
-      price: (json['price'] as num).toDouble(),
-      brand: json['brand'] as String,
+      sku: json['sku']?.toString() ?? '',
+      name: json['name']?.toString() ?? '',
+      category: json['category']?.toString() ?? '',
+      quantity: _toInt(json['quantity']),
+      volume: _toDouble(json['volume']),
+      price: _toDouble(json['price']),
+      brand: json['brand']?.toString() ?? '',
     );
   }
 
@@ -442,7 +580,10 @@ class DataRepository {
       clientId: json['clientId'] as String,
       question: json['question'] as String,
       category: json['category'] as String,
+      risk: json['risk'] as String? ?? 'low',
       aiAnswer: json['aiAnswer'] as String?,
+      aiDraftAnswer: json['aiDraftAnswer'] as String?,
+      similarCases: (json['similarCases'] as List<dynamic>?)?.cast<String>() ?? [],
       expertAnswer: json['expertAnswer'] as String?,
       status: _ticketStatus(json['status'] as String),
       photo: json['photo'] as String?,

@@ -10,14 +10,30 @@ import '../../widgets/common/premium_icon_badge.dart';
 import '../../widgets/common/status_badge.dart';
 import '../../widgets/common/section_header.dart';
 
-class HomeScreen extends StatefulWidget {
+import '../distributor/distributor_home_screen.dart';
+import '../../services/auth_service.dart';
+
+class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  Widget build(BuildContext context) {
+    final role = authService.currentRole;
+    if (role == UserRole.distributor) {
+      return const DistributorHomeScreen();
+    }
+    return const ClientHomeScreen();
+  }
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class ClientHomeScreen extends StatefulWidget {
+  const ClientHomeScreen({super.key});
+
+  @override
+  State<ClientHomeScreen> createState() => _ClientHomeScreenState();
+}
+
+class _ClientHomeScreenState extends State<ClientHomeScreen> {
   late Future<DashboardData> _future;
 
   @override
@@ -59,60 +75,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   flexibleSpace: FlexibleSpaceBar(
                     background: Container(
                       color: AppColors.brandBlack,
-                      padding: const EdgeInsets.fromLTRB(20, 48, 20, 12),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          Row(
-                            children: [
-                              const AppLogo(height: 34),
-                              const Spacer(),
-                              Stack(
-                                children: [
-                                  IconButton(
-                                    icon: const Icon(
-                                      Icons.notifications_outlined,
-                                      color: Colors.white,
-                                    ),
-                                    onPressed: () =>
-                                        context.push(AppRoutes.notifications),
-                                  ),
-                                  if (data.unreadCount > 0)
-                                    Positioned(
-                                      right: 8,
-                                      top: 8,
-                                      child: Container(
-                                        width: 16,
-                                        height: 16,
-                                        color: AppColors.brandRed,
-                                        child: Center(
-                                          child: Text(
-                                            '${data.unreadCount}',
-                                            style: const TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 9,
-                                              fontWeight: FontWeight.w700,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                ],
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            data.client.name,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: 0.2,
-                            ),
-                          ),
-                        ],
+                      padding: const EdgeInsets.fromLTRB(16, 48, 16, 12),
+                      child: const Center(
+                        child: AppLogo(height: 32),
                       ),
                     ),
                   ),
@@ -160,78 +125,71 @@ class _HomeScreenState extends State<HomeScreen> {
     NumberFormat fmt,
     BuildContext context,
   ) {
-    return Container(
-      decoration: const BoxDecoration(
-        color: AppColors.brandBlack,
-        border: Border(left: BorderSide(color: AppColors.brandRed, width: 3)),
+    return Card(
+      color: AppColors.brandBlack,
+      shape: const BeveledRectangleBorder(
+        borderRadius: BorderRadius.only(topRight: Radius.circular(20)),
+        side: BorderSide(color: AppColors.brandRed, width: 0.5),
       ),
-      child: Stack(
-        children: [
-          // Chamfer cut top-right
-          Positioned(
-            top: 0,
-            right: 0,
-            child: CustomPaint(
-              size: const Size(24, 24),
-              painter: _ChamferPainter(),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
+      child: Container(
+        decoration: const BoxDecoration(
+          border: Border(left: BorderSide(color: AppColors.brandRed, width: 3)),
+        ),
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            Row(
               children: [
-                Row(
-                  children: [
-                    CategoryBadge(category: client.categoryLabel),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            client.name,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w700,
-                              fontSize: 14,
-                            ),
-                          ),
-                          Text(
-                            'ИНН: ${client.inn}',
-                            style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.5),
-                              fontSize: 11,
-                            ),
-                          ),
-                        ],
+                CategoryBadge(category: client.categoryLabel),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        client.name.toUpperCase(),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w900,
+                          fontSize: 13,
+                          letterSpacing: 0.5,
+                        ),
                       ),
-                    ),
-                    StatusBadge.fromPartnerStatus(client.partnerStatus),
-                  ],
+                      Text(
+                        'ИНН: ${client.inn}',
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.5),
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-                const SizedBox(height: 14),
-                Container(
-                  height: 1,
-                  color: Colors.white.withValues(alpha: 0.1),
-                ),
-                const SizedBox(height: 14),
-                Row(
-                  children: [
-                    _statItem(
-                      'Закупки',
-                      '${fmt.format(client.totalPurchases)} ₽',
-                      AppColors.brandRed,
-                    ),
-                    _vertDivider(),
-                    _statItem('Регион', client.region, Colors.white),
-                    _vertDivider(),
-                    _statItem('Статус', 'Активный', AppColors.success),
-                  ],
-                ),
+                StatusBadge.fromPartnerStatus(client.partnerStatus),
               ],
             ),
-          ),
-        ],
+            const SizedBox(height: 14),
+            Container(
+              height: 1,
+              color: Colors.white.withValues(alpha: 0.1),
+            ),
+            const SizedBox(height: 14),
+            Row(
+              children: [
+                _statItem(
+                  'ЗАКУПКИ',
+                  '${fmt.format(client.totalPurchases)} ₽',
+                  AppColors.brandRed,
+                ),
+                _vertDivider(),
+                _statItem('РЕГИОН', client.region.toUpperCase(), Colors.white),
+                _vertDivider(),
+                _statItem('СТАТУС', 'АКТИВНЫЙ', AppColors.success),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -331,29 +289,23 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildActionTile(_QuickAction action) {
     return GestureDetector(
       onTap: action.onTap,
-      child: Container(
-        decoration: BoxDecoration(
-          color: AppColors.surfaceCard,
-          border: Border.all(color: AppColors.border),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
+      child: Card(
+        color: AppColors.surfaceCard,
+        shape: const BeveledRectangleBorder(
+          side: BorderSide(color: AppColors.border, width: 0.5),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            PremiumIconBadge(icon: action.icon, size: 38, iconSize: 19),
+            PremiumIconBadge(icon: action.icon, size: 36, iconSize: 18),
             const SizedBox(height: 6),
             Text(
-              action.label,
+              action.label.toUpperCase(),
               style: const TextStyle(
-                fontSize: 10.5,
-                fontWeight: FontWeight.w700,
+                fontSize: 9,
+                fontWeight: FontWeight.w900,
                 color: AppColors.textPrimary,
+                letterSpacing: 0.3,
               ),
               textAlign: TextAlign.center,
               maxLines: 2,
@@ -375,7 +327,7 @@ class _HomeScreenState extends State<HomeScreen> {
       children: [
         SectionHeader(
           title: 'ПОСЛЕДНИЕ ПОКУПКИ',
-          actionLabel: 'Все',
+          actionLabel: 'ВСЕ',
           onAction: () => context.push(AppRoutes.purchases),
         ),
         const SizedBox(height: 12),
@@ -393,7 +345,7 @@ class _HomeScreenState extends State<HomeScreen> {
       children: [
         SectionHeader(
           title: 'ЦЕНТР ЦВЕТА',
-          actionLabel: 'Все',
+          actionLabel: 'ВСЕ',
           onAction: () => context.push(AppRoutes.colorCenter),
         ),
         const SizedBox(height: 12),
@@ -410,58 +362,54 @@ class _HomeScreenState extends State<HomeScreen> {
         const SizedBox(height: 12),
         GestureDetector(
           onTap: () => context.push(AppRoutes.distributor),
-          child: Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: AppColors.surfaceCard,
-              border: Border.all(color: AppColors.border),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.04),
-                  blurRadius: 10,
-                  offset: const Offset(0, 3),
-                ),
-              ],
+          child: Card(
+            color: AppColors.surfaceCard,
+            shape: const BeveledRectangleBorder(
+              side: BorderSide(color: AppColors.border),
             ),
-            child: Row(
-              children: [
-                const PremiumIconBadge(
-                  icon: Icons.store,
-                  size: 44,
-                  iconSize: 22,
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        distributor.name,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w700,
-                          fontSize: 14,
-                        ),
-                      ),
-                      Text(
-                        distributor.regions.join(', '),
-                        style: const TextStyle(
-                          color: AppColors.textSecondary,
-                          fontSize: 12,
-                        ),
-                      ),
-                      Text(
-                        distributor.phone,
-                        style: const TextStyle(
-                          color: AppColors.brandRed,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  const PremiumIconBadge(
+                    icon: Icons.store,
+                    size: 40,
+                    iconSize: 20,
                   ),
-                ),
-                const Icon(Icons.chevron_right, color: AppColors.textSecondary),
-              ],
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          distributor.name.toUpperCase(),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w900,
+                            fontSize: 13,
+                          ),
+                        ),
+                        Text(
+                          distributor.regions.join(', ').toUpperCase(),
+                          style: const TextStyle(
+                            color: AppColors.textSecondary,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          distributor.phone,
+                          style: const TextStyle(
+                            color: AppColors.brandRed,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Icon(Icons.chevron_right, color: AppColors.textSecondary),
+                ],
+              ),
             ),
           ),
         ),
@@ -486,14 +434,14 @@ class _BackendError extends StatelessWidget {
             const Icon(Icons.cloud_off_outlined, size: 40),
             const SizedBox(height: 12),
             const Text(
-              'Нет данных из backend',
-              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
+              'ОШИБКА ПОДКЛЮЧЕНИЯ К СЕРВЕРУ',
+              style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14),
             ),
             const SizedBox(height: 8),
             Text(
               message,
               textAlign: TextAlign.center,
-              style: const TextStyle(color: AppColors.textSecondary),
+              style: const TextStyle(color: AppColors.textSecondary, fontSize: 11),
             ),
           ],
         ),
@@ -509,64 +457,60 @@ class _PurchaseListItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return Card(
       margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceCard,
-        border: Border.all(color: AppColors.border),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
+      color: AppColors.surfaceCard,
+      shape: const BeveledRectangleBorder(
+        side: BorderSide(color: AppColors.border, width: 0.5),
       ),
-      child: Row(
-        children: [
-          const PremiumIconBadge(
-            icon: Icons.receipt_outlined,
-            size: 42,
-            iconSize: 20,
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Row(
+          children: [
+            const PremiumIconBadge(
+              icon: Icons.receipt_outlined,
+              size: 40,
+              iconSize: 20,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    purchase.documentNumber.toUpperCase(),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w900,
+                      fontSize: 12,
+                    ),
+                  ),
+                  Text(
+                    DateFormat('dd.MM.yyyy', 'ru_RU').format(purchase.date),
+                    style: const TextStyle(
+                      color: AppColors.textSecondary,
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Text(
-                  purchase.documentNumber,
+                  '${fmt.format(purchase.totalAmount)} ₽',
                   style: const TextStyle(
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w900,
                     fontSize: 13,
                   ),
                 ),
-                Text(
-                  DateFormat('dd.MM.yyyy', 'ru_RU').format(purchase.date),
-                  style: const TextStyle(
-                    color: AppColors.textSecondary,
-                    fontSize: 11,
-                  ),
-                ),
+                const SizedBox(height: 4),
+                StatusBadge.fromPurchaseStatus(purchase.status),
               ],
             ),
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                '${fmt.format(purchase.totalAmount)} ₽',
-                style: const TextStyle(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 13,
-                ),
-              ),
-              const SizedBox(height: 4),
-              StatusBadge.fromPurchaseStatus(purchase.status),
-            ],
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -578,64 +522,60 @@ class _ColorRequestItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return Card(
       margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceCard,
-        border: Border.all(color: AppColors.border),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
+      color: AppColors.surfaceCard,
+      shape: const BeveledRectangleBorder(
+        side: BorderSide(color: AppColors.border, width: 0.5),
       ),
-      child: Row(
-        children: [
-          const PremiumIconBadge(
-            icon: Icons.palette_outlined,
-            size: 42,
-            iconSize: 20,
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Row(
+          children: [
+            const PremiumIconBadge(
+              icon: Icons.palette_outlined,
+              size: 40,
+              iconSize: 20,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '${request.carBrand} ${request.carModel}'.toUpperCase(),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w900,
+                      fontSize: 12,
+                    ),
+                  ),
+                  Text(
+                    '${request.colorCode} · ${request.colorName}'.toUpperCase(),
+                    style: const TextStyle(
+                      color: AppColors.textSecondary,
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                Text(
-                  '${request.carBrand} ${request.carModel}',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 13,
+                StatusBadge.fromColorStatus(request.status),
+                if (request.urgent) ...[
+                  const SizedBox(height: 4),
+                  const StatusBadge(
+                    label: 'СРОЧНО',
+                    color: AppColors.brandRed,
+                    filled: true,
                   ),
-                ),
-                Text(
-                  '${request.colorCode} · ${request.colorName}',
-                  style: const TextStyle(
-                    color: AppColors.textSecondary,
-                    fontSize: 11,
-                  ),
-                ),
+                ],
               ],
             ),
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              StatusBadge.fromColorStatus(request.status),
-              if (request.urgent) ...[
-                const SizedBox(height: 4),
-                const StatusBadge(
-                  label: 'СРОЧНО',
-                  color: AppColors.brandRed,
-                  filled: true,
-                ),
-              ],
-            ],
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -646,20 +586,4 @@ class _QuickAction {
   final String label;
   final VoidCallback onTap;
   const _QuickAction(this.icon, this.label, this.onTap);
-}
-
-class _ChamferPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()..color = AppColors.brandWhite;
-    final path = Path()
-      ..moveTo(0, 0)
-      ..lineTo(size.width, size.height)
-      ..lineTo(size.width, 0)
-      ..close();
-    canvas.drawPath(path, paint);
-  }
-
-  @override
-  bool shouldRepaint(_) => false;
 }

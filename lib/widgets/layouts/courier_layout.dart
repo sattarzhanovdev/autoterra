@@ -1,9 +1,11 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import '../../core/theme.dart';
 import '../../models/models.dart';
 import '../../services/data_repository.dart';
+import '../../widgets/common/app_logo.dart';
+
+import '../../screens/profile/profile_screen.dart';
 
 class CourierLayout extends StatefulWidget {
   final Widget? child;
@@ -56,7 +58,7 @@ class _CourierLayoutState extends State<CourierLayout> {
         isLoading: _isLoading,
         onRefresh: _fetchTasks,
       ),
-      const _CourierPlaceholderScreen(title: 'ПРОФИЛЬ', icon: CupertinoIcons.person_fill),
+      const ProfileScreen(),
     ];
 
     return Scaffold(
@@ -115,7 +117,7 @@ class CourierTasksScreen extends StatelessWidget {
         backgroundColor: const Color(0xFFF5F5F5),
         appBar: AppBar(
           backgroundColor: const Color(0xFF171717),
-          title: const Text('ЛОГИСТИКА / КУРЬЕР', style: TextStyle(letterSpacing: 1.5, fontWeight: FontWeight.w900)),
+          title: const AppLogo(height: 24),
           actions: [
             IconButton(onPressed: onRefresh, icon: const Icon(Icons.refresh, color: Colors.white)),
           ],
@@ -231,7 +233,7 @@ class _CourierTaskCardState extends State<CourierTaskCard> {
         ),
         shadows: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 10,
             offset: const Offset(4, 4),
           )
@@ -331,7 +333,7 @@ class _CourierRouteScreen extends StatelessWidget {
       backgroundColor: const Color(0xFFF5F5F5),
       appBar: AppBar(
         backgroundColor: const Color(0xFF171717),
-        title: const Text('ТЕКУЩИЙ МАРШРУТ', style: TextStyle(letterSpacing: 2, fontWeight: FontWeight.w900)),
+        title: const AppLogo(height: 24),
         actions: [
           IconButton(onPressed: onRefresh, icon: const Icon(Icons.refresh, color: Colors.white)),
         ],
@@ -363,36 +365,6 @@ class _CourierRouteScreen extends StatelessWidget {
                 );
               },
             ),
-    );
-  }
-}
-
-class _CourierPlaceholderScreen extends StatelessWidget {
-  final String title;
-  final IconData icon;
-  const _CourierPlaceholderScreen({required this.title, required this.icon});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF171717),
-        title: Text(title, style: const TextStyle(letterSpacing: 2, fontWeight: FontWeight.w900)),
-      ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 80, color: const Color(0xFF171717).withOpacity(0.1)),
-            const SizedBox(height: 16),
-            Text(
-              'РАЗДЕЛ $title В РАЗРАБОТКЕ',
-              style: const TextStyle(color: Color(0xFF171717), fontWeight: FontWeight.w900, letterSpacing: 1),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

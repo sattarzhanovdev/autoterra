@@ -110,11 +110,13 @@ class _OrderScreenState extends State<OrderScreen> {
   }
 
   Future<void> _submit(OrderConfigData data) async {
-    if (_selectedStoreId == null || _totalQty == 0) return;
+    if (_totalQty == 0) return;
+    if (data.stores.isNotEmpty && _selectedStoreId == null) return;
+
     setState(() => _sending = true);
     try {
       await _repo.createOrder(
-        storeId: _selectedStoreId!,
+        storeId: _selectedStoreId,
         comment: _commentCtrl.text,
         items: _qty.entries
             .map((entry) => {'productId': entry.key, 'quantity': entry.value})
@@ -318,7 +320,7 @@ class _OrderScreenState extends State<OrderScreen> {
   }
 
   Widget _requestForm(OrderConfigData data) {
-    final disabled = _sending || _totalQty == 0 || _selectedStoreId == null;
+    final disabled = _sending || _totalQty == 0 || (data.stores.isNotEmpty && _selectedStoreId == null);
     final store = _selectedStore(data.stores);
     return Card(
       child: Padding(

@@ -218,18 +218,18 @@ class _NotifCard extends StatelessWidget {
   _NotifConfig _getConfig(dynamic type) {
     switch (type.toString()) {
       case 'NotificationType.color':
-        return _NotifConfig(Icons.palette_outlined, const Color(0xFF8B5CF6));
+        return _NotifConfig(Icons.palette_outlined, AppColors.brandBlack);
       case 'NotificationType.referral':
-        return _NotifConfig(Icons.people_outline, AppColors.success);
+        return _NotifConfig(Icons.people_outline, AppColors.brandBlack);
       case 'NotificationType.order':
-        return _NotifConfig(Icons.receipt_outlined, AppColors.primary);
+        return _NotifConfig(Icons.receipt_outlined, AppColors.brandBlack);
       case 'NotificationType.delivery':
         return _NotifConfig(
           Icons.local_shipping_outlined,
-          const Color(0xFFF59E0B),
+          AppColors.brandRed,
         );
       case 'NotificationType.ai':
-        return _NotifConfig(Icons.smart_toy_outlined, AppColors.accent);
+        return _NotifConfig(Icons.smart_toy_outlined, AppColors.brandRed);
       default:
         return _NotifConfig(Icons.notifications_outlined, AppColors.info);
     }

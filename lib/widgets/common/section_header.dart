@@ -19,23 +19,24 @@ class SectionHeader extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(
-          title,
+          title.toUpperCase(),
           style: const TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w800,
+            fontSize: 11,
+            fontWeight: FontWeight.w900,
             color: AppColors.textSecondary,
-            letterSpacing: 1.0,
+            letterSpacing: 1.2,
           ),
         ),
         if (actionLabel != null)
           GestureDetector(
             onTap: onAction,
             child: Text(
-              actionLabel!,
+              actionLabel!.toUpperCase(),
               style: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
+                fontSize: 11,
+                fontWeight: FontWeight.w900,
                 color: AppColors.brandRed,
+                letterSpacing: 0.5,
               ),
             ),
           ),
@@ -60,15 +61,24 @@ class InfoRow extends StatelessWidget {
         children: [
           SizedBox(
             width: 130,
-            child: Text(label, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary, letterSpacing: 0.2)),
+            child: Text(
+              label.toUpperCase(), 
+              style: const TextStyle(
+                fontSize: 10, 
+                color: AppColors.textSecondary, 
+                letterSpacing: 0.5,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
           Expanded(
             child: Text(
               value,
               style: TextStyle(
                 fontSize: 13,
-                fontWeight: FontWeight.w600,
+                fontWeight: FontWeight.w800,
                 color: valueColor ?? AppColors.textPrimary,
+                letterSpacing: 0.2,
               ),
             ),
           ),
@@ -98,18 +108,13 @@ class AppCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
-      child: Container(
+      child: Card(
         margin: const EdgeInsets.only(bottom: 8),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          border: Border(
-            left: BorderSide(
-              color: redAccent ? AppColors.brandRed : (borderColor ?? AppColors.border),
-              width: redAccent ? 3 : 1,
-            ),
-            top: BorderSide(color: borderColor ?? AppColors.border),
-            right: BorderSide(color: borderColor ?? AppColors.border),
-            bottom: BorderSide(color: borderColor ?? AppColors.border),
+        color: Colors.white,
+        shape: BeveledRectangleBorder(
+          side: BorderSide(
+            color: redAccent ? AppColors.brandRed : (borderColor ?? AppColors.border),
+            width: redAccent ? 2 : 0.5,
           ),
         ),
         child: Padding(

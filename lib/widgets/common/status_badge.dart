@@ -18,17 +18,19 @@ class StatusBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
+      decoration: ShapeDecoration(
         color: filled ? color : color.withValues(alpha: 0.10),
-        border: Border.all(color: filled ? color : color.withValues(alpha: 0.30)),
+        shape: BeveledRectangleBorder(
+          side: BorderSide(color: filled ? color : color.withValues(alpha: 0.30)),
+        ),
       ),
       child: Text(
-        label,
+        label.toUpperCase(),
         style: TextStyle(
           color: filled ? Colors.white : color,
-          fontSize: 10,
-          fontWeight: FontWeight.w700,
-          letterSpacing: 0.3,
+          fontSize: 8.5,
+          fontWeight: FontWeight.w900,
+          letterSpacing: 0.8,
         ),
       ),
     );
@@ -101,11 +103,11 @@ class StatusBadge extends StatelessWidget {
       case CourierTaskStatus.created:
         return const StatusBadge(label: 'СОЗДАНА', color: AppColors.info);
       case CourierTaskStatus.assigned:
-        return const StatusBadge(label: 'КУРЬЕР НАЗНАЧЕН', color: AppColors.warning);
+        return const StatusBadge(label: 'КУРЬЕР НАЗНАЧЕН', color: AppColors.brandBlack);
       case CourierTaskStatus.inProgress:
         return const StatusBadge(label: 'В ПУТИ', color: AppColors.brandRed);
       case CourierTaskStatus.delivered:
-        return const StatusBadge(label: 'ДОСТАВЛЕНО', color: AppColors.success, filled: true);
+        return const StatusBadge(label: 'ДОСТАВЛЕНО', color: AppColors.brandBlack, filled: true);
       case CourierTaskStatus.returned:
         return const StatusBadge(label: 'ВОЗВРАЩЕНО', color: AppColors.textSecondary);
       case CourierTaskStatus.cancelled:
@@ -117,16 +119,16 @@ class StatusBadge extends StatelessWidget {
     Color color;
     switch (status) {
       case 'Gold':
-        color = const Color(0xFFD4920A);
+        color = AppColors.brandRed;
         break;
       case 'Platinum':
-        color = const Color(0xFF5A5A5A);
+        color = AppColors.brandBlack;
         break;
       case 'Certified Partner':
         color = AppColors.brandBlack;
         break;
       default:
-        color = const Color(0xFF9A9A9A);
+        color = AppColors.textHint;
     }
     return StatusBadge(label: status, color: color, filled: true);
   }
@@ -151,16 +153,20 @@ class CategoryBadge extends StatelessWidget {
         color = AppColors.categoryC;
     }
     return Container(
-      width: 28,
-      height: 28,
-      decoration: BoxDecoration(
+      width: 24,
+      height: 24,
+      decoration: ShapeDecoration(
         color: color,
-        borderRadius: BorderRadius.circular(6),
+        shape: const BeveledRectangleBorder(),
       ),
       child: Center(
         child: Text(
           category,
-          style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w700),
+          style: const TextStyle(
+            color: Colors.white, 
+            fontSize: 11, 
+            fontWeight: FontWeight.w900,
+          ),
         ),
       ),
     );

@@ -8,6 +8,11 @@ import 'package:http/testing.dart';
 
 void main() {
   testWidgets('AddPurchaseScreen shows Alert dialog on duplicate_detected error', (WidgetTester tester) async {
+    // Устанавливаем большой размер экрана, чтобы все было на виду без скролла
+    tester.view.physicalSize = const Size(1200, 1200);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+
     // 1. Создаем MockClient, который возвращает 400 Bad Request с ошибкой дубликата
     final mockClient = MockClient((request) async {
       return http.Response(
@@ -44,9 +49,8 @@ void main() {
 
     await tester.enterText(find.byType(TextFormField).at(1), '15000'); // Сумма
 
-    // 4. Нажимаем кнопку отправки (нужно проскроллить)
+    // 4. Нажимаем кнопку отправки
     final submitButton = find.text('ОТПРАВИТЬ НА ПРОВЕРКУ');
-    await tester.ensureVisible(submitButton);
     await tester.tap(submitButton);
     await tester.pump(); // Начинаем загрузку
     await tester.pumpAndSettle(); // Ждем завершения запроса и анимаций диалога

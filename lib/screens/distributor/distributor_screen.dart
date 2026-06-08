@@ -150,7 +150,7 @@ class _DistributorScreenState extends State<DistributorScreen> {
                     vertical: 4,
                   ),
                   decoration: BoxDecoration(
-                    color: AppColors.success.withOpacity(0.1),
+                    color: AppColors.success.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: const Text(
@@ -199,7 +199,7 @@ class _DistributorScreenState extends State<DistributorScreen> {
           child: _ActionButton(
             icon: Icons.chat_outlined,
             label: 'WhatsApp',
-            color: const Color(0xFF25D366),
+            color: AppColors.brandBlack,
             onTap: () {},
           ),
         ),
@@ -236,9 +236,9 @@ class _ActionButton extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 14),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.08),
+          color: color.withValues(alpha: 0.08),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: color.withOpacity(0.3)),
+          border: Border.all(color: color.withValues(alpha: 0.3)),
         ),
         child: Column(
           children: [

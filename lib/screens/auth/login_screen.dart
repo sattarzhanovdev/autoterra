@@ -138,16 +138,16 @@ class _LoginScreenState extends State<LoginScreen> {
                         const SizedBox(height: 24),
                         TextFormField(
                           controller: _phoneCtrl,
-                          keyboardType: TextInputType.phone,
+                          keyboardType: TextInputType.text,
                           decoration: const InputDecoration(
-                            labelText: 'Телефон',
+                            labelText: 'Телефон или Логин',
                             prefixIcon: Icon(
-                              Icons.phone_outlined,
+                              Icons.person_outline,
                               color: AppColors.brandBlack,
                             ),
                           ),
                           validator: (v) =>
-                              v!.isEmpty ? 'Введите телефон' : null,
+                              v!.isEmpty ? 'Введите телефон или логин' : null,
                         ),
                         const SizedBox(height: 14),
                         TextFormField(

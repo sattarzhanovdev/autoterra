@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import '../../core/theme.dart';
 import '../../services/data_repository.dart';
+import '../../widgets/common/app_logo.dart';
 
 class AdminIntegrationScreen extends StatefulWidget {
   const AdminIntegrationScreen({super.key});

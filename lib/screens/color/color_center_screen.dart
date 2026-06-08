@@ -1,10 +1,11 @@
+import 'dart:io';
+import 'dart:typed_data';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:image_picker/image_picker.dart';
-import 'dart:io';
 import '../../core/theme.dart';
 import '../../models/models.dart';
-import '../../services/api_client.dart';
 import '../../services/data_repository.dart';
 import '../../widgets/common/status_badge.dart';
 import '../../widgets/common/section_header.dart';
@@ -54,6 +55,10 @@ class _ColorCenterScreenState extends State<ColorCenterScreen>
         title: const Text('ПОДБОР ЦВЕТА'),
         bottom: TabBar(
           controller: _tabCtrl,
+          labelColor: AppColors.brandRed,
+          unselectedLabelColor: Colors.white,
+          indicatorColor: AppColors.brandRed,
+          indicatorWeight: 3,
           tabs: const [
             Tab(text: 'ЗАЯВКИ'),
             Tab(text: 'ИСТОРИЯ'),
@@ -107,7 +112,7 @@ class _ColorCenterScreenState extends State<ColorCenterScreen>
             physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.all(16),
             itemCount: requests.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 12),
+            separatorBuilder: (_, _) => const SizedBox(height: 12),
             itemBuilder: (context, i) => _ColorCard(
               request: requests[i],
               onTap: () => _showRecipe(requests[i]),
@@ -147,7 +152,7 @@ class _ColorCenterScreenState extends State<ColorCenterScreen>
             physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.all(16),
             itemCount: requests.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 12),
+            separatorBuilder: (_, _) => const SizedBox(height: 12),
             itemBuilder: (context, i) {
               final r = requests[i];
               return Container(
@@ -213,7 +218,9 @@ class _ColorCenterScreenState extends State<ColorCenterScreen>
   }
 
   void _showRecipe(ColorRequest request) {
-    if (request.recipe == null) return;
+    if (request.recipe == null) {
+      return;
+    }
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -375,19 +382,30 @@ class _NewColorRequestSheetState extends State<_NewColorRequestSheet> {
   String _transferMethod = 'courier';
   DateTime? _pickupTime;
   XFile? _photo;
-  bool _urgent = false;
+  Uint8List? _webBytes;
+  final bool _urgent = false;
   bool _saving = false;
 
   Future<void> _pickImage() async {
     final picker = ImagePicker();
     final img = await picker.pickImage(source: ImageSource.camera);
-    if (img != null) setState(() => _photo = img);
+    if (img != null) {
+      if (kIsWeb) {
+        final bytes = await img.readAsBytes();
+        setState(() {
+          _photo = img;
+          _webBytes = bytes;
+        });
+      } else {
+        setState(() => _photo = img);
+      }
+    }
   }
 
   Future<void> _submit() async {
     setState(() => _saving = true);
     try {
-      final bytes = _photo != null ? await _photo!.readAsBytes() : null;
+      final bytes = _webBytes ?? (_photo != null ? await _photo!.readAsBytes() : null);
       await DataRepository().createColorRequest({
         'carBrand': _brandCtrl.text,
         'carModel': _modelCtrl.text,
@@ -459,7 +477,9 @@ class _NewColorRequestSheetState extends State<_NewColorRequestSheet> {
                     decoration: BoxDecoration(color: AppColors.canvas, border: Border.all(color: AppColors.border)),
                     child: _photo == null 
                       ? const Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.add_a_photo, color: AppColors.brandRed), Text('ДОБАВИТЬ ФОТО', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold))])
-                      : Image.file(File(_photo!.path), fit: BoxFit.cover),
+                      : kIsWeb
+                        ? Image.memory(_webBytes!, fit: BoxFit.cover)
+                        : Image.file(File(_photo!.path), fit: BoxFit.cover),
                   ),
                 ),
                 const SizedBox(height: 24),

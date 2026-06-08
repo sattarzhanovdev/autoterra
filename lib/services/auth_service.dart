@@ -5,7 +5,9 @@ import 'api_client.dart';
 class AuthService extends ChangeNotifier {
   static final AuthService _instance = AuthService._internal();
   factory AuthService() => _instance;
-  AuthService._internal();
+  AuthService._internal() {
+    _currentRole = _parseRole(ApiClient.role);
+  }
 
   UserRole _currentRole = UserRole.client;
   UserRole get currentRole => _currentRole;
@@ -20,24 +22,26 @@ class AuthService extends ChangeNotifier {
   
   void updateFromBackendUser(Map<String, dynamic> userJson) {
     _currentUserData = userJson;
-    final roleString = userJson['role'] as String?;
-    
+    _currentRole = _parseRole(userJson['role'] as String?);
+    notifyListeners();
+  }
+
+  UserRole _parseRole(String? roleString) {
     switch (roleString) {
       case 'distributor':
-        _currentRole = UserRole.distributor;
-        break;
+        return UserRole.distributor;
       case 'courier':
-        _currentRole = UserRole.courier;
-        break;
+        return UserRole.courier;
       case 'expert':
-        _currentRole = UserRole.aiExpert;
-        break;
+        return UserRole.aiExpert;
+      case 'manager':
+        return UserRole.manager;
+      case 'admin':
+        return UserRole.admin;
       case 'autoservice':
       default:
-        _currentRole = UserRole.client;
-        break;
+        return UserRole.client;
     }
-    notifyListeners();
   }
 
   Future<void> logout() async {

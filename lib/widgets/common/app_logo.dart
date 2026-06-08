@@ -2,14 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 class AppLogo extends StatelessWidget {
-  final double width;
+  final double? width;
   final double height;
   final bool showText;
   final bool darkMode;
 
   const AppLogo({
     super.key,
-    this.width = 140,
+    this.width,
     this.height = 40,
     this.showText = true,
     this.darkMode = true,
@@ -17,20 +17,24 @@ class AppLogo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (showText) {
-      return SvgPicture.asset(
-        'assets/logo.svg',
-        width: width,
-        height: height,
-        fit: BoxFit.contain,
-      );
-    }
+    // Safe zone is approx 1/4 of height according to geometry logic
+    final safeZone = height * 0.25;
 
-    return SvgPicture.asset(
-      'assets/icon.svg',
-      width: height * 1.1,
-      height: height,
-      fit: BoxFit.contain,
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: safeZone),
+      child: showText
+          ? SvgPicture.asset(
+              'assets/logo.svg',
+              height: height,
+              width: width, // Allow auto-scale if null
+              fit: BoxFit.contain,
+            )
+          : SvgPicture.asset(
+              'assets/icon.svg',
+              height: height,
+              width: width,
+              fit: BoxFit.contain,
+            ),
     );
   }
 }
@@ -42,11 +46,15 @@ class AppLogoSmall extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SvgPicture.asset(
-      'assets/icon.svg',
-      width: size * 1.1,
-      height: size,
-      fit: BoxFit.contain,
+    final safeZone = size * 0.2;
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: safeZone),
+      child: SvgPicture.asset(
+        'assets/icon.svg',
+        width: size * 1.1,
+        height: size,
+        fit: BoxFit.contain,
+      ),
     );
   }
 }

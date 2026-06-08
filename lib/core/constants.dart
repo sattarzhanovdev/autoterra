@@ -42,4 +42,7 @@ class AppRoutes {
   static const admin = '/admin';
   static const notifications = '/notifications';
   static const distributor = '/distributor';
+  static const distributorClients = '/distributor/clients';
+  static const distributorStock = '/distributor/stock';
+  static const distributorIntegration = '/distributor/integration';
 }

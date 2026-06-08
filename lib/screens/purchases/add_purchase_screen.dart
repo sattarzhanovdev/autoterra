@@ -77,7 +77,7 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
         }).toList(),
       };
 
-      await DataRepository().createPurchase(
+      await DataRepository(api: _api).createPurchase(
         purchaseData,
         fileBytes: _pickedFile?.bytes,
         fileName: _pickedFile?.name,
