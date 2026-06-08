@@ -58,6 +58,18 @@ class ApiClient {
     return result;
   }
 
+  Future<Map<String, dynamic>> resetPassword({
+    required String phone,
+    required String inn,
+    required String newPassword,
+  }) {
+    return _post('/auth/password-reset/', {
+      'phone': phone,
+      'inn': inn,
+      'new_password': newPassword,
+    });
+  }
+
   Future<Map<String, dynamic>> dashboard() {
     return _get('/dashboard/');
   }

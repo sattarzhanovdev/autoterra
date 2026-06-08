@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/theme.dart';
 import '../../core/constants.dart';
-import '../../widgets/common/app_logo.dart';
 import '../../services/api_client.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -102,11 +101,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
       }
     } on ApiException catch (e) {
       setState(() => _loading = false);
-      
+
       final details = e.details;
       String? code;
       String? backendMsg;
-      
+
       if (details is Map) {
         code = details['code']?.toString();
         backendMsg = details['detail']?.toString();
@@ -117,9 +116,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
           _innError = backendMsg ?? e.message;
           _currentPage = 0;
           _pageCtrl.animateToPage(
-            0, 
-            duration: const Duration(milliseconds: 500), 
-            curve: Curves.easeOut
+            0,
+            duration: const Duration(milliseconds: 500),
+            curve: Curves.easeOut,
           );
         });
       } else {
@@ -131,11 +130,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
             finalMsg = errs.values.first.toString();
           }
         }
-        
+
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(finalMsg), 
+            content: Text(finalMsg),
             backgroundColor: AppColors.brandRed,
             duration: const Duration(seconds: 4),
           ),
@@ -145,7 +144,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
       if (!mounted) return;
       setState(() => _loading = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString()), backgroundColor: AppColors.brandRed),
+        SnackBar(
+          content: Text(e.toString()),
+          backgroundColor: AppColors.brandRed,
+        ),
       );
     }
   }
@@ -159,13 +161,21 @@ class _RegisterScreenState extends State<RegisterScreen> {
         shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
         title: const Text(
           'РЕГИСТРАЦИЯ',
-          style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+          ),
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Icon(Icons.check_circle_outline, color: AppColors.brandRed, size: 48),
+            const Icon(
+              Icons.check_circle_outline,
+              color: AppColors.brandRed,
+              size: 48,
+            ),
             const SizedBox(height: 16),
             Text(
               requiresApproval
@@ -186,7 +196,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
             style: TextButton.styleFrom(
               backgroundColor: AppColors.brandRed,
               foregroundColor: Colors.white,
-              shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+              shape: const RoundedRectangleBorder(
+                borderRadius: BorderRadius.zero,
+              ),
             ),
             child: const Text('ВОЙТИ'),
           ),
@@ -200,7 +212,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     return Scaffold(
       backgroundColor: AppColors.canvas,
       appBar: AppBar(
-        title: const AppLogo(width: 92, height: 22),
+        title: const Text('РЕГИСТРАЦИЯ'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => _currentPage == 0
@@ -257,9 +269,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
           width: 32,
           height: 32,
           decoration: BoxDecoration(
-            color: active ? AppColors.brandRed : Colors.white.withValues(alpha: 0.1),
+            color: active
+                ? AppColors.brandRed
+                : Colors.white.withValues(alpha: 0.1),
             borderRadius: BorderRadius.zero,
-            border: Border.all(color: active ? AppColors.brandRed : Colors.white24),
+            border: Border.all(
+              color: active ? AppColors.brandRed : Colors.white24,
+            ),
           ),
           child: Center(
             child: Text(
@@ -295,7 +311,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
           children: [
             const Text(
               'ДАННЫЕ АВТОСЕРВИСА',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, letterSpacing: 1),
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1,
+              ),
             ),
             const SizedBox(height: 24),
             TextFormField(
@@ -304,7 +324,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
               decoration: InputDecoration(
                 labelText: 'ИНН ОРГАНИЗАЦИИ *',
                 errorText: _innError,
-                border: const OutlineInputBorder(borderRadius: BorderRadius.zero),
+                border: const OutlineInputBorder(
+                  borderRadius: BorderRadius.zero,
+                ),
               ),
               validator: (v) {
                 if (v!.isEmpty) return 'Введите ИНН';
@@ -339,7 +361,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 border: OutlineInputBorder(borderRadius: BorderRadius.zero),
               ),
               items: _regions
-                  .map((r) => DropdownMenuItem(value: r['id'].toString(), child: Text(r['name'])))
+                  .map(
+                    (r) => DropdownMenuItem(
+                      value: r['id'].toString(),
+                      child: Text(r['name']),
+                    ),
+                  )
                   .toList(),
               onChanged: (v) => setState(() => _selectedRegionId = v),
             ),
@@ -350,7 +377,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 onPressed: _nextPage,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.brandBlack,
-                  shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+                  shape: const RoundedRectangleBorder(
+                    borderRadius: BorderRadius.zero,
+                  ),
                 ),
                 child: const Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -378,7 +407,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
           children: [
             const Text(
               'КОНТАКТЫ',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, letterSpacing: 1),
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1,
+              ),
             ),
             const SizedBox(height: 24),
             TextFormField(
@@ -405,9 +438,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
               obscureText: _obscure,
               decoration: InputDecoration(
                 labelText: 'ПАРОЛЬ *',
-                border: const OutlineInputBorder(borderRadius: BorderRadius.zero),
+                border: const OutlineInputBorder(
+                  borderRadius: BorderRadius.zero,
+                ),
                 suffixIcon: IconButton(
-                  icon: Icon(_obscure ? Icons.visibility : Icons.visibility_off),
+                  icon: Icon(
+                    _obscure ? Icons.visibility : Icons.visibility_off,
+                  ),
                   onPressed: () => setState(() => _obscure = !_obscure),
                 ),
               ),
@@ -424,10 +461,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 onPressed: _loading ? null : _register,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.brandRed,
-                  shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+                  shape: const RoundedRectangleBorder(
+                    borderRadius: BorderRadius.zero,
+                  ),
                 ),
                 child: _loading
-                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        ),
+                      )
                     : const Text('ЗАРЕГИСТРИРОВАТЬСЯ'),
               ),
             ),
