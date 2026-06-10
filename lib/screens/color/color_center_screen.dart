@@ -385,7 +385,12 @@ class _NewColorRequestSheetState extends State<_NewColorRequestSheet> {
 
   Future<void> _pickImage() async {
     final picker = ImagePicker();
-    final img = await picker.pickImage(source: ImageSource.camera);
+    final img = await picker.pickImage(
+      source: ImageSource.camera,
+      imageQuality: 50,
+      maxWidth: 1024,
+      maxHeight: 1024,
+    );
     if (img != null) {
       if (kIsWeb) {
         final bytes = await img.readAsBytes();
