@@ -24,6 +24,7 @@ class _OrderScreenState extends State<OrderScreen> {
   final Set<String> _stockWarnings = {};
   String _selectedCategory = _allCategories;
   String? _selectedStoreId;
+  String _deliveryMethod = 'courier';
   bool _sending = false;
 
   int get _totalQty => _qty.values.fold(0, (sum, value) => sum + value);
@@ -56,8 +57,6 @@ class _OrderScreenState extends State<OrderScreen> {
   void _changeQty(ProductData product, int delta) {
     if (!_canOrder(product)) return;
     final current = _qty[product.id] ?? 0;
-    // Клиент не видит точного числа, но мы ограничиваем заказ остатком на бэкенде.
-    // Здесь используем product.quantity как лимит для безопасности UI.
     final maxQty = product.quantity;
     final requested = current + delta;
     final next = requested.clamp(0, maxQty);
@@ -80,24 +79,20 @@ class _OrderScreenState extends State<OrderScreen> {
   }
 
   List<String> _categories(List<ProductData> products) {
-    final categories =
-        products
-            .map((item) => item.category.trim())
-            .where((value) => value.isNotEmpty)
-            .toSet()
-            .toList()
-          ..sort();
+    final categories = products
+        .map((item) => item.category.trim())
+        .where((value) => value.isNotEmpty)
+        .toSet()
+        .toList()
+      ..sort();
     return [_allCategories, ...categories];
   }
 
   List<ProductData> _filteredProducts(List<ProductData> products) {
     final query = _searchCtrl.text.trim().toLowerCase();
     return products.where((item) {
-      final inCategory =
-          _selectedCategory == _allCategories ||
-          item.category == _selectedCategory;
-      final inSearch =
-          query.isEmpty ||
+      final inCategory = _selectedCategory == _allCategories || item.category == _selectedCategory;
+      final inSearch = query.isEmpty ||
           item.name.toLowerCase().contains(query) ||
           item.sku.toLowerCase().contains(query) ||
           item.brand.toLowerCase().contains(query);
@@ -111,16 +106,18 @@ class _OrderScreenState extends State<OrderScreen> {
 
   Future<void> _submit(OrderConfigData data) async {
     if (_totalQty == 0) return;
-    if (data.stores.isNotEmpty && _selectedStoreId == null) return;
+    if (_deliveryMethod == 'self_pickup' && data.stores.isNotEmpty && _selectedStoreId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Выберите магазин для самовывоза')));
+      return;
+    }
 
     setState(() => _sending = true);
     try {
       await _repo.createOrder(
-        storeId: _selectedStoreId,
+        storeId: _deliveryMethod == 'self_pickup' ? _selectedStoreId : null,
+        deliveryMethod: _deliveryMethod,
         comment: _commentCtrl.text,
-        items: _qty.entries
-            .map((entry) => {'productId': entry.key, 'quantity': entry.value})
-            .toList(),
+        items: _qty.entries.map((entry) => {'productId': entry.key, 'quantity': entry.value}).toList(),
       );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -173,8 +170,12 @@ class _OrderScreenState extends State<OrderScreen> {
                   const SizedBox(height: 16),
                   _selectedCard(data.products),
                   const SizedBox(height: 16),
-                  _storesCard(data.stores),
+                  _deliveryMethodCard(data),
                   const SizedBox(height: 16),
+                  if (_deliveryMethod == 'self_pickup') ...[
+                    _storesCard(data.stores),
+                    const SizedBox(height: 16),
+                  ],
                   _requestForm(data),
                   const SizedBox(height: 16),
                   _distributorCard(data),
@@ -184,6 +185,63 @@ class _OrderScreenState extends State<OrderScreen> {
             ),
           );
         },
+      ),
+    );
+  }
+
+  Widget _deliveryMethodCard(OrderConfigData data) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Способ получения',
+              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                _methodBtn('courier', 'ДОСТАВКА', Icons.local_shipping_outlined),
+                const SizedBox(width: 12),
+                _methodBtn('self_pickup', 'САМОВЫВОЗ', Icons.storefront_outlined),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _methodBtn(String value, String label, IconData icon) {
+    final active = _deliveryMethod == value;
+    return Expanded(
+      child: InkWell(
+        onTap: () => setState(() => _deliveryMethod = value),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          decoration: BoxDecoration(
+            color: active ? AppColors.brandBlack : Colors.white,
+            border: Border.all(color: AppColors.brandBlack),
+            borderRadius: BorderRadius.zero,
+          ),
+          child: Column(
+            children: [
+              Icon(icon, color: active ? Colors.white : AppColors.brandBlack, size: 20),
+              const SizedBox(height: 4),
+              Text(
+                label,
+                style: TextStyle(
+                  color: active ? Colors.white : AppColors.brandBlack,
+                  fontWeight: FontWeight.w900,
+                  fontSize: 10,
+                  letterSpacing: 0.5,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -276,9 +334,7 @@ class _OrderScreenState extends State<OrderScreen> {
         margin: const EdgeInsets.only(top: 10),
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: selected
-              ? AppColors.brandRed.withValues(alpha: 0.05)
-              : Colors.white,
+          color: selected ? AppColors.brandRed.withValues(alpha: 0.05) : Colors.white,
           border: Border.all(
             color: selected ? AppColors.brandRed : AppColors.border,
             width: selected ? 1.5 : 1,
@@ -311,8 +367,7 @@ class _OrderScreenState extends State<OrderScreen> {
                 ],
               ),
             ),
-            if (selected)
-              const Icon(Icons.check_circle, color: AppColors.brandRed),
+            if (selected) const Icon(Icons.check_circle, color: AppColors.brandRed),
           ],
         ),
       ),
@@ -320,7 +375,7 @@ class _OrderScreenState extends State<OrderScreen> {
   }
 
   Widget _requestForm(OrderConfigData data) {
-    final disabled = _sending || _totalQty == 0 || (data.stores.isNotEmpty && _selectedStoreId == null);
+    final disabled = _sending || _totalQty == 0 || (_deliveryMethod == 'self_pickup' && data.stores.isNotEmpty && _selectedStoreId == null);
     final store = _selectedStore(data.stores);
     return Card(
       child: Padding(
@@ -334,10 +389,10 @@ class _OrderScreenState extends State<OrderScreen> {
             ),
             const SizedBox(height: 6),
             Text(
-              store == null
-                  ? 'Выберите товары. Дистрибьютор уточнит выдачу.'
-                  : 'Выбрано: ${store.name}',
-              style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+              _deliveryMethod == 'courier'
+                  ? 'Дистрибьютор привезет заказ по вашему адресу.'
+                  : (store == null ? 'Выберите товары. Дистрибьютор уточнит выдачу.' : 'Выбрано: ${store.name}'),
+              style: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
             ),
             const SizedBox(height: 14),
             TextFormField(
@@ -368,9 +423,7 @@ class _OrderScreenState extends State<OrderScreen> {
                         ),
                       )
                     : Text(
-                        _totalQty == 0
-                            ? 'Добавьте товар'
-                            : 'Отправить дистрибьютору · $_totalQty шт.',
+                        _totalQty == 0 ? 'Добавьте товар' : 'Отправить дистрибьютору · $_totalQty шт.',
                       ),
               ),
             ),
@@ -420,13 +473,10 @@ class _OrderScreenState extends State<OrderScreen> {
                   return ChoiceChip(
                     label: Text(category),
                     selected: selected,
-                    onSelected: (_) =>
-                        setState(() => _selectedCategory = category),
+                    onSelected: (_) => setState(() => _selectedCategory = category),
                     selectedColor: AppColors.brandRed.withValues(alpha: 0.14),
                     labelStyle: TextStyle(
-                      color: selected
-                          ? AppColors.brandRed
-                          : AppColors.textPrimary,
+                      color: selected ? AppColors.brandRed : AppColors.textPrimary,
                       fontWeight: FontWeight.w700,
                     ),
                     side: BorderSide(
@@ -459,8 +509,7 @@ class _OrderScreenState extends State<OrderScreen> {
     final qty = _qty[item.id] ?? 0;
     final canOrder = _canOrder(item);
     final showStockWarning = _stockWarnings.contains(item.id) || qty >= item.quantity;
-    
-    // Скрываем точное количество для клиента (ТЗ)
+
     String stockStatusText;
     Color stockColor;
     if (item.quantity > 5) {
@@ -610,48 +659,6 @@ class _OrderScreenState extends State<OrderScreen> {
     );
   }
 
-  Widget _stockPill(StockStatus status) {
-    final color = switch (status) {
-      StockStatus.inStock => AppColors.success,
-      StockStatus.low => AppColors.warning,
-      StockStatus.onOrder => AppColors.info,
-      StockStatus.outOfStock => AppColors.error,
-    };
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Text(
-        _stockLabel(status),
-        style: TextStyle(
-          color: color,
-          fontSize: 11,
-          fontWeight: FontWeight.w800,
-        ),
-      ),
-    );
-  }
-
-  String _stockLabel(StockStatus status) {
-    switch (status) {
-      case StockStatus.inStock:
-        return 'в наличии';
-      case StockStatus.low:
-        return 'мало';
-      case StockStatus.onOrder:
-        return 'под заказ';
-      case StockStatus.outOfStock:
-        return 'нет в наличии';
-    }
-  }
-
-  String _formatVolume(double value) {
-    if (value == value.roundToDouble()) return value.toInt().toString();
-    return value.toStringAsFixed(2);
-  }
-
   String _formatPrice(double value) {
     if (value == value.roundToDouble()) return value.toInt().toString();
     return value.toStringAsFixed(2);
@@ -702,7 +709,6 @@ class _OrderScreenState extends State<OrderScreen> {
 
 class _ErrorState extends StatelessWidget {
   final String message;
-
   const _ErrorState({required this.message});
 
   @override
@@ -711,6 +717,26 @@ class _ErrorState extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: Text(message, textAlign: TextAlign.center),
+      ),
+    );
+  }
+}
+
+class InfoRow extends StatelessWidget {
+  final String label;
+  final String value;
+  const InfoRow({super.key, required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: const TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+          Text(value, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+        ],
       ),
     );
   }

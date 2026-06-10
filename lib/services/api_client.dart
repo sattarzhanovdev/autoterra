@@ -1,12 +1,10 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class ApiClient {
-  static const String baseUrl = String.fromEnvironment(
-    'API_BASE_URL',
-    defaultValue: 'https://neuro-map.online/api',
-  );
+  static String get baseUrl => dotenv.env['API_BASE_URL'] ?? 'http://127.0.0.1:8000/api';
 
   final http.Client _httpClient;
 
@@ -99,11 +97,13 @@ class ApiClient {
 
   Future<Map<String, dynamic>> createOrder({
     String? storeId,
+    String? deliveryMethod,
     required List<Map<String, dynamic>> items,
     required String comment,
   }) {
     return _post('/orders/create/', {
       if (storeId != null) 'storeId': storeId,
+      if (deliveryMethod != null) 'deliveryMethod': deliveryMethod,
       'items': items,
       'comment': comment,
     });

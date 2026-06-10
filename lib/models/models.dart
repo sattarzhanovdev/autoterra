@@ -149,6 +149,7 @@ class Order {
   final DateTime date;
   final double totalAmount;
   final OrderStatus status;
+  final String deliveryMethod;
   final List<PurchaseItem> items;
   final String? comment;
   final String? rejectionReason;
@@ -169,6 +170,7 @@ class Order {
     required this.date,
     required this.totalAmount,
     required this.status,
+    this.deliveryMethod = 'courier',
     required this.items,
     this.comment,
     this.rejectionReason,

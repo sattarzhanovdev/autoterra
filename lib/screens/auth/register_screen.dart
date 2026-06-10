@@ -35,6 +35,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _formKey1 = GlobalKey<FormState>();
   final _formKey2 = GlobalKey<FormState>();
 
+  bool _loadingRegions = false;
+
   @override
   void initState() {
     super.initState();
@@ -42,11 +44,30 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   Future<void> _fetchRegions() async {
+    if (mounted) setState(() => _loadingRegions = true);
     try {
       final regions = await _api.getRegions();
-      if (mounted) setState(() => _regions = regions);
+      if (mounted) {
+        setState(() {
+          _regions = regions;
+          _loadingRegions = false;
+        });
+      }
     } catch (e) {
-      // Log or show error
+      if (mounted) {
+        setState(() => _loadingRegions = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Ошибка загрузки регионов: $e'),
+            backgroundColor: AppColors.brandRed,
+            action: SnackBarAction(
+              label: 'ПОВТОР',
+              textColor: Colors.white,
+              onPressed: _fetchRegions,
+            ),
+          ),
+        );
+      }
     }
   }
 
@@ -356,6 +377,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             const SizedBox(height: 16),
             DropdownButtonFormField<String>(
               initialValue: _selectedRegionId,
+              hint: Text(_loadingRegions ? 'ЗАГРУЗКА РЕГИОНОВ...' : 'ВЫБЕРИТЕ РЕГИОН'),
               decoration: const InputDecoration(
                 labelText: 'РЕГИОН *',
                 border: OutlineInputBorder(borderRadius: BorderRadius.zero),
@@ -369,6 +391,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   )
                   .toList(),
               onChanged: (v) => setState(() => _selectedRegionId = v),
+              validator: (v) => v == null ? 'Выберите регион' : null,
             ),
             const SizedBox(height: 32),
             SizedBox(

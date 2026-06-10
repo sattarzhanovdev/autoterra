@@ -386,10 +386,16 @@ class DataRepository {
 
   Future<void> createOrder({
     String? storeId,
+    String? deliveryMethod,
     required List<Map<String, dynamic>> items,
     required String comment,
   }) async {
-    await _api.createOrder(storeId: storeId, items: items, comment: comment);
+    await _api.createOrder(
+      storeId: storeId, 
+      deliveryMethod: deliveryMethod,
+      items: items, 
+      comment: comment
+    );
   }
 
   Future<Map<String, dynamic>> register(Map<String, dynamic> data) {
@@ -516,6 +522,7 @@ class DataRepository {
       date: DateTime.tryParse(json['date']?.toString() ?? '') ?? DateTime.now(),
       totalAmount: _toDouble(json['totalAmount']),
       status: _orderStatus(json['status']?.toString() ?? 'new'),
+      deliveryMethod: json['deliveryMethod']?.toString() ?? 'courier',
       items: _list(json['items']).map((item) => _purchaseItemFromJson(item)).toList(),
       comment: _toString(json['comment']),
       rejectionReason: _toString(json['rejectionReason']),

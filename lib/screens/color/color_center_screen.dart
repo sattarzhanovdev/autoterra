@@ -494,6 +494,14 @@ class _NewColorRequestSheetState extends State<_NewColorRequestSheet> {
                   const SizedBox(height: 16),
                   TextFormField(controller: _addressCtrl, decoration: const InputDecoration(labelText: 'АДРЕС ЗАБОРА *')),
                   const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(child: TextFormField(controller: _contactPersonCtrl, decoration: const InputDecoration(labelText: 'КОНТАКТНОЕ ЛИЦО'))),
+                      const SizedBox(width: 10),
+                      Expanded(child: TextFormField(controller: _contactPhoneCtrl, keyboardType: TextInputType.phone, decoration: const InputDecoration(labelText: 'ТЕЛЕФОН'))),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
                   InkWell(
                     onTap: () async {
                       final time = await showTimePicker(context: context, initialTime: TimeOfDay.now());
