@@ -272,30 +272,174 @@ class _OrderTile extends StatelessWidget {
   }
 
   Future<void> _handleUpdate(BuildContext context, String status) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(status == 'rejected' ? 'Отклонить заказ?' : 'Взять в работу?'),
-        content: Text(status == 'rejected' ? 'Заказ будет отменен.' : 'Статус заказа изменится на "Принят".'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('ОТМЕНА')),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(backgroundColor: status == 'rejected' ? AppColors.error : AppColors.brandBlack),
-            child: const Text('ПОДТВЕРДИТЬ'),
-          ),
-        ],
-      ),
-    );
+    if (status == 'rejected') {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Отклонить заказ?'),
+          content: const Text('Заказ будет отменен.'),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('ОТМЕНА')),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context, true),
+              style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+              child: const Text('ПОДТВЕРДИТЬ'),
+            ),
+          ],
+        ),
+      );
 
-    if (confirmed != true) return;
+      if (confirmed != true) return;
 
-    try {
-      await DataRepository().updateOrderStatus(order.id, status: status);
-      onUpdate();
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Ошибка: $e')));
+      try {
+        await DataRepository().updateOrderStatus(order.id, status: status);
+        onUpdate();
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Ошибка: $e')));
+        }
+      }
+      return;
+    }
+
+    // For 'accepted' status
+    if (order.deliveryMethod == 'self_pickup') {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Взять в работу?'),
+          content: const Text('Заказ будет отмечен как принятый (Самовывоз).'),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('ОТМЕНА')),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context, true),
+              style: ElevatedButton.styleFrom(backgroundColor: AppColors.brandBlack),
+              child: const Text('ПОДТВЕРДИТЬ'),
+            ),
+          ],
+        ),
+      );
+      if (confirmed != true) return;
+      
+      try {
+        await DataRepository().updateOrderStatus(order.id, status: status);
+        onUpdate();
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Ошибка: $e')));
+        }
+      }
+    } else {
+      // Courier delivery: require assignment dialog
+      String? selectedCourierId;
+      DateTime? selectedDate = DateTime.now().add(const Duration(days: 1));
+      bool loadingCouriers = true;
+      List<Map<String, dynamic>> couriers = [];
+
+      final result = await showDialog<Map<String, dynamic>>(
+        context: context,
+        builder: (context) => StatefulBuilder(
+          builder: (ctx, setS) {
+            if (loadingCouriers) {
+              DataRepository().distributorCouriers().then((data) {
+                if (ctx.mounted) {
+                  setS(() {
+                    couriers = data;
+                    loadingCouriers = false;
+                  });
+                }
+              }).catchError((e) {
+                if (ctx.mounted) {
+                  setS(() => loadingCouriers = false);
+                }
+              });
+            }
+
+            return AlertDialog(
+              title: const Text('Назначить доставку', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Выберите курьера и дату для заказа с доставкой:', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                    const SizedBox(height: 16),
+                    const Text('КУРЬЕР', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 10, color: AppColors.brandRed)),
+                    const SizedBox(height: 4),
+                    if (loadingCouriers)
+                      const LinearProgressIndicator()
+                    else
+                      DropdownButtonFormField<String>(
+                        value: selectedCourierId,
+                        decoration: const InputDecoration(contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8)),
+                        items: [
+                          const DropdownMenuItem(value: null, child: Text('Не назначен')),
+                          ...couriers.map((c) => DropdownMenuItem(value: c['id'].toString(), child: Text(c['name']))),
+                        ],
+                        onChanged: (v) => setS(() => selectedCourierId = v),
+                      ),
+                    const SizedBox(height: 16),
+                    const Text('ОЖИДАЕМАЯ ДАТА', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 10, color: AppColors.brandRed)),
+                    const SizedBox(height: 4),
+                    InkWell(
+                      onTap: () async {
+                        final picked = await showDatePicker(
+                          context: ctx,
+                          initialDate: selectedDate ?? DateTime.now(),
+                          firstDate: DateTime.now().subtract(const Duration(days: 1)),
+                          lastDate: DateTime.now().add(const Duration(days: 30)),
+                        );
+                        if (picked != null) {
+                          setS(() => selectedDate = picked);
+                        }
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                        decoration: BoxDecoration(border: Border.all(color: AppColors.border), borderRadius: BorderRadius.circular(4)),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(selectedDate != null ? DateFormat('dd.MM.yyyy').format(selectedDate!) : 'Не указана'),
+                            const Icon(Icons.calendar_today, size: 18, color: AppColors.brandRed),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('ОТМЕНА')),
+                ElevatedButton(
+                  onPressed: selectedCourierId == null ? null : () {
+                    Navigator.pop(ctx, {
+                      'courierId': selectedCourierId,
+                      'date': selectedDate != null ? DateFormat('yyyy-MM-dd').format(selectedDate!) : null,
+                    });
+                  },
+                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.brandBlack),
+                  child: const Text('В РАБОТУ', style: TextStyle(fontWeight: FontWeight.w900)),
+                ),
+              ],
+            );
+          },
+        ),
+      );
+
+      if (result == null) return;
+
+      try {
+        await DataRepository().updateOrderStatus(
+          order.id, 
+          status: status,
+          courierId: result['courierId'] as String?,
+          estimatedDeliveryDate: result['date'] as String?,
+        );
+        onUpdate();
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Ошибка: $e')));
+        }
       }
     }
   }

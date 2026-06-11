@@ -51,8 +51,6 @@ class _DistributorScreenState extends State<DistributorScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _buildDistCard(dist),
-                  const SizedBox(height: 16),
-                  _buildContactActions(context, dist),
                   const SizedBox(height: 20),
                   const SectionHeader(title: 'Как оформить заказ'),
                   const SizedBox(height: 12),
@@ -183,78 +181,4 @@ class _DistributorScreenState extends State<DistributorScreen> {
     );
   }
 
-  Widget _buildContactActions(BuildContext context, dist) {
-    return Row(
-      children: [
-        Expanded(
-          child: _ActionButton(
-            icon: Icons.phone,
-            label: 'Позвонить',
-            color: AppColors.success,
-            onTap: () {},
-          ),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: _ActionButton(
-            icon: Icons.chat_outlined,
-            label: 'WhatsApp',
-            color: AppColors.brandBlack,
-            onTap: () {},
-          ),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: _ActionButton(
-            icon: Icons.email_outlined,
-            label: 'Email',
-            color: AppColors.info,
-            onTap: () {},
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _ActionButton extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final Color color;
-  final VoidCallback onTap;
-  const _ActionButton({
-    required this.icon,
-    required this.label,
-    required this.color,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 14),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: color.withValues(alpha: 0.3)),
-        ),
-        child: Column(
-          children: [
-            Icon(icon, color: color, size: 24),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: TextStyle(
-                color: color,
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }

@@ -32,15 +32,9 @@ class _ReferralScreenState extends State<ReferralScreen> {
     await next;
   }
 
-  void _share(String code, {bool isWhatsapp = false}) {
+  void _share(String code) {
     final text = 'Присоединяйся к AutoTerra! Используй мой промокод $code для получения бонуса: https://autoterra.ru/register?ref=$code';
-    if (isWhatsapp) {
-      // Logic for whatsapp can be more complex (url launcher), 
-      // but share_plus usually allows choosing app.
-      Share.share(text, subject: 'Приглашение в AutoTerra');
-    } else {
-      Share.share(text, subject: 'Приглашение в AutoTerra');
-    }
+    Share.share(text, subject: 'Приглашение в AutoTerra');
   }
 
   void _showAddDialog() {
@@ -192,12 +186,9 @@ class _ReferralScreenState extends State<ReferralScreen> {
             ],
           ),
           const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(child: ElevatedButton.icon(onPressed: () => _share(code), icon: const Icon(Icons.share, size: 16), label: const Text('ПОДЕЛИТЬСЯ'), style: ElevatedButton.styleFrom(backgroundColor: AppColors.brandRed, shape: const BeveledRectangleBorder()))),
-              const SizedBox(width: 8),
-              Expanded(child: OutlinedButton.icon(onPressed: () => _share(code, isWhatsapp: true), icon: const Icon(Icons.message, size: 16), label: const Text('WHATSAPP'), style: OutlinedButton.styleFrom(foregroundColor: Colors.white, side: const BorderSide(color: Colors.white), shape: const BeveledRectangleBorder()))),
-            ],
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(onPressed: () => _share(code), icon: const Icon(Icons.share, size: 16), label: const Text('ПОДЕЛИТЬСЯ'), style: ElevatedButton.styleFrom(backgroundColor: AppColors.brandRed, shape: const BeveledRectangleBorder())),
           ),
         ],
       ),

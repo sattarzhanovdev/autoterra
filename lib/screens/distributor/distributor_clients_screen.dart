@@ -151,18 +151,7 @@ class ClientListCard extends StatelessWidget {
                   _infoRow('КОНТАКТ', client.contact),
                   _infoRow('ТЕЛЕФОН', client.phone),
                   _infoRow('ЗАКУПКИ', '${client.totalPurchases.toStringAsFixed(0)} ₽'),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _actionButton(Icons.phone, 'ПОЗВОНИТЬ', () {}),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: _actionButton(Icons.chat, 'WHATSAPP', () {}),
-                      ),
-                    ],
-                  ),
+
                 ],
               ),
             ),
@@ -211,17 +200,4 @@ class ClientListCard extends StatelessWidget {
     );
   }
 
-  Widget _actionButton(IconData icon, String label, VoidCallback onTap) {
-    return ElevatedButton.icon(
-      onPressed: onTap,
-      icon: Icon(icon, size: 16, color: Colors.white),
-      label: Text(label, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900)),
-      style: ElevatedButton.styleFrom(
-        backgroundColor: Colors.black,
-        foregroundColor: Colors.white,
-        shape: const BeveledRectangleBorder(),
-        padding: const EdgeInsets.symmetric(vertical: 12),
-      ),
-    );
-  }
 }
