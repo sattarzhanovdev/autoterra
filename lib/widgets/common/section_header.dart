@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/theme.dart';
+import 'premium_icon_badge.dart';
 
 class SectionHeader extends StatelessWidget {
   final String title;
@@ -150,10 +151,10 @@ class EmptyState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Container(
-              width: 72, height: 72,
-              color: AppColors.brandBlack,
-              child: Icon(icon, size: 32, color: AppColors.brandRed),
+            PremiumIconBadge(
+              icon: icon,
+              size: 56,
+              iconSize: 28,
             ),
             const SizedBox(height: 16),
             Text(title, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16), textAlign: TextAlign.center),

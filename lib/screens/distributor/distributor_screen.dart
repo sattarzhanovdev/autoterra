@@ -31,7 +31,13 @@ class _DistributorScreenState extends State<DistributorScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Мой дистрибьютор')),
+      appBar: AppBar(
+        title: const Text('Мой дистрибьютор'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
+          onPressed: () => Navigator.maybePop(context),
+        ),
+      ),
       body: FutureBuilder<DashboardData>(
         future: _future,
         builder: (context, snapshot) {

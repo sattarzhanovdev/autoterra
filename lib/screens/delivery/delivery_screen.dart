@@ -3,6 +3,7 @@ import '../../core/theme.dart';
 import '../../models/models.dart';
 import '../../services/api_client.dart';
 import '../../services/data_repository.dart';
+import '../../widgets/common/premium_icon_badge.dart';
 import '../../widgets/common/status_badge.dart';
 
 class DeliveryScreen extends StatefulWidget {
@@ -91,15 +92,10 @@ class _DeliveryScreenState extends State<DeliveryScreen>
                 Center(
                   child: Column(
                     children: [
-                      Container(
-                        width: 72,
-                        height: 72,
-                        color: AppColors.brandWhite,
-                        child: const Icon(
-                          Icons.local_shipping_outlined,
-                          color: AppColors.brandRed,
-                          size: 36,
-                        ),
+                      const PremiumIconBadge(
+                        icon: Icons.local_shipping_outlined,
+                        size: 56,
+                        iconSize: 28,
                       ),
                       const SizedBox(height: 16),
                       const Text(
@@ -182,17 +178,12 @@ class _DeliveryScreenState extends State<DeliveryScreen>
                   padding: const EdgeInsets.all(14),
                   child: Row(
                     children: [
-                      Container(
-                        width: 42,
-                        height: 42,
-                        color: AppColors.brandWhite,
-                        child: Icon(
-                          task.type == 'pickup'
-                              ? Icons.call_received
-                              : Icons.local_shipping_outlined,
-                          color: AppColors.brandBlack,
-                          size: 22,
-                        ),
+                      PremiumIconBadge(
+                        icon: task.type == 'pickup'
+                            ? Icons.call_received
+                            : Icons.local_shipping_outlined,
+                        size: 40,
+                        iconSize: 20,
                       ),
                       const SizedBox(width: 12),
                       Expanded(

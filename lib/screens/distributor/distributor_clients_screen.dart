@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../core/theme.dart';
 import '../../models/models.dart';
 import '../../services/data_repository.dart';
+import '../../widgets/common/premium_icon_badge.dart';
 
 class DistributorClientsScreen extends StatefulWidget {
   const DistributorClientsScreen({super.key});
@@ -60,6 +61,10 @@ class _DistributorClientsScreenState extends State<DistributorClientsScreen> {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: const Color(0xFF171717),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
+          onPressed: () => Navigator.maybePop(context),
+        ),
         title: const Text('КЛИЕНТЫ РЕГИОНА', style: TextStyle(letterSpacing: 1.5, fontWeight: FontWeight.w900)),
       ),
       body: Column(
@@ -135,9 +140,10 @@ class ClientListCard extends StatelessWidget {
               _statusBadge(client.status),
             ],
           ),
-          leading: const CircleAvatar(
-            backgroundColor: Color(0xFF171717),
-            child: Icon(Icons.business, color: Colors.white, size: 20),
+          leading: const PremiumIconBadge(
+            icon: Icons.business_outlined,
+            size: 40,
+            iconSize: 20,
           ),
           children: [
             const Divider(height: 1, color: Color(0xFF171717)),
