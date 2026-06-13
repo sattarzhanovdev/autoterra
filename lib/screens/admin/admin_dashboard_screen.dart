@@ -196,11 +196,16 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   Widget _buildKpiCard(String label, String value, IconData icon, {bool highlight = false}) {
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: ShapeDecoration(
+      decoration: BoxDecoration(
         color: highlight ? AppColors.brandRed.withValues(alpha: 0.03) : Colors.white,
-        shape: BeveledRectangleBorder(
-          side: BorderSide(color: highlight ? AppColors.brandRed : AppColors.border, width: highlight ? 1.5 : 1),
-        ),
+        border: Border.all(color: highlight ? AppColors.brandRed : AppColors.border, width: highlight ? 1.5 : 1),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

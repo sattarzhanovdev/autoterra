@@ -109,14 +109,21 @@ class AppCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
-      child: Card(
+      child: Container(
         margin: const EdgeInsets.only(bottom: 8),
-        color: Colors.white,
-        shape: BeveledRectangleBorder(
-          side: BorderSide(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          border: Border.all(
             color: redAccent ? AppColors.brandRed : (borderColor ?? AppColors.border),
-            width: redAccent ? 2 : 0.5,
+            width: redAccent ? 2 : 1.0,
           ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
         child: Padding(
           padding: padding ?? const EdgeInsets.all(16),

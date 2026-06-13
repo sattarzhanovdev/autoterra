@@ -125,71 +125,80 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
     NumberFormat fmt,
     BuildContext context,
   ) {
-    return Card(
-      color: AppColors.brandBlack,
-      shape: const BeveledRectangleBorder(
-        borderRadius: BorderRadius.only(topRight: Radius.circular(20)),
-        side: BorderSide(color: AppColors.brandRed, width: 0.5),
+    return Container(
+      decoration: const BoxDecoration(
+        color: AppColors.brandBlack,
+        border: Border(left: BorderSide(color: AppColors.brandRed, width: 3)),
       ),
-      child: Container(
-        decoration: const BoxDecoration(
-          border: Border(left: BorderSide(color: AppColors.brandRed, width: 3)),
-        ),
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            Row(
+      child: Stack(
+        children: [
+          // Chamfer cut top-right (CustomPaint from main)
+          Positioned(
+            top: 0,
+            right: 0,
+            child: CustomPaint(
+              size: const Size(24, 24),
+              painter: _ChamferPainter(),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
               children: [
-                CategoryBadge(category: client.categoryLabel),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        client.name.toUpperCase(),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w900,
-                          fontSize: 13,
-                          letterSpacing: 0.5,
-                        ),
+                Row(
+                  children: [
+                    CategoryBadge(category: client.categoryLabel),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            client.name.toUpperCase(),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w900,
+                              fontSize: 13,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                          Text(
+                            'ИНН: ${client.inn}',
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.5),
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
                       ),
-                      Text(
-                        'ИНН: ${client.inn}',
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.5),
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
+                    ),
+                    StatusBadge.fromPartnerStatus(client.partnerStatus),
+                  ],
                 ),
-                StatusBadge.fromPartnerStatus(client.partnerStatus),
+                const SizedBox(height: 14),
+                Container(
+                  height: 1,
+                  color: Colors.white.withValues(alpha: 0.1),
+                ),
+                const SizedBox(height: 14),
+                Row(
+                  children: [
+                    _statItem(
+                      'ЗАКУПКИ',
+                      '${fmt.format(client.totalPurchases)} ₽',
+                      AppColors.brandRed,
+                    ),
+                    _vertDivider(),
+                    _statItem('РЕГИОН', client.region.toUpperCase(), Colors.white),
+                    _vertDivider(),
+                    _statItem('СТАТУС', 'АКТИВНЫЙ', AppColors.success),
+                  ],
+                ),
               ],
             ),
-            const SizedBox(height: 14),
-            Container(
-              height: 1,
-              color: Colors.white.withValues(alpha: 0.1),
-            ),
-            const SizedBox(height: 14),
-            Row(
-              children: [
-                _statItem(
-                  'ЗАКУПКИ',
-                  '${fmt.format(client.totalPurchases)} ₽',
-                  AppColors.brandRed,
-                ),
-                _vertDivider(),
-                _statItem('РЕГИОН', client.region.toUpperCase(), Colors.white),
-                _vertDivider(),
-                _statItem('СТАТУС', 'АКТИВНЫЙ', AppColors.success),
-              ],
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -257,7 +266,7 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
       ),
       _QuickAction(
         Icons.help_outline_rounded,
-        'Мои обращения',
+        'Вопрос-ответ',
         () => context.push(AppRoutes.qa),
       ),
       _QuickAction(
@@ -289,23 +298,29 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
   Widget _buildActionTile(_QuickAction action) {
     return GestureDetector(
       onTap: action.onTap,
-      child: Card(
-        color: AppColors.surfaceCard,
-        shape: const BeveledRectangleBorder(
-          side: BorderSide(color: AppColors.border, width: 0.5),
+      child: Container(
+        decoration: BoxDecoration(
+          color: AppColors.surfaceCard,
+          border: Border.all(color: AppColors.border),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            PremiumIconBadge(icon: action.icon, size: 36, iconSize: 18),
+            PremiumIconBadge(icon: action.icon, size: 38, iconSize: 19),
             const SizedBox(height: 6),
             Text(
-              action.label.toUpperCase(),
+              action.label,
               style: const TextStyle(
-                fontSize: 9,
-                fontWeight: FontWeight.w900,
+                fontSize: 10.5,
+                fontWeight: FontWeight.w700,
                 color: AppColors.textPrimary,
-                letterSpacing: 0.3,
               ),
               textAlign: TextAlign.center,
               maxLines: 2,
@@ -362,54 +377,59 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
         const SizedBox(height: 12),
         GestureDetector(
           onTap: () => context.push(AppRoutes.distributor),
-          child: Card(
-            color: AppColors.surfaceCard,
-            shape: const BeveledRectangleBorder(
-              side: BorderSide(color: AppColors.border),
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppColors.surfaceCard,
+              border: Border.all(color: AppColors.border),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.04),
+                  blurRadius: 10,
+                  offset: const Offset(0, 3),
+                ),
+              ],
             ),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                children: [
-                  const PremiumIconBadge(
-                    icon: Icons.store,
-                    size: 40,
-                    iconSize: 20,
+            child: Row(
+              children: [
+                const PremiumIconBadge(
+                  icon: Icons.store,
+                  size: 44,
+                  iconSize: 22,
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        distributor.name.toUpperCase(),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w900,
+                          fontSize: 13,
+                        ),
+                      ),
+                      Text(
+                        distributor.regions.join(', ').toUpperCase(),
+                        style: const TextStyle(
+                          color: AppColors.textSecondary,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text(
+                        distributor.phone,
+                        style: const TextStyle(
+                          color: AppColors.brandRed,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          distributor.name.toUpperCase(),
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w900,
-                            fontSize: 13,
-                          ),
-                        ),
-                        Text(
-                          distributor.regions.join(', ').toUpperCase(),
-                          style: const TextStyle(
-                            color: AppColors.textSecondary,
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        Text(
-                          distributor.phone,
-                          style: const TextStyle(
-                            color: AppColors.brandRed,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w900,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const Icon(Icons.chevron_right, color: AppColors.textSecondary),
-                ],
-              ),
+                ),
+                const Icon(Icons.chevron_right, color: AppColors.textSecondary),
+              ],
             ),
           ),
         ),
@@ -457,60 +477,65 @@ class _PurchaseListItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
+    return Container(
       margin: const EdgeInsets.only(bottom: 8),
-      color: AppColors.surfaceCard,
-      shape: const BeveledRectangleBorder(
-        side: BorderSide(color: AppColors.border, width: 0.5),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceCard,
+        border: Border.all(color: AppColors.border),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Row(
-          children: [
-            const PremiumIconBadge(
-              icon: Icons.receipt_outlined,
-              size: 40,
-              iconSize: 20,
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    purchase.documentNumber.toUpperCase(),
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w900,
-                      fontSize: 12,
-                    ),
-                  ),
-                  Text(
-                    DateFormat('dd.MM.yyyy', 'ru_RU').format(purchase.date),
-                    style: const TextStyle(
-                      color: AppColors.textSecondary,
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
+      child: Row(
+        children: [
+          const PremiumIconBadge(
+            icon: Icons.receipt_outlined,
+            size: 40,
+            iconSize: 20,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '${fmt.format(purchase.totalAmount)} ₽',
+                  purchase.documentNumber.toUpperCase(),
                   style: const TextStyle(
                     fontWeight: FontWeight.w900,
-                    fontSize: 13,
+                    fontSize: 12,
                   ),
                 ),
-                const SizedBox(height: 4),
-                StatusBadge.fromPurchaseStatus(purchase.status),
+                Text(
+                  DateFormat('dd.MM.yyyy', 'ru_RU').format(purchase.date),
+                  style: const TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ],
             ),
-          ],
-        ),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                '${fmt.format(purchase.totalAmount)} ₽',
+                style: const TextStyle(
+                  fontWeight: FontWeight.w900,
+                  fontSize: 13,
+                ),
+              ),
+              const SizedBox(height: 4),
+              StatusBadge.fromPurchaseStatus(purchase.status),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -522,60 +547,66 @@ class _ColorRequestItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
+    return Container(
       margin: const EdgeInsets.only(bottom: 8),
-      color: AppColors.surfaceCard,
-      shape: const BeveledRectangleBorder(
-        side: BorderSide(color: AppColors.border, width: 0.5),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceCard,
+        border: Border.all(color: AppColors.border),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Row(
-          children: [
-            const PremiumIconBadge(
-              icon: Icons.palette_outlined,
-              size: 40,
-              iconSize: 20,
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '${request.carBrand} ${request.carModel}'.toUpperCase(),
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w900,
-                      fontSize: 12,
-                    ),
-                  ),
-                  Text(
-                    '${request.colorCode} · ${request.colorName}'.toUpperCase(),
-                    style: const TextStyle(
-                      color: AppColors.textSecondary,
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
+      child: Row(
+        children: [
+          const PremiumIconBadge(
+            icon: Icons.palette_outlined,
+            size: 40,
+            iconSize: 20,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                StatusBadge.fromColorStatus(request.status),
-                if (request.urgent) ...[
-                  const SizedBox(height: 4),
-                  const StatusBadge(
-                    label: 'СРОЧНО',
-                    color: AppColors.brandRed,
-                    filled: true,
+                Text(
+                  '${request.carBrand} ${request.carModel}'.toUpperCase(),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w900,
+                    fontSize: 12,
                   ),
-                ],
+                ),
+                Text(
+                  '${request.colorCode} · ${request.colorName}'.toUpperCase(),
+                  style: const TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 0.2,
+                  ),
+                ),
               ],
             ),
-          ],
-        ),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              StatusBadge.fromColorStatus(request.status),
+              if (request.urgent) ...[
+                const SizedBox(height: 4),
+                const StatusBadge(
+                  label: 'СРОЧНО',
+                  color: AppColors.brandRed,
+                  filled: true,
+                ),
+              ],
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -586,4 +617,20 @@ class _QuickAction {
   final String label;
   final VoidCallback onTap;
   const _QuickAction(this.icon, this.label, this.onTap);
+}
+
+class _ChamferPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()..color = AppColors.brandWhite;
+    final path = Path()
+      ..moveTo(0, 0)
+      ..lineTo(size.width, size.height)
+      ..lineTo(size.width, 0)
+      ..close();
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(_) => false;
 }

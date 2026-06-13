@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../../core/theme.dart';
 
-/// Icon badge with straight top edge, two vertical "pin" lines at top,
-/// and rounded bottom corners — matching AutoTerra's brand design.
 class PremiumIconBadge extends StatelessWidget {
   final IconData icon;
   final double size;
@@ -20,53 +18,41 @@ class PremiumIconBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Pin line dimensions scale with badge size
-    final double pinHeight = size * 0.18;
-    final double pinWidth = 1.5;
-    final double pinSpacing = size * 0.18;
-    final double bottomRadius = size * 0.28;
-
-    return SizedBox(
+    return Container(
       width: size,
-      height: size + pinHeight,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Two thin vertical red lines ("pins") at the top
-          SizedBox(
-            height: pinHeight,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  width: pinWidth,
-                  height: pinHeight,
-                  color: AppColors.brandRed,
-                ),
-                SizedBox(width: pinSpacing),
-                Container(
-                  width: pinWidth,
-                  height: pinHeight,
-                  color: AppColors.brandRed,
-                ),
-              ],
-            ),
+      height: size,
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFFFFFFFF), Color(0xFFF1F1F1)],
+        ),
+        border: Border.all(color: const Color(0xFFE3E3E3), width: 1),
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
           ),
-          // Main badge body: straight top, rounded bottom
-          Container(
-            width: size,
-            height: size,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              border: Border.all(color: AppColors.border, width: 1.0),
-              borderRadius: BorderRadius.only(
-                bottomLeft: Radius.circular(bottomRadius),
-                bottomRight: Radius.circular(bottomRadius),
+        ],
+      ),
+      child: Stack(
+        children: [
+          Positioned(
+            top: 0,
+            left: 10,
+            right: 10,
+            child: Container(
+              height: 2,
+              decoration: BoxDecoration(
+                color: AppColors.brandRed.withValues(alpha: 0.85),
+                borderRadius: BorderRadius.circular(2),
               ),
             ),
-            child: Center(
-              child: Icon(icon, color: iconColor, size: iconSize),
-            ),
+          ),
+          Center(
+            child: Icon(icon, color: iconColor, size: iconSize),
           ),
         ],
       ),

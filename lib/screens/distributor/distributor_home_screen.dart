@@ -153,12 +153,16 @@ class _DistributorHomeScreenState extends State<DistributorHomeScreen> {
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.all(16),
-        decoration: ShapeDecoration(
+        decoration: BoxDecoration(
           color: AppColors.surfaceCard,
-          shape: BeveledRectangleBorder(
-            side: const BorderSide(color: AppColors.border),
-            borderRadius: BorderRadius.zero, // Chamfers are handled by BeveledRectangleBorder
-          ),
+          border: Border.all(color: AppColors.border),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -205,68 +209,73 @@ class _OrderTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final isPending = order.status == OrderStatus.newOrder;
 
-    return Card(
+    return Container(
       margin: const EdgeInsets.only(bottom: 8),
-      color: AppColors.surfaceCard,
-      shape: const BeveledRectangleBorder(
-        side: BorderSide(color: AppColors.border, width: 0.5),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceCard,
+        border: Border.all(color: AppColors.border),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          children: [
+      child: Column(
+        children: [
+          Row(
+            children: [
+              const PremiumIconBadge(icon: Icons.shopping_cart_outlined, size: 36, iconSize: 18),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(order.documentNumber.toUpperCase(), style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12)),
+                    Text(
+                      (order.clientName ?? 'Клиент ID: ${order.clientId}').toUpperCase(),
+                      style: const TextStyle(color: AppColors.textSecondary, fontSize: 10, fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+              ),
+              Text('${fmt.format(order.totalAmount)} ₽', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13)),
+            ],
+          ),
+          if (isPending) ...[
+            const Divider(height: 24, thickness: 0.5),
             Row(
               children: [
-                const PremiumIconBadge(icon: Icons.shopping_cart_outlined, size: 36, iconSize: 18),
-                const SizedBox(width: 12),
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(order.documentNumber.toUpperCase(), style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12)),
-                      Text(
-                        (order.clientName ?? 'Клиент ID: ${order.clientId}').toUpperCase(),
-                        style: const TextStyle(color: AppColors.textSecondary, fontSize: 10, fontWeight: FontWeight.bold),
-                      ),
-                    ],
+                  child: OutlinedButton(
+                    onPressed: () => _handleUpdate(context, 'rejected'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.error,
+                      side: const BorderSide(color: AppColors.error),
+                      minimumSize: const Size(0, 34),
+                      padding: EdgeInsets.zero,
+                    ),
+                    child: const Text('ОТМЕНИТЬ', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900)),
                   ),
                 ),
-                Text('${fmt.format(order.totalAmount)} ₽', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13)),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () => _handleUpdate(context, 'accepted'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.brandBlack,
+                      minimumSize: const Size(0, 34),
+                      padding: EdgeInsets.zero,
+                    ),
+                    child: const Text('В РАБОТУ', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900)),
+                  ),
+                ),
               ],
             ),
-            if (isPending) ...[
-              const Divider(height: 24, thickness: 0.5),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () => _handleUpdate(context, 'rejected'),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: AppColors.error,
-                        side: const BorderSide(color: AppColors.error),
-                        minimumSize: const Size(0, 34),
-                        padding: EdgeInsets.zero,
-                      ),
-                      child: const Text('ОТМЕНИТЬ', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900)),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () => _handleUpdate(context, 'accepted'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.brandBlack,
-                        minimumSize: const Size(0, 34),
-                        padding: EdgeInsets.zero,
-                      ),
-                      child: const Text('В РАБОТУ', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900)),
-                    ),
-                  ),
-                ],
-              ),
-            ],
           ],
-        ),
+        ],
       ),
     );
   }
@@ -459,68 +468,73 @@ class _PurchaseTile extends StatelessWidget {
                         purchase.status == PurchaseStatus.underReview ||
                         purchase.status == PurchaseStatus.duplicateReview;
 
-    return Card(
+    return Container(
       margin: const EdgeInsets.only(bottom: 8),
-      color: AppColors.surfaceCard,
-      shape: const BeveledRectangleBorder(
-        side: BorderSide(color: AppColors.border, width: 0.5),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceCard,
+        border: Border.all(color: AppColors.border),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          children: [
+      child: Column(
+        children: [
+          Row(
+            children: [
+              const PremiumIconBadge(icon: Icons.receipt_outlined, size: 36, iconSize: 18, iconColor: AppColors.warning),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(purchase.documentNumber.toUpperCase(), style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12)),
+                    Text(
+                      (purchase.clientName ?? 'Сумма: ${fmt.format(purchase.totalAmount)} ₽').toUpperCase(),
+                      style: const TextStyle(color: AppColors.textSecondary, fontSize: 10, fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+              ),
+              StatusBadge.fromPurchaseStatus(purchase.status),
+            ],
+          ),
+          if (needsAction) ...[
+            const Divider(height: 24, thickness: 0.5),
             Row(
               children: [
-                const PremiumIconBadge(icon: Icons.receipt_outlined, size: 36, iconSize: 18, iconColor: AppColors.warning),
-                const SizedBox(width: 12),
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(purchase.documentNumber.toUpperCase(), style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12)),
-                      Text(
-                        (purchase.clientName ?? 'Сумма: ${fmt.format(purchase.totalAmount)} ₽').toUpperCase(),
-                        style: const TextStyle(color: AppColors.textSecondary, fontSize: 10, fontWeight: FontWeight.bold),
-                      ),
-                    ],
+                  child: OutlinedButton(
+                    onPressed: () => _handleVerify(context, false),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.error,
+                      side: const BorderSide(color: AppColors.error),
+                      minimumSize: const Size(0, 34),
+                      padding: EdgeInsets.zero,
+                    ),
+                    child: const Text('ОТКЛОНИТЬ', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900)),
                   ),
                 ),
-                StatusBadge.fromPurchaseStatus(purchase.status),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () => _handleVerify(context, true),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.success,
+                      minimumSize: const Size(0, 34),
+                      padding: EdgeInsets.zero,
+                    ),
+                    child: const Text('ПОДТВЕРДИТЬ', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900)),
+                  ),
+                ),
               ],
             ),
-            if (needsAction) ...[
-              const Divider(height: 24, thickness: 0.5),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () => _handleVerify(context, false),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: AppColors.error,
-                        side: const BorderSide(color: AppColors.error),
-                        minimumSize: const Size(0, 34),
-                        padding: EdgeInsets.zero,
-                      ),
-                      child: const Text('ОТКЛОНИТЬ', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900)),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () => _handleVerify(context, true),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.success,
-                        minimumSize: const Size(0, 34),
-                        padding: EdgeInsets.zero,
-                      ),
-                      child: const Text('ПОДТВЕРДИТЬ', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900)),
-                    ),
-                  ),
-                ],
-              ),
-            ],
           ],
-        ),
+        ],
       ),
     );
   }

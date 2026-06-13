@@ -119,12 +119,16 @@ class ClientListCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      decoration: const ShapeDecoration(
+      decoration: BoxDecoration(
         color: Colors.white,
-        shape: BeveledRectangleBorder(
-          side: BorderSide(color: Color(0xFF171717), width: 1),
-          borderRadius: BorderRadius.zero,
-        ),
+        border: Border.all(color: AppColors.border),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Theme(
         data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
