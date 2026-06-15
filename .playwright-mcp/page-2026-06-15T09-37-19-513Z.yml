@@ -1,0 +1,25 @@
+- generic [ref=e5] [cursor=pointer]:
+  - generic:
+    - generic:
+      - generic:
+        - generic:
+          - img [ref=e6]
+          - generic [ref=e7]:
+            - generic: Федеральная B2B-платформа ЛКМ
+          - group:
+            - generic:
+              - generic [ref=e8]:
+                - generic: ВХОД В СИСТЕМУ
+              - generic [ref=e9]:
+                - generic: Введите данные для входа
+              - textbox "Телефон или Логин" [ref=e11]: distributor_msk
+              - generic [ref=e12]:
+                - textbox "Пароль" [invalid] [ref=e13]
+                - button [ref=e14]
+                - generic [ref=e19]:
+                  - generic: Введите пароль
+              - button "Забыли пароль?" [ref=e15]
+              - button "ВОЙТИ" [active] [ref=e16]
+              - generic [ref=e17]:
+                - generic: Нет аккаунта?
+              - button "Зарегистрироваться" [ref=e18]

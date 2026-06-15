@@ -1,0 +1,14 @@
+- generic [ref=e5]:
+  - generic:
+    - generic:
+      - generic:
+        - generic:
+          - generic:
+            - heading "УВЕДОМЛЕНИЯ" [active] [level=2] [ref=e47]
+            - button "ПРОЧИТАТЬ ВСЕ" [ref=e48]
+          - generic:
+            - group:
+              - generic [ref=e49]:
+                - generic: НОВЫЕ
+              - button "РЕФЕРАЛ СОВЕРШИЛ ПОКУПКУ! ИП Иванов совершил покупки на сумму 35 000 ₽. Вам доступен Сертификат на 5000 ₽. 0 МИН. НАЗАД" [ref=e51]
+              - button "ПОДАРОК НАЧИСЛЕН! Ваш реферал совершил покупку. Вам начислен бонус! 7 Д. НАЗАД" [ref=e52]

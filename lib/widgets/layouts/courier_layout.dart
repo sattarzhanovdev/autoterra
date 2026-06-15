@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import '../../core/theme.dart';
 import '../../models/models.dart';
 import '../../services/data_repository.dart';
 
@@ -223,9 +224,43 @@ class _CourierTaskCardState extends State<CourierTaskCard> {
           status: 'in_progress',
         );
       } else if (widget.task.status == CourierTaskStatus.inProgress) {
+        final source = await showModalBottomSheet<ImageSource>(
+          context: context,
+          backgroundColor: Colors.white,
+          shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+          builder: (ctx) => SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Padding(
+                  padding: EdgeInsets.all(16),
+                  child: Text('ПОДТВЕРЖДЕНИЕ ДОСТАВКИ', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 1)),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.camera_alt_outlined, color: AppColors.brandBlack),
+                  title: const Text('СДЕЛАТЬ ФОТО', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+                  onTap: () => Navigator.pop(ctx, ImageSource.camera),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.photo_library_outlined, color: AppColors.brandBlack),
+                  title: const Text('ВЫБРАТЬ ИЗ ГАЛЕРЕИ', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+                  onTap: () => Navigator.pop(ctx, ImageSource.gallery),
+                ),
+                const SizedBox(height: 8),
+              ],
+            ),
+          ),
+        );
+
+        if (source == null) {
+          setState(() => _processing = false);
+          return;
+        }
+
         final ImagePicker picker = ImagePicker();
         final XFile? image = await picker.pickImage(
-          source: ImageSource.camera,
+          source: source,
+          preferredCameraDevice: CameraDevice.rear,
           imageQuality: 50,
         );
 

@@ -1,0 +1,74 @@
+- generic [active] [ref=e5]:
+  - generic:
+    - generic:
+      - generic:
+        - generic:
+          - generic:
+            - generic:
+              - generic:
+                - generic:
+                  - generic:
+                    - banner:
+                      - img [ref=e20]
+                - group:
+                  - generic [ref=e21]:
+                    - generic: ЧТО НУЖНО СДЕЛАТЬ?
+                  - generic:
+                    - generic:
+                      - button "Заказ и ассортимент" [ref=e22]
+                      - button "Мои покупки" [ref=e23]
+                      - button "Подбор цвета" [ref=e24]
+                      - button "Доставка" [ref=e25]
+                      - button "Вопрос-ответ" [ref=e26]
+                      - button "AI-помощник" [ref=e27]
+                  - generic [ref=e28]:
+                    - generic: ПОСЛЕДНИЕ ПОКУПКИ
+                  - button "ВСЕ" [ref=e29]
+                  - generic [ref=e30]:
+                    - generic: INV-2CF1D637
+                  - generic [ref=e31]:
+                    - generic: 15 000 ₽
+                  - generic [ref=e32]:
+                    - generic: 08.06.2026
+                  - generic [ref=e33]:
+                    - generic: ПОДТВЕРЖДЕНА
+                  - generic [ref=e34]:
+                    - generic: INV-7D24EC91
+                  - generic [ref=e35]:
+                    - generic: 5 000 ₽
+                  - generic [ref=e36]:
+                    - generic: 08.06.2026
+                  - generic [ref=e37]:
+                    - generic: НОВАЯ
+                  - generic [ref=e38]:
+                    - generic: B
+                  - generic [ref=e39]:
+                    - generic: ООО РОМАШКА
+                  - generic [ref=e40]:
+                    - generic: "ИНН: 7701234567"
+                  - generic [ref=e41]:
+                    - generic: SILVER
+                  - generic [ref=e42]:
+                    - generic: ЗАКУПКИ
+                  - generic [ref=e43]:
+                    - generic: РЕГИОН
+                  - generic [ref=e44]:
+                    - generic: СТАТУС
+                  - generic [ref=e45]:
+                    - generic: 0 ₽
+                  - generic [ref=e46]:
+                    - generic: МОСКВА - ЦЕНТРАЛЬНЫЙ
+                  - generic [ref=e47]:
+                    - generic: АКТИВНЫЙ
+                  - generic [ref=e48]:
+                    - generic: ЦЕНТР ЦВЕТА
+                  - button "ВСЕ" [ref=e49]
+                  - button "AUDI A6 LY9B · СОЗДАНА" [ref=e50]
+                  - button "BMW X5 300 · СОЗДАНА" [ref=e51]
+                  - generic [ref=e52]:
+                    - generic: МОЙ ДИСТРИБЬЮТОР
+          - button "Главная Tab 1 of 5" [ref=e53]
+          - button "Покупки Tab 2 of 5" [ref=e54]
+          - button "Цвет Tab 3 of 5" [ref=e55]
+          - button "AI Tab 4 of 5" [ref=e56]
+          - button "Профиль Tab 5 of 5" [ref=e57]

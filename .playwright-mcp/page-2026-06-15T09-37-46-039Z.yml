@@ -1,0 +1,44 @@
+- generic [active] [ref=e5]:
+  - generic:
+    - generic:
+      - generic:
+        - generic:
+          - generic:
+            - generic:
+              - generic:
+                - generic:
+                  - generic:
+                    - banner:
+                      - img [ref=e21]
+                - group:
+                  - generic [ref=e22]:
+                    - generic: ЧТО НУЖНО СДЕЛАТЬ?
+                  - generic:
+                    - generic:
+                      - button "ЗАКАЗЫ 1" [ref=e23]
+                      - button "ДОСТАВКИ 0" [ref=e24]
+                      - button "ПРОВЕРКА 2" [ref=e25]
+                      - button "КЛИЕНТЫ 3" [ref=e26]
+                  - button "COLOR LAB (ПОДБОР) 2" [ref=e27]
+                  - button "СКЛАД И АССОРТИМЕНТ OK" [ref=e28]
+                  - generic [ref=e29]:
+                    - generic: НОВЫЕ ЗАКАЗЫ
+                  - generic [ref=e30]:
+                    - generic: ORD-00002
+                  - generic [ref=e31]:
+                    - generic: ООО РОМАШКА
+                  - generic [ref=e32]:
+                    - generic: 0 ₽
+                  - button "ОТМЕНИТЬ" [ref=e33]
+                  - button "В РАБОТУ" [ref=e34]
+                  - generic [ref=e35]:
+                    - generic: ЗАЯВКИ НА ДОСТАВКУ
+                  - generic [ref=e36]:
+                    - generic: ЗАБОР ЛЮЧКА
+                  - generic [ref=e37]:
+                    - generic: ООО РОМАШКА
+                  - generic [ref=e38]:
+                    - generic: В ПУТИ
+          - button "Панель Tab 1 of 3" [ref=e39]
+          - button "Заказы Tab 2 of 3" [ref=e40]
+          - button "Профиль Tab 3 of 3" [ref=e41]

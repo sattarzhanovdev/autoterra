@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'core/constants.dart';
@@ -23,6 +24,7 @@ import 'screens/delivery/delivery_screen.dart';
 import 'screens/courier/courier_screen.dart';
 import 'screens/admin/unified_client_card_screen.dart';
 import 'widgets/common/role_switcher_wrapper.dart';
+import 'services/push_notification_manager.dart';
 
 import 'widgets/layouts/admin_layout.dart';
 import 'widgets/layouts/courier_layout.dart';
@@ -32,6 +34,7 @@ import 'screens/expert/expert_knowledge_base_screen.dart';
 import 'screens/distributor/distributor_clients_screen.dart';
 import 'screens/distributor/distributor_stock_screen.dart';
 import 'screens/distributor/distributor_integration_screen.dart';
+import 'screens/distributor/distributor_color_lab_screen.dart';
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>();
 final GlobalKey<NavigatorState> _shellNavigatorKey = GlobalKey<NavigatorState>();
@@ -47,9 +50,20 @@ final GoRouter _router = GoRouter(
     if (!ApiClient.isAuthorized && !isAuthRoute) {
       return AppRoutes.login;
     }
-    if (ApiClient.isAuthorized && state.matchedLocation == AppRoutes.login) {
+    if (ApiClient.isAuthorized && isAuthRoute) {
       return AppRoutes.home;
     }
+
+    final role = authService.currentRole;
+    final loc = state.matchedLocation;
+
+    if (loc.startsWith('/distributor/') && role != UserRole.distributor) {
+      return AppRoutes.home;
+    }
+    if (loc.startsWith(AppRoutes.admin) && role != UserRole.admin && role != UserRole.manager) {
+      return AppRoutes.home;
+    }
+
     return null;
   },
   routes: [
@@ -70,6 +84,7 @@ final GoRouter _router = GoRouter(
         GoRoute(path: AppRoutes.distributorClients, builder: (ctx, _) => const DistributorClientsScreen()),
         GoRoute(path: AppRoutes.distributorStock, builder: (ctx, _) => const DistributorStockScreen()),
         GoRoute(path: AppRoutes.distributorIntegration, builder: (ctx, _) => const DistributorIntegrationScreen()),
+        GoRoute(path: AppRoutes.distributorColorLab, builder: (ctx, _) => const DistributorColorLabScreen()),
         
         GoRoute(path: '/distributor-cabinet', builder: (ctx, _) => const DistributorCabinetScreen()),
         GoRoute(path: '/courier-cabinet', builder: (ctx, _) => const CourierScreen()),
@@ -103,23 +118,37 @@ class AutoterraApp extends StatelessWidget {
   }
 }
 
-class _MainShell extends StatelessWidget {
+class _MainShell extends StatefulWidget {
   final Widget child;
   final String location;
 
   const _MainShell({required this.child, required this.location});
 
+  @override
+  State<_MainShell> createState() => _MainShellState();
+}
+
+class _MainShellState extends State<_MainShell> {
+  @override
+  void initState() {
+    super.initState();
+    // FCM is mobile-only: FirebaseMessaging.instance crashes on web.
+    if (!kIsWeb) {
+      PushNotificationManager().init(_router);
+    }
+  }
+
   int get _currentIndex {
     final role = authService.currentRole;
     if (role == UserRole.distributor) {
-      if (location.startsWith(AppRoutes.purchases)) return 1;
-      if (location.startsWith(AppRoutes.profile)) return 2;
+      if (widget.location.startsWith(AppRoutes.purchases)) return 1;
+      if (widget.location.startsWith(AppRoutes.profile)) return 2;
       return 0;
     }
-    if (location.startsWith(AppRoutes.purchases)) return 1;
-    if (location.startsWith(AppRoutes.colorCenter)) return 2;
-    if (location.startsWith(AppRoutes.aiAssistant)) return 3;
-    if (location.startsWith(AppRoutes.profile)) return 4;
+    if (widget.location.startsWith(AppRoutes.purchases)) return 1;
+    if (widget.location.startsWith(AppRoutes.colorCenter)) return 2;
+    if (widget.location.startsWith(AppRoutes.aiAssistant)) return 3;
+    if (widget.location.startsWith(AppRoutes.profile)) return 4;
     return 0;
   }
 
@@ -143,7 +172,7 @@ class _MainShell extends StatelessWidget {
         final isDistributor = role == UserRole.distributor;
 
         return Scaffold(
-          body: child,
+          body: widget.child,
           bottomNavigationBar: Container(
             decoration: const BoxDecoration(
               border: Border(

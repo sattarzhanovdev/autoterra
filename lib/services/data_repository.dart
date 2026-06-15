@@ -84,12 +84,14 @@ class DistributorDashboardData {
   final List<Order> recentOrders;
   final List<Purchase> pendingPurchases;
   final List<CourierTask> recentDeliveryTasks;
+  final List<ColorRequest> pendingColorRequests;
 
   const DistributorDashboardData({
     required this.metrics,
     required this.recentOrders,
     required this.pendingPurchases,
     required this.recentDeliveryTasks,
+    required this.pendingColorRequests,
   });
 }
 
@@ -129,6 +131,7 @@ class DataRepository {
     final orders = await _api.distributorOrders();
     final purchases = await _api.distributorPurchases(toVerify: true);
     final deliveryTasks = await _api.distributorDeliveryTasks();
+    final colorRequests = await _api.distributorColorRequests();
 
     return DistributorDashboardData(
       metrics: _distributorMetricsFromJson(
@@ -137,6 +140,7 @@ class DataRepository {
       recentOrders: orders.map((item) => _orderFromJson(item)).toList(),
       pendingPurchases: purchases.map((item) => _purchaseFromJson(item)).toList(),
       recentDeliveryTasks: deliveryTasks.map((item) => _courierTaskFromJson(item)).toList(),
+      pendingColorRequests: _list(colorRequests['results']).map((item) => _colorRequestFromJson(item)).toList(),
     );
   }
 
@@ -148,6 +152,7 @@ class DataRepository {
       purchasesToVerify: (json['purchasesToVerify'] as num? ?? 0).toInt(),
       ordersToProcess: (json['ordersToProcess'] as num? ?? 0).toInt(),
       deliveriesToAssign: (json['deliveriesToAssign'] as num? ?? 0).toInt(),
+      colorLabPending: (json['colorLabPending'] as num? ?? 0).toInt(),
     );
   }
 
@@ -251,6 +256,16 @@ class DataRepository {
 
   Future<void> addProduct(Map<String, dynamic> data) async {
     await _api.addProduct(data);
+  }
+
+  Future<List<ColorRequest>> distributorColorRequests({String? status}) async {
+    final result = await _api.distributorColorRequests(status: status);
+    return _list(result['results']).map((item) => _colorRequestFromJson(item)).toList();
+  }
+
+  Future<ColorRequest> distributorUpdateColorRequest(String id, Map<String, dynamic> body) async {
+    final result = await _api.distributorUpdateColorRequest(id, body);
+    return _colorRequestFromJson(result['request'] as Map<String, dynamic>);
   }
 
   Future<Order> updateOrderStatus(String id, {required String status, String? reason, String? courierId, String? estimatedDeliveryDate}) async {

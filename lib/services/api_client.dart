@@ -142,7 +142,8 @@ class ApiClient {
 
   String exportUrl({String? regionId}) {
     final query = regionId != null ? '?region=$regionId' : '';
-    return '$baseUrl/reports/export/$query';
+    final path = 'reports/export/$query';
+    return baseUrl.endsWith('/') ? '$baseUrl$path' : '$baseUrl/$path';
   }
 
   Future<Map<String, dynamic>> managerDashboard({String? regionId, String? distributorId}) async {
@@ -173,6 +174,16 @@ class ApiClient {
 
   Future<void> markNotificationsRead() async {
     await _post('/notifications/read/', {});
+  }
+
+  Future<void> registerDeviceToken({
+    required String token,
+    required String platform,
+  }) async {
+    await _post('/notifications/token/', {
+      'token': token,
+      'platform': platform,
+    });
   }
 
   Future<Map<String, dynamic>> sendNotification({
@@ -286,7 +297,9 @@ class ApiClient {
     String fileField = 'file',
   }) async {
     try {
-      final request = http.MultipartRequest('POST', Uri.parse('$baseUrl$path'));
+      final normalizedPath = path.startsWith('/') ? path.substring(1) : path;
+      final fullUrl = baseUrl.endsWith('/') ? '$baseUrl$normalizedPath' : '$baseUrl/$normalizedPath';
+      final request = http.MultipartRequest('POST', Uri.parse(fullUrl));
       if (_token != null) {
         request.headers['Authorization'] = 'Bearer $_token';
       }
@@ -327,9 +340,11 @@ class ApiClient {
     String? fileName,
   }) async {
     final path = '/courier/tasks/$taskId/status/';
+    final normalizedPath = path.startsWith('/') ? path.substring(1) : path;
+    final fullUrl = baseUrl.endsWith('/') ? '$baseUrl$normalizedPath' : '$baseUrl/$normalizedPath';
     if (imageBytes != null && fileName != null) {
       try {
-        final request = http.MultipartRequest('POST', Uri.parse('$baseUrl$path'));
+        final request = http.MultipartRequest('POST', Uri.parse(fullUrl));
         if (_token != null) {
           request.headers['Authorization'] = 'Bearer $_token';
         }
@@ -455,11 +470,23 @@ class ApiClient {
     return _post('/distributor/stock/add/', body);
   }
 
+  Future<Map<String, dynamic>> distributorColorRequests({String? status}) async {
+    String path = '/distributor/color-requests/';
+    if (status != null) path += '?status=$status';
+    return _get(path);
+  }
+
+  Future<Map<String, dynamic>> distributorUpdateColorRequest(String id, Map<String, dynamic> body) async {
+    return _post('/distributor/color-requests/$id/status/', body);
+  }
+
   Future<Map<String, dynamic>> _patch(String path, dynamic body) async {
     try {
+      final normalizedPath = path.startsWith('/') ? path.substring(1) : path;
+      final fullUrl = baseUrl.endsWith('/') ? '$baseUrl$normalizedPath' : '$baseUrl/$normalizedPath';
       final response = await _httpClient
           .patch(
-            Uri.parse('$baseUrl$path'),
+            Uri.parse(fullUrl),
             headers: _headers(),
             body: jsonEncode(body),
           )
@@ -473,7 +500,9 @@ class ApiClient {
 
   Future<Map<String, dynamic>> _get(String path, {Map<String, String>? params}) async {
     try {
-      final uri = Uri.parse('$baseUrl$path').replace(queryParameters: params);
+      final normalizedPath = path.startsWith('/') ? path.substring(1) : path;
+      final fullUrl = baseUrl.endsWith('/') ? '$baseUrl$normalizedPath' : '$baseUrl/$normalizedPath';
+      final uri = Uri.parse(fullUrl).replace(queryParameters: params);
       final response = await _httpClient
           .get(uri, headers: _headers())
           .timeout(const Duration(seconds: 15));
@@ -490,9 +519,11 @@ class ApiClient {
     Duration timeout = const Duration(seconds: 15),
   }) async {
     try {
+      final normalizedPath = path.startsWith('/') ? path.substring(1) : path;
+      final fullUrl = baseUrl.endsWith('/') ? '$baseUrl$normalizedPath' : '$baseUrl/$normalizedPath';
       final response = await _httpClient
           .post(
-            Uri.parse('$baseUrl$path'),
+            Uri.parse(fullUrl),
             headers: _headers(),
             body: jsonEncode(body),
           )

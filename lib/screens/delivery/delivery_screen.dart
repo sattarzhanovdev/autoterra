@@ -55,9 +55,11 @@ class _DeliveryScreenState extends State<DeliveryScreen>
           ],
         ),
       ),
-      body: TabBarView(
-        controller: _tabCtrl,
-        children: [_buildActiveTab(), _buildHistoryTab()],
+      body: SafeArea(
+        child: TabBarView(
+          controller: _tabCtrl,
+          children: [_buildActiveTab(), _buildHistoryTab()],
+        ),
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showDeliveryEditSheet(context, null),
@@ -369,119 +371,124 @@ class _DeliveryRequestSheetState extends State<_DeliveryRequestSheet> {
   Widget build(BuildContext context) {
     return Container(
       decoration: const BoxDecoration(color: Colors.white),
-      padding: EdgeInsets.fromLTRB(
-        16, 20, 16, 16 + MediaQuery.of(context).viewInsets.bottom,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      child: SafeArea(
+        top: false, // Scaffold already handles top
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(
+            16, 20, 16, 16 + MediaQuery.of(context).viewInsets.bottom,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(
-                widget.initialTask != null ? 'ИЗМЕНЕНИЕ ЗАЯВКИ' : 'НОВАЯ ЗАЯВКА КУРЬЕРУ',
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: 1),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    widget.initialTask != null ? 'ИЗМЕНЕНИЕ ЗАЯВКИ' : 'НОВАЯ ЗАЯВКА КУРЬЕРУ',
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: 1),
+                  ),
+                  IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close)),
+                ],
               ),
-              IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close)),
-            ],
-          ),
-          const SizedBox(height: 20),
-          Row(
-            children: [
-              _typeBtn('delivery', 'ДОСТАВКА'),
-              const SizedBox(width: 8),
-              _typeBtn('return', 'ВОЗВРАТ'),
-            ],
-          ),
-          const SizedBox(height: 20),
-          TextField(
-            controller: _addrCtrl,
-            decoration: const InputDecoration(
-              labelText: 'АДРЕС *',
-              prefixIcon: Icon(Icons.location_on_outlined, size: 20),
-            ),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: _contactCtrl,
-                  decoration: const InputDecoration(labelText: 'КОНТАКТНОЕ ЛИЦО'),
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  _typeBtn('delivery', 'ДОСТАВКА'),
+                  const SizedBox(width: 8),
+                  _typeBtn('return', 'ВОЗВРАТ'),
+                ],
+              ),
+              const SizedBox(height: 20),
+              TextField(
+                controller: _addrCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'АДРЕС *',
+                  prefixIcon: Icon(Icons.location_on_outlined, size: 20),
                 ),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: TextField(
-                  controller: _phoneCtrl,
-                  decoration: const InputDecoration(labelText: 'ТЕЛЕФОН'),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _contactCtrl,
+                      decoration: const InputDecoration(labelText: 'КОНТАКТНОЕ ЛИЦО'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: TextField(
+                      controller: _phoneCtrl,
+                      decoration: const InputDecoration(labelText: 'ТЕЛЕФОН'),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _timeSlotCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'ВРЕМЕННОЙ ИНТЕРВАЛ',
+                  prefixIcon: Icon(Icons.access_time, size: 20),
                 ),
               ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _timeSlotCtrl,
-            decoration: const InputDecoration(
-              labelText: 'ВРЕМЕННОЙ ИНТЕРВАЛ',
-              prefixIcon: Icon(Icons.access_time, size: 20),
-            ),
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _commentCtrl,
-            decoration: const InputDecoration(
-              labelText: 'КОММЕНТАРИЙ',
-              prefixIcon: Icon(Icons.comment_outlined, size: 20),
-            ),
-            maxLines: 2,
-          ),
-          const SizedBox(height: 24),
-          if (widget.initialTask != null)
-            Row(
-              children: [
-                Expanded(
-                  child: SizedBox(
-                    height: 54,
-                    child: OutlinedButton(
-                      onPressed: _saving ? null : _handleDelete,
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: AppColors.error,
-                        side: const BorderSide(color: AppColors.error),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _commentCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'КОММЕНТАРИЙ',
+                  prefixIcon: Icon(Icons.comment_outlined, size: 20),
+                ),
+                maxLines: 2,
+              ),
+              const SizedBox(height: 24),
+              if (widget.initialTask != null)
+                Row(
+                  children: [
+                    Expanded(
+                      child: SizedBox(
+                        height: 54,
+                        child: OutlinedButton(
+                          onPressed: _saving ? null : _handleDelete,
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppColors.error,
+                            side: const BorderSide(color: AppColors.error),
+                          ),
+                          child: const Text('ОТМЕНИТЬ'),
+                        ),
                       ),
-                      child: const Text('ОТМЕНИТЬ'),
                     ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: SizedBox(
+                        height: 54,
+                        child: ElevatedButton(
+                          onPressed: (_saving || !_hasChanges) ? null : _submit,
+                          style: ElevatedButton.styleFrom(backgroundColor: AppColors.brandBlack),
+                          child: Text(_saving ? 'СОХРАНЕНИЕ...' : 'ПОДТВЕРДИТЬ'),
+                        ),
+                      ),
+                    ),
+                  ],
+                )
+              else
+                SizedBox(
+                  height: 54,
+                  child: ElevatedButton(
+                    onPressed: (_saving || !_hasChanges) ? null : _submit,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.brandBlack,
+                      shape: const BeveledRectangleBorder(),
+                    ),
+                    child: _saving 
+                      ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                      : const Text('ОТПРАВИТЬ ЗАЯВКУ', style: TextStyle(fontWeight: FontWeight.w900)),
                   ),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: SizedBox(
-                    height: 54,
-                    child: ElevatedButton(
-                      onPressed: (_saving || !_hasChanges) ? null : _submit,
-                      style: ElevatedButton.styleFrom(backgroundColor: AppColors.brandBlack),
-                      child: Text(_saving ? 'СОХРАНЕНИЕ...' : 'ПОДТВЕРДИТЬ'),
-                    ),
-                  ),
-                ),
-              ],
-            )
-          else
-            SizedBox(
-              height: 54,
-              child: ElevatedButton(
-                onPressed: (_saving || !_hasChanges) ? null : _submit,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.brandBlack,
-                  shape: const BeveledRectangleBorder(),
-                ),
-                child: _saving 
-                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                  : const Text('ОТПРАВИТЬ ЗАЯВКУ', style: TextStyle(fontWeight: FontWeight.w900)),
-              ),
-            ),
-        ],
+            ],
+          ),
+        ),
       ),
     );
   }

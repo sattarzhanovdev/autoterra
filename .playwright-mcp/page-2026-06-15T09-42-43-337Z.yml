@@ -1,0 +1,25 @@
+- generic [ref=e5] [cursor=pointer]:
+  - generic:
+    - generic:
+      - generic:
+        - generic:
+          - generic:
+            - generic:
+              - generic:
+                - button [ref=e43]
+                - heading "УПРАВЛЕНИЕ СКЛАДОМ" [level=2] [ref=e44]
+                - button [ref=e45]
+                - button [ref=e46]
+                - button [active] [ref=e47]
+              - textbox "ПОИСК ПО SKU ИЛИ НАЗВАНИЮ" [ref=e49]
+              - generic:
+                - group:
+                  - generic [ref=e50]:
+                    - generic: "GRN-8-02 1800 ₽ ГРУНТ-ИЗОЛЯТОР AUTOTERRA · 0 Л ОСТАТОК: 3 ШТ МАЛО"
+                  - generic [ref=e51]:
+                    - generic: "LAK-8-01 2500 ₽ ЛАК ULTRA GLOSS AUTOTERRA · 0 Л ОСТАТОК: 50 ШТ"
+                  - generic [ref=e52]:
+                    - generic: "RZB-8-03 900 ₽ РАЗБАВИТЕЛЬ АКРИЛОВЫЙ AUTOTERRA · 0 Л ОСТАТОК: 0 ШТ НЕТ В НАЛИЧИИ"
+          - button "Панель Tab 1 of 3" [ref=e39]
+          - button "Заказы Tab 2 of 3" [ref=e40]
+          - button "Профиль Tab 3 of 3" [ref=e41]

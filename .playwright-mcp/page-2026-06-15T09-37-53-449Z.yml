@@ -1,0 +1,8 @@
+- generic [active] [ref=e5]:
+  - generic:
+    - generic:
+      - generic:
+        - generic:
+          - button "Панель Tab 1 of 3" [ref=e39]
+          - button "Заказы Tab 2 of 3" [ref=e40]
+          - button "Профиль Tab 3 of 3" [ref=e41]

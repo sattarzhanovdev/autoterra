@@ -45,4 +45,5 @@ class AppRoutes {
   static const distributorClients = '/distributor/clients';
   static const distributorStock = '/distributor/stock';
   static const distributorIntegration = '/distributor/integration';
+  static const distributorColorLab = '/distributor/color-lab';
 }

@@ -130,12 +130,14 @@ class DistributorDashboardMetrics {
   final int purchasesToVerify;
   final int ordersToProcess;
   final int deliveriesToAssign;
+  final int colorLabPending;
 
   const DistributorDashboardMetrics({
     required this.clients,
     required this.purchasesToVerify,
     required this.ordersToProcess,
     required this.deliveriesToAssign,
+    required this.colorLabPending,
   });
 }
 
@@ -289,6 +291,7 @@ class StockItem {
 class ColorRequest {
   final String id;
   final String clientId;
+  final String? clientName;
   final String carBrand;
   final String carModel;
   final String vin;
@@ -310,6 +313,7 @@ class ColorRequest {
   const ColorRequest({
     required this.id,
     required this.clientId,
+    this.clientName,
     required this.carBrand,
     required this.carModel,
     required this.vin,
@@ -333,6 +337,7 @@ class ColorRequest {
     return ColorRequest(
       id: json['id'].toString(),
       clientId: json['clientId'].toString(),
+      clientName: json['clientName'],
       carBrand: json['carBrand'] ?? '',
       carModel: json['carModel'] ?? '',
       vin: json['vin'] ?? '',

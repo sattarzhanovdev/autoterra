@@ -454,9 +454,39 @@ class _NewColorRequestSheetState extends State<_NewColorRequestSheet> {
   }
 
   Future<void> _pickImage() async {
+    final source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Padding(
+              padding: EdgeInsets.all(16),
+              child: Text('ВЫБЕРИТЕ ИСТОЧНИК ФОТО', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 1)),
+            ),
+            ListTile(
+              leading: const Icon(Icons.camera_alt_outlined, color: AppColors.brandBlack),
+              title: const Text('СДЕЛАТЬ ФОТО', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+              onTap: () => Navigator.pop(ctx, ImageSource.camera),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library_outlined, color: AppColors.brandBlack),
+              title: const Text('ВЫБРАТЬ ИЗ ГАЛЕРЕИ', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+              onTap: () => Navigator.pop(ctx, ImageSource.gallery),
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+
+    if (source == null) return;
+
     final picker = ImagePicker();
     final img = await picker.pickImage(
-      source: ImageSource.camera,
+      source: source,
       imageQuality: 50,
       maxWidth: 1024,
       maxHeight: 1024,

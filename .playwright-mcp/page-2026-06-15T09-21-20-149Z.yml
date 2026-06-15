@@ -1,0 +1,56 @@
+- generic [ref=e5]:
+  - generic:
+    - generic:
+      - generic:
+        - generic:
+          - heading "РЕФЕРАЛЬНАЯ ПРОГРАММА" [active] [level=2] [ref=e20]
+          - group:
+            - generic [ref=e21]:
+              - generic: КАК ЭТО РАБОТАЕТ
+            - generic [ref=e22]:
+              - generic: "1"
+            - generic [ref=e23]:
+              - generic: ОТПРАВЬТЕ РЕФЕРАЛЬНЫЙ КОД ДРУГОМУ СТО
+            - generic [ref=e24]:
+              - generic: "2"
+            - generic [ref=e25]:
+              - generic: СТО РЕГИСТРИРУЕТСЯ И ДЕЛАЕТ ЗАКАЗЫ
+            - generic [ref=e26]:
+              - generic: "3"
+            - generic [ref=e27]:
+              - generic: СУММА ЗАКАЗОВ ДОСТИГАЕТ 30 000 ₽
+            - generic [ref=e28]:
+              - generic: "4"
+            - generic [ref=e29]:
+              - generic: ВЫ ПОЛУЧАЕТЕ СЕРТИФИКАТ НА 5 000 ₽
+            - generic [ref=e30]:
+              - generic: ВАШ РЕФЕРАЛЬНЫЙ КОД
+            - generic [ref=e31]:
+              - generic: AT-MASTER-2847
+            - button [ref=e32]
+            - button "ПОДЕЛИТЬСЯ" [ref=e33]
+            - generic [ref=e34]:
+              - generic: "1"
+            - generic [ref=e35]:
+              - generic: "0"
+            - generic [ref=e36]:
+              - generic: "0"
+            - generic [ref=e37]:
+              - generic: СТО
+            - generic [ref=e38]:
+              - generic: АКТИВНЫЕ
+            - generic [ref=e39]:
+              - generic: БОНУСЫ
+            - generic [ref=e40]:
+              - generic: МОИ ПРИГЛАШЕНИЯ
+            - button "ДОБАВИТЬ +" [ref=e41]
+            - generic [ref=e42]:
+              - generic: ИП ИВАНОВ
+            - generic [ref=e43]:
+              - generic: "ИНН: 7709876543 · МОСКВА - ЦЕНТРАЛЬНЫЙ"
+            - generic [ref=e44]:
+              - generic: РЕГИСТРАЦИЯ
+            - generic [ref=e45]:
+              - generic: ЗАКАЗЫ
+            - generic [ref=e46]:
+              - generic: БОНУС

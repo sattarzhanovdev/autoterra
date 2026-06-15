@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "322995292087",
+    "project_id": "autoterra-89f12",
+    "storage_bucket": "autoterra-89f12.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:322995292087:android:9bdd4b63b08c5e0af78a32",
+        "android_client_info": {
+          "package_name": "com.example.autoterra"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAZrviPQAWe_XFs5yLE0XSF2KvxX0j8d_k"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

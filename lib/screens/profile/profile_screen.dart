@@ -6,7 +6,6 @@ import '../../core/constants.dart';
 import '../../models/models.dart';
 import '../../services/data_repository.dart';
 import '../../services/auth_service.dart';
-import '../../services/api_client.dart';
 import '../../widgets/common/status_badge.dart';
 import '../../widgets/common/premium_icon_badge.dart';
 import '../../widgets/common/section_header.dart';
@@ -35,15 +34,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
     
     if (role == UserRole.client) {
       next = DataRepository().dashboard();
-    } else if (role == UserRole.distributor) {
-      next = ApiClient().me();
     } else if (role == UserRole.courier) {
       next = Future.value(authService.currentUserData);
     } else if (role == UserRole.aiExpert) {
       // Handled by returning different widget in build
       next = Future.value({}); 
     } else {
-      // manager, admin
+      // distributor, manager, admin
       next = DataRepository().me();
     }
     

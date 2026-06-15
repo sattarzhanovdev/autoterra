@@ -1,0 +1,58 @@
+- generic [ref=e5]:
+  - generic:
+    - generic:
+      - generic:
+        - generic:
+          - heading "РЕФЕРАЛЬНАЯ ПРОГРАММА" [active] [level=2] [ref=e55]
+          - group:
+            - generic [ref=e56]:
+              - generic: КАК ЭТО РАБОТАЕТ
+            - generic [ref=e57]:
+              - generic: "1"
+            - generic [ref=e58]:
+              - generic: ОТПРАВЬТЕ РЕФЕРАЛЬНЫЙ КОД ДРУГОМУ СТО
+            - generic [ref=e59]:
+              - generic: "2"
+            - generic [ref=e60]:
+              - generic: СТО РЕГИСТРИРУЕТСЯ И ДЕЛАЕТ ЗАКАЗЫ
+            - generic [ref=e61]:
+              - generic: "3"
+            - generic [ref=e62]:
+              - generic: СУММА ЗАКАЗОВ ДОСТИГАЕТ 30 000 ₽
+            - generic [ref=e63]:
+              - generic: "4"
+            - generic [ref=e64]:
+              - generic: ВЫ ПОЛУЧАЕТЕ СЕРТИФИКАТ НА 5 000 ₽
+            - generic [ref=e65]:
+              - generic: ВАШ РЕФЕРАЛЬНЫЙ КОД
+            - generic [ref=e66]:
+              - generic: AT-MASTER-2847
+            - button [ref=e67]
+            - button "ПОДЕЛИТЬСЯ" [ref=e68]
+            - generic [ref=e69]:
+              - generic: "1"
+            - generic [ref=e70]:
+              - generic: "1"
+            - generic [ref=e71]:
+              - generic: "1"
+            - generic [ref=e72]:
+              - generic: СТО
+            - generic [ref=e73]:
+              - generic: АКТИВНЫЕ
+            - generic [ref=e74]:
+              - generic: БОНУСЫ
+            - generic [ref=e75]:
+              - generic: МОИ ПРИГЛАШЕНИЯ
+            - button "ДОБАВИТЬ +" [ref=e76]
+            - generic [ref=e77]:
+              - generic: ИП ИВАНОВ
+            - generic [ref=e78]:
+              - generic: "ИНН: 7709876543 · МОСКВА - ЦЕНТРАЛЬНЫЙ"
+            - generic [ref=e79]:
+              - generic: РЕГИСТРАЦИЯ
+            - generic [ref=e80]:
+              - generic: ЗАКАЗЫ
+            - generic [ref=e81]:
+              - generic: БОНУС
+            - generic [ref=e82]:
+              - generic: СЕРТИФИКАТ НА 5000 ₽
