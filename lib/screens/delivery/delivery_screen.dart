@@ -12,15 +12,12 @@ class DeliveryScreen extends StatefulWidget {
   State<DeliveryScreen> createState() => _DeliveryScreenState();
 }
 
-class _DeliveryScreenState extends State<DeliveryScreen>
-    with SingleTickerProviderStateMixin {
-  late TabController _tabCtrl;
+class _DeliveryScreenState extends State<DeliveryScreen> {
   late Future<List<CourierTask>> _future;
 
   @override
   void initState() {
     super.initState();
-    _tabCtrl = TabController(length: 2, vsync: this);
     _future = DataRepository().courierTasks();
   }
 
@@ -37,29 +34,13 @@ class _DeliveryScreenState extends State<DeliveryScreen>
   }
 
   @override
-  void dispose() {
-    _tabCtrl.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Доставка'),
-        bottom: TabBar(
-          controller: _tabCtrl,
-          tabs: const [
-            Tab(text: 'АКТИВНЫЕ'),
-            Tab(text: 'ИСТОРИЯ'),
-          ],
-        ),
       ),
       body: SafeArea(
-        child: TabBarView(
-          controller: _tabCtrl,
-          children: [_buildActiveTab(), _buildHistoryTab()],
-        ),
+        child: _buildActiveTab(),
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showDeliveryEditSheet(context, null),
@@ -133,89 +114,6 @@ class _DeliveryScreenState extends State<DeliveryScreen>
               onStatusChange: (newStatus) {},
               onTap: () => _showDeliveryEditSheet(context, tasks[i]),
             ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildHistoryTab() {
-    return FutureBuilder<List<CourierTask>>(
-      future: _future,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState != ConnectionState.done) {
-          return const Center(child: CircularProgressIndicator());
-        }
-        if (snapshot.hasError) {
-          return Center(child: Text(snapshot.error.toString()));
-        }
-        final tasks = snapshot.data!.where((t) => t.status.index >= 3).toList();
-        if (tasks.isEmpty) {
-          return RefreshIndicator(
-            onRefresh: _refresh,
-            child: ListView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              children: const [
-                SizedBox(height: 220),
-                Center(child: Text('История пуста')),
-              ],
-            ),
-          );
-        }
-        return RefreshIndicator(
-          onRefresh: _refresh,
-          child: ListView.builder(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.all(16),
-            itemCount: tasks.length,
-            itemBuilder: (ctx, i) {
-              final task = tasks[i];
-              return Container(
-                margin: const EdgeInsets.only(bottom: 10),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  border: Border.all(color: AppColors.border),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(14),
-                  child: Row(
-                    children: [
-                      PremiumIconBadge(
-                        icon: task.taskType == 'pickup'
-                            ? Icons.call_received
-                            : Icons.local_shipping_outlined,
-                        size: 40,
-                        iconSize: 20,
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              task.typeDisplay.toUpperCase(),
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w700,
-                                fontSize: 14,
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              task.address,
-                              style: const TextStyle(
-                                color: AppColors.textSecondary,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      StatusBadge.fromCourierStatus(task.status),
-                    ],
-                  ),
-                ),
-              );
-            },
           ),
         );
       },

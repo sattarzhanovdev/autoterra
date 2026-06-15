@@ -20,7 +20,7 @@ class PushNotificationManager {
   factory PushNotificationManager() => _instance;
   PushNotificationManager._();
 
-  bool _initialized = false;
+  bool _listenersRegistered = false;
 
   final _fcm = FirebaseMessaging.instance;
   final _localNotifications = FlutterLocalNotificationsPlugin();
@@ -28,19 +28,24 @@ class PushNotificationManager {
   static const _channelId = 'autoterra_default';
   static const _channelName = 'AutoTerra уведомления';
 
-  /// Call once — right after the authenticated shell is mounted.
-  /// Protected by [_initialized] so it's safe to call repeatedly.
+  /// Call on every authenticated shell mount.
+  ///
+  /// One-time setup (channels, listeners) is guarded by [_listenersRegistered].
+  /// Token registration runs every time so the backend always has a valid
+  /// token after login — including after logout → re-login without restart.
   Future<void> init(GoRouter router) async {
-    if (_initialized) return;
-    _initialized = true;
-
     await _requestPermissions();
-    await _setupLocalNotifications();
+
+    if (!_listenersRegistered) {
+      _listenersRegistered = true;
+      await _setupLocalNotifications();
+      _listenTokenRefresh();
+      _listenForeground();
+      _listenBackgroundTap(router);
+      await _handleInitialMessage(router);
+    }
+
     await _registerToken();
-    _listenTokenRefresh();
-    _listenForeground();
-    _listenBackgroundTap(router);
-    await _handleInitialMessage(router);
   }
 
   // ── 1. Permissions ────────────────────────────────────────────────────────
@@ -162,9 +167,9 @@ class PushNotificationManager {
   void _navigateFromMessage(GoRouter router, RemoteMessage message) {
     final relatedLink = message.data['relatedLink'] as String?;
     if (relatedLink != null && relatedLink.isNotEmpty) {
-      router.go(relatedLink);
+      router.push(relatedLink);
     } else {
-      router.go(AppRoutes.notifications);
+      router.push(AppRoutes.notifications);
     }
   }
 }

@@ -61,10 +61,6 @@ class _DistributorClientsScreenState extends State<DistributorClientsScreen> {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: const Color(0xFF171717),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
-          onPressed: () => Navigator.maybePop(context),
-        ),
         title: const Text('КЛИЕНТЫ РЕГИОНА', style: TextStyle(letterSpacing: 1.5, fontWeight: FontWeight.w900)),
       ),
       body: Column(

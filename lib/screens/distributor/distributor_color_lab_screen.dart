@@ -12,9 +12,8 @@ class DistributorColorLabScreen extends StatefulWidget {
   State<DistributorColorLabScreen> createState() => _DistributorColorLabScreenState();
 }
 
-class _DistributorColorLabScreenState extends State<DistributorColorLabScreen>
-    with SingleTickerProviderStateMixin {
-  late TabController _tabCtrl;
+// No SingleTickerProviderStateMixin — Historia tab removed entirely.
+class _DistributorColorLabScreenState extends State<DistributorColorLabScreen> {
   List<ColorRequest> _requests = [];
   bool _loading = true;
   String? _error;
@@ -22,14 +21,7 @@ class _DistributorColorLabScreenState extends State<DistributorColorLabScreen>
   @override
   void initState() {
     super.initState();
-    _tabCtrl = TabController(length: 2, vsync: this);
     _load();
-  }
-
-  @override
-  void dispose() {
-    _tabCtrl.dispose();
-    super.dispose();
   }
 
   Future<void> _load() async {
@@ -57,28 +49,15 @@ class _DistributorColorLabScreenState extends State<DistributorColorLabScreen>
 
   @override
   Widget build(BuildContext context) {
+    // Only active requests — История removed.
     final active = _requests
         .where((r) =>
             r.status != ColorRequestStatus.delivered &&
             r.status != ColorRequestStatus.cancelled)
         .toList();
-    final history = _requests
-        .where((r) =>
-            r.status == ColorRequestStatus.delivered ||
-            r.status == ColorRequestStatus.cancelled)
-        .toList();
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('COLOR LAB (ПОДБОР)'),
-        bottom: TabBar(
-          controller: _tabCtrl,
-          tabs: const [
-            Tab(text: 'АКТИВНЫЕ'),
-            Tab(text: 'ИСТОРИЯ'),
-          ],
-        ),
-      ),
+      appBar: AppBar(title: const Text('COLOR LAB (ПОДБОР)')),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
@@ -92,25 +71,24 @@ class _DistributorColorLabScreenState extends State<DistributorColorLabScreen>
                     ],
                   ),
                 )
-              : TabBarView(
-                  controller: _tabCtrl,
-                  children: [
-                    _buildList(active, emptyText: 'НЕТ АКТИВНЫХ ЗАЯВОК'),
-                    _buildList(history, emptyText: 'ИСТОРИЯ ПУСТА'),
-                  ],
-                ),
+              : _buildList(active),
     );
   }
 
-  Widget _buildList(List<ColorRequest> items, {required String emptyText}) {
+  Widget _buildList(List<ColorRequest> items) {
     if (items.isEmpty) {
       return RefreshIndicator(
         onRefresh: _load,
         child: ListView(
           physics: const AlwaysScrollableScrollPhysics(),
-          children: [
-            const SizedBox(height: 220),
-            Center(child: Text(emptyText, style: const TextStyle(color: AppColors.textSecondary, fontWeight: FontWeight.bold))),
+          children: const [
+            SizedBox(height: 220),
+            Center(
+              child: Text(
+                'НЕТ АКТИВНЫХ ЗАЯВОК',
+                style: TextStyle(color: AppColors.textSecondary, fontWeight: FontWeight.bold),
+              ),
+            ),
           ],
         ),
       );
@@ -128,6 +106,10 @@ class _DistributorColorLabScreenState extends State<DistributorColorLabScreen>
   }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Card
+// ─────────────────────────────────────────────────────────────────────────────
+
 class _ColorLabCard extends StatelessWidget {
   final ColorRequest request;
   final VoidCallback onUpdate;
@@ -136,9 +118,16 @@ class _ColorLabCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final status = request.status;
+
+    // "Завершить подбор" — when color matching is still in progress.
     final canProcess = status == ColorRequestStatus.created ||
         status == ColorRequestStatus.pickedUp ||
         status == ColorRequestStatus.inProgress;
+
+    // "Назначить курьера" — matching is done AND delivery is by courier.
+    // Bug fix: was missing entirely; condition was never evaluated.
+    final needsCourier = status == ColorRequestStatus.ready &&
+        request.transferMethod == 'courier';
 
     return Container(
       padding: const EdgeInsets.all(12),
@@ -156,6 +145,7 @@ class _ColorLabCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // ── Header row ──────────────────────────────────────────────────────
           Row(
             children: [
               const PremiumIconBadge(
@@ -176,14 +166,19 @@ class _ColorLabCard extends StatelessWidget {
                     Text(
                       'Код: ${request.colorCode} · ${request.clientName ?? "Клиент"}'.toUpperCase(),
                       style: const TextStyle(
-                          color: AppColors.textSecondary, fontSize: 10, fontWeight: FontWeight.bold),
+                        color: AppColors.textSecondary,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ],
                 ),
               ),
-              StatusBadge.fromColorStatus(request.status),
+              StatusBadge.fromColorStatus(status),
             ],
           ),
+
+          // ── Colour name ────────────────────────────────────────────────────
           if (request.colorName.isNotEmpty) ...[
             const SizedBox(height: 8),
             Row(
@@ -192,11 +187,17 @@ class _ColorLabCard extends StatelessWidget {
                 const SizedBox(width: 6),
                 Text(
                   request.colorName.toUpperCase(),
-                  style: const TextStyle(fontSize: 11, color: AppColors.textSecondary, fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: AppColors.textSecondary,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ],
             ),
           ],
+
+          // ── Comment ────────────────────────────────────────────────────────
           if (request.comment != null && request.comment!.isNotEmpty) ...[
             const SizedBox(height: 4),
             Row(
@@ -214,13 +215,22 @@ class _ColorLabCard extends StatelessWidget {
               ],
             ),
           ],
+
+          // ── Recipe preview ────────────────────────────────────────────────
           if (request.recipe != null && request.recipe!.isNotEmpty) ...[
             const Divider(height: 24, thickness: 0.5),
             Row(
               children: [
                 const Icon(Icons.science_outlined, size: 14, color: AppColors.success),
                 const SizedBox(width: 6),
-                const Text('РЕЦЕПТ:', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: AppColors.success)),
+                const Text(
+                  'РЕЦЕПТ:',
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w900,
+                    color: AppColors.success,
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 4),
@@ -231,6 +241,8 @@ class _ColorLabCard extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
             ),
           ],
+
+          // ── Action: complete colour matching ───────────────────────────────
           if (canProcess) ...[
             const Divider(height: 24, thickness: 0.5),
             SizedBox(
@@ -242,8 +254,31 @@ class _ColorLabCard extends StatelessWidget {
                   minimumSize: const Size(0, 34),
                   padding: EdgeInsets.zero,
                 ),
-                child: const Text('ЗАВЕРШИТЬ ПОДБОР',
-                    style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900)),
+                child: const Text(
+                  'ЗАВЕРШИТЬ ПОДБОР',
+                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900),
+                ),
+              ),
+            ),
+          ],
+
+          // ── Action: assign courier (fixed — was hidden, now shown correctly)
+          if (needsCourier) ...[
+            const Divider(height: 24, thickness: 0.5),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () => _showAssignCourierSheet(context),
+                icon: const Icon(Icons.delivery_dining_outlined, size: 16),
+                label: const Text(
+                  'НАЗНАЧИТЬ КУРЬЕРА',
+                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.brandRed,
+                  minimumSize: const Size(0, 34),
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                ),
               ),
             ),
           ],
@@ -261,7 +296,21 @@ class _ColorLabCard extends StatelessWidget {
       builder: (_) => _CompleteSheet(request: request, onUpdate: onUpdate),
     );
   }
+
+  void _showAssignCourierSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _AssignCourierSheet(request: request, onUpdate: onUpdate),
+    );
+  }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Complete colour-matching sheet (existing, unchanged)
+// ─────────────────────────────────────────────────────────────────────────────
 
 class _CompleteSheet extends StatefulWidget {
   final ColorRequest request;
@@ -290,7 +339,8 @@ class _CompleteSheetState extends State<_CompleteSheet> {
 
   Future<void> _submit() async {
     if (_recipeCtrl.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Введите формулу/рецепт')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Введите формулу/рецепт')));
       return;
     }
     setState(() => _saving = true);
@@ -321,7 +371,8 @@ class _CompleteSheetState extends State<_CompleteSheet> {
   Widget build(BuildContext context) {
     return Container(
       decoration: const BoxDecoration(color: Colors.white),
-      padding: EdgeInsets.fromLTRB(16, 20, 16, 16 + MediaQuery.of(context).viewInsets.bottom),
+      padding: EdgeInsets.fromLTRB(
+          16, 20, 16, 16 + MediaQuery.of(context).viewInsets.bottom),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -333,12 +384,15 @@ class _CompleteSheetState extends State<_CompleteSheet> {
                 'ЗАВЕРШЕНИЕ ПОДБОРА',
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: 1),
               ),
-              IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close)),
+              IconButton(
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.close)),
             ],
           ),
           const SizedBox(height: 8),
           Text(
-            '${widget.request.carBrand} ${widget.request.carModel} · ${widget.request.colorCode}'.toUpperCase(),
+            '${widget.request.carBrand} ${widget.request.carModel} · ${widget.request.colorCode}'
+                .toUpperCase(),
             style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
           ),
           if (widget.request.clientName != null) ...[
@@ -366,7 +420,264 @@ class _CompleteSheetState extends State<_CompleteSheet> {
               style: ElevatedButton.styleFrom(backgroundColor: AppColors.brandBlack),
               child: _saving
                   ? const CircularProgressIndicator(color: Colors.white)
-                  : const Text('ГОТОВО (УВЕДОМИТЬ КЛИЕНТА)', style: TextStyle(fontWeight: FontWeight.w900)),
+                  : const Text(
+                      'ГОТОВО (УВЕДОМИТЬ КЛИЕНТА)',
+                      style: TextStyle(fontWeight: FontWeight.w900),
+                    ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Assign courier sheet (new — Task 1 + Task 3)
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _AssignCourierSheet extends StatefulWidget {
+  final ColorRequest request;
+  final VoidCallback onUpdate;
+  const _AssignCourierSheet({required this.request, required this.onUpdate});
+
+  @override
+  State<_AssignCourierSheet> createState() => _AssignCourierSheetState();
+}
+
+class _AssignCourierSheetState extends State<_AssignCourierSheet> {
+  String? _selectedCourierId;
+  bool _loadingCouriers = true;
+  bool _saving = false;
+  List<Map<String, dynamic>> _couriers = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCouriers();
+  }
+
+  Future<void> _loadCouriers() async {
+    try {
+      final data = await DataRepository().distributorCouriers();
+      if (mounted) {
+        setState(() {
+          _couriers = data;
+          _loadingCouriers = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _loadingCouriers = false);
+    }
+  }
+
+  Future<void> _confirm() async {
+    if (_selectedCourierId == null) return;
+    setState(() => _saving = true);
+    try {
+      await DataRepository().distributorUpdateColorRequest(
+        widget.request.id,
+        {'status': 'delivered', 'courier_id': _selectedCourierId},
+      );
+      if (mounted) {
+        widget.onUpdate();
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Курьер назначен — заявка завершена'),
+            backgroundColor: AppColors.success,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _saving = false);
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Ошибка: $e')));
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final r = widget.request;
+
+    return Container(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Drag handle
+          Center(
+            child: Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: AppColors.border,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Header
+          Row(
+            children: [
+              const PremiumIconBadge(
+                icon: Icons.delivery_dining_outlined,
+                size: 40,
+                iconSize: 20,
+                iconColor: AppColors.brandRed,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'НАЗНАЧИТЬ КУРЬЕРА',
+                      style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 0.5),
+                    ),
+                    Text(
+                      '${r.carBrand} ${r.carModel} · ${r.colorCode}'.toUpperCase(),
+                      style: const TextStyle(
+                          fontSize: 11,
+                          color: AppColors.textSecondary,
+                          fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+              ),
+              IconButton(
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.close)),
+            ],
+          ),
+          const Divider(height: 24),
+
+          // Request summary
+          if (r.clientName != null)
+            _SheetRow(icon: Icons.person_outline, label: 'Клиент', value: r.clientName!),
+          if (r.pickupAddress != null)
+            _SheetRow(icon: Icons.location_on_outlined, label: 'Адрес', value: r.pickupAddress!),
+          if (r.contactPerson != null)
+            _SheetRow(icon: Icons.badge_outlined, label: 'Контакт', value: r.contactPerson!),
+          if (r.contactPhone != null)
+            _SheetRow(icon: Icons.phone_outlined, label: 'Телефон', value: r.contactPhone!),
+
+          // Urgent badge
+          if (r.urgent) ...[
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              color: AppColors.brandRed,
+              child: const Text(
+                '⚡ СРОЧНАЯ ЗАЯВКА',
+                style: TextStyle(
+                    color: Colors.white, fontSize: 10, fontWeight: FontWeight.w900),
+              ),
+            ),
+          ],
+
+          const SizedBox(height: 16),
+          const Text(
+            'ВЫБЕРИТЕ КУРЬЕРА',
+            style: TextStyle(
+                fontWeight: FontWeight.w900,
+                fontSize: 10,
+                color: AppColors.brandRed,
+                letterSpacing: 1),
+          ),
+          const SizedBox(height: 8),
+
+          if (_loadingCouriers)
+            const LinearProgressIndicator()
+          else if (_couriers.isEmpty)
+            const Text(
+              'Нет доступных курьеров',
+              style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
+            )
+          else
+            DropdownButtonFormField<String>(
+              value: _selectedCourierId,
+              decoration: const InputDecoration(
+                border: OutlineInputBorder(),
+                contentPadding:
+                    EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+              ),
+              hint: const Text('Курьер'),
+              items: _couriers
+                  .map((c) => DropdownMenuItem(
+                      value: c['id'].toString(), child: Text(c['name'])))
+                  .toList(),
+              onChanged: (v) => setState(() => _selectedCourierId = v),
+            ),
+
+          const SizedBox(height: 24),
+          SizedBox(
+            height: 54,
+            child: ElevatedButton(
+              onPressed: (_saving || _selectedCourierId == null) ? null : _confirm,
+              style: ElevatedButton.styleFrom(backgroundColor: AppColors.brandBlack),
+              child: _saving
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                          color: Colors.white, strokeWidth: 2),
+                    )
+                  : const Text(
+                      'НАЗНАЧИТЬ КУРЬЕРА',
+                      style:
+                          TextStyle(fontWeight: FontWeight.w900, letterSpacing: 0.5),
+                    ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Local detail row ──────────────────────────────────────────────────────────
+
+class _SheetRow extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+  const _SheetRow({required this.icon, required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 15, color: AppColors.textSecondary),
+          const SizedBox(width: 8),
+          SizedBox(
+            width: 70,
+            child: Text(
+              label,
+              style: const TextStyle(
+                  fontSize: 11,
+                  color: AppColors.textSecondary,
+                  fontWeight: FontWeight.w600),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
             ),
           ),
         ],

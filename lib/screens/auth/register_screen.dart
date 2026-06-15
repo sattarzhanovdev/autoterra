@@ -237,7 +237,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => _currentPage == 0
-              ? context.go(AppRoutes.login)
+              ? context.pop()
               : (() {
                   _pageCtrl.previousPage(
                     duration: const Duration(milliseconds: 300),

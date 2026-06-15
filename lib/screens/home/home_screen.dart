@@ -288,7 +288,7 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
           crossAxisCount: 3,
           mainAxisSpacing: 8,
           crossAxisSpacing: 8,
-          childAspectRatio: 1.16,
+          childAspectRatio: 1.0,
           children: actions.map(_buildActionTile).toList(),
         ),
       ],
@@ -315,16 +315,19 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
           children: [
             PremiumIconBadge(icon: action.icon, size: 38, iconSize: 19),
             const SizedBox(height: 6),
-            Text(
-              action.label,
-              style: const TextStyle(
-                fontSize: 10.5,
-                fontWeight: FontWeight.w700,
-                color: AppColors.textPrimary,
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 6),
+              child: Text(
+                action.label,
+                style: const TextStyle(
+                  fontSize: 10.5,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textPrimary,
+                ),
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
               ),
-              textAlign: TextAlign.center,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
             ),
           ],
         ),

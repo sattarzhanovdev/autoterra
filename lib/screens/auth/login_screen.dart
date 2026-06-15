@@ -371,7 +371,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               ),
                             ),
                             GestureDetector(
-                              onTap: () => context.go(AppRoutes.register),
+                              onTap: () => context.push(AppRoutes.register),
                               child: const Text(
                                 'Зарегистрироваться',
                                 style: TextStyle(

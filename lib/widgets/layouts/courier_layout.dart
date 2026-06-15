@@ -466,18 +466,6 @@ class _CourierRouteScreen extends StatelessWidget {
           : Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Padding(
-                  padding: EdgeInsets.fromLTRB(16, 18, 16, 8),
-                  child: Text(
-                    'ТЕКУЩИЙ МАРШРУТ',
-                    style: TextStyle(
-                      color: Color(0xFF171717),
-                      fontSize: 16,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 1,
-                    ),
-                  ),
-                ),
                 Expanded(
                   child: tasks.isEmpty
                       ? const Center(

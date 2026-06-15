@@ -18,15 +18,12 @@ class ColorCenterScreen extends StatefulWidget {
   State<ColorCenterScreen> createState() => _ColorCenterScreenState();
 }
 
-class _ColorCenterScreenState extends State<ColorCenterScreen>
-    with SingleTickerProviderStateMixin {
-  late TabController _tabCtrl;
+class _ColorCenterScreenState extends State<ColorCenterScreen> {
   late Future<List<ColorRequest>> _future;
 
   @override
   void initState() {
     super.initState();
-    _tabCtrl = TabController(length: 2, vsync: this);
     _future = DataRepository().colorRequests();
   }
 
@@ -43,28 +40,12 @@ class _ColorCenterScreenState extends State<ColorCenterScreen>
   }
 
   @override
-  void dispose() {
-    _tabCtrl.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('ПОДБОР ЦВЕТА'),
-        bottom: TabBar(
-          controller: _tabCtrl,
-          tabs: const [
-            Tab(text: 'ЗАЯВКИ'),
-            Tab(text: 'ИСТОРИЯ'),
-          ],
-        ),
       ),
-      body: TabBarView(
-        controller: _tabCtrl,
-        children: [_buildRequestsTab(), _buildHistoryTab()],
-      ),
+      body: _buildRequestsTab(),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showNewRequestDialog(),
         backgroundColor: AppColors.brandRed,
@@ -114,100 +95,6 @@ class _ColorCenterScreenState extends State<ColorCenterScreen>
               onTap: () => _showRecipe(requests[i]),
               onUpdate: _reload,
             ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildHistoryTab() {
-    return FutureBuilder<List<ColorRequest>>(
-      future: _future,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState != ConnectionState.done) {
-          return const Center(child: CircularProgressIndicator(color: AppColors.brandRed));
-        }
-        if (snapshot.hasError) {
-          return Center(child: Text(snapshot.error.toString()));
-        }
-        final requests = snapshot.data!;
-        if (requests.isEmpty) {
-          return RefreshIndicator(
-            onRefresh: _refresh,
-            child: ListView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              children: const [
-                SizedBox(height: 220),
-                Center(child: Text('ИСТОРИЯ ПУСТА')),
-              ],
-            ),
-          );
-        }
-        return RefreshIndicator(
-          onRefresh: _refresh,
-          child: ListView.separated(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.all(16),
-            itemCount: requests.length,
-            separatorBuilder: (_, _) => const SizedBox(height: 12),
-            itemBuilder: (context, i) {
-              final r = requests[i];
-              return Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  border: Border.all(color: AppColors.border),
-                ),
-                child: Column(
-                  children: [
-                    Row(
-                      children: [
-                        const PremiumIconBadge(
-                          icon: Icons.palette_outlined,
-                          size: 42,
-                          iconSize: 22,
-                          iconColor: AppColors.brandRed,
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                '${r.carBrand} ${r.carModel}'.toUpperCase(),
-                                style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
-                              ),
-                              Text(
-                                '${r.colorCode} · ${r.colorName}'.toUpperCase(),
-                                style: const TextStyle(color: AppColors.textSecondary, fontSize: 11),
-                              ),
-                            ],
-                          ),
-                        ),
-                        StatusBadge.fromColorStatus(r.status),
-                      ],
-                    ),
-                    if (r.slaDeadline != null) ...[
-                      const Divider(height: 24),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text('SLA DEADLINE:', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.textSecondary)),
-                          Text(
-                            DateFormat('dd.MM.yyyy HH:mm').format(r.slaDeadline!),
-                            style: TextStyle(
-                              fontSize: 10, 
-                              fontWeight: FontWeight.bold, 
-                              color: r.isOverdue ? AppColors.brandRed : AppColors.success
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ],
-                ),
-              );
-            },
           ),
         );
       },

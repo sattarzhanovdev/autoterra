@@ -136,6 +136,19 @@ class StatusBadge extends StatelessWidget {
     }
   }
 
+  static StatusBadge fromOrderStatus(OrderStatus status) {
+    switch (status) {
+      case OrderStatus.newOrder:
+        return const StatusBadge(label: 'НОВЫЙ', color: AppColors.info);
+      case OrderStatus.accepted:
+        return const StatusBadge(label: 'В РАБОТЕ', color: AppColors.warning);
+      case OrderStatus.rejected:
+        return const StatusBadge(label: 'ОТМЕНЁН', color: AppColors.error);
+      case OrderStatus.fulfilled:
+        return const StatusBadge(label: 'ВЫПОЛНЕН', color: AppColors.success);
+    }
+  }
+
   static StatusBadge fromPartnerStatus(String status) {
     Color color;
     switch (status) {

@@ -133,10 +133,6 @@ class _DistributorStockScreenState extends State<DistributorStockScreen> {
       backgroundColor: AppColors.brandWhite,
       appBar: AppBar(
         backgroundColor: AppColors.brandBlack,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
-          onPressed: () => Navigator.maybePop(context),
-        ),
         title: const Text(
           'УПРАВЛЕНИЕ СКЛАДОМ',
           style: TextStyle(letterSpacing: 1.5, fontWeight: FontWeight.w900),

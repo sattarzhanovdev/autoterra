@@ -170,7 +170,7 @@ class _DistributorHomeScreenState extends State<DistributorHomeScreen> {
               metrics.deliveriesToAssign.toString(),
               Icons.local_shipping_outlined,
               AppColors.info,
-              () => context.go(AppRoutes.delivery),
+              () => context.push(AppRoutes.delivery),
             ),
             _metricCard(
               'Проверка',
@@ -272,252 +272,58 @@ class _OrderTile extends StatelessWidget {
   final VoidCallback onUpdate;
   const _OrderTile({required this.order, required this.fmt, required this.onUpdate});
 
-  @override
-  Widget build(BuildContext context) {
-    final isPending = order.status == OrderStatus.newOrder;
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceCard,
-        border: Border.all(color: AppColors.border),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              const PremiumIconBadge(icon: Icons.shopping_cart_outlined, size: 36, iconSize: 18),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(order.documentNumber.toUpperCase(), style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12)),
-                    Text(
-                      (order.clientName ?? 'Клиент ID: ${order.clientId}').toUpperCase(),
-                      style: const TextStyle(color: AppColors.textSecondary, fontSize: 10, fontWeight: FontWeight.bold),
-                    ),
-                  ],
-                ),
-              ),
-              Text('${fmt.format(order.totalAmount)} ₽', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13)),
-            ],
-          ),
-          if (isPending) ...[
-            const Divider(height: 24, thickness: 0.5),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () => _handleUpdate(context, 'rejected'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.error,
-                      side: const BorderSide(color: AppColors.error),
-                      minimumSize: const Size(0, 34),
-                      padding: EdgeInsets.zero,
-                    ),
-                    child: const Text('ОТМЕНИТЬ', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900)),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: () => _handleUpdate(context, 'accepted'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.brandBlack,
-                      minimumSize: const Size(0, 34),
-                      padding: EdgeInsets.zero,
-                    ),
-                    child: const Text('В РАБОТУ', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900)),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ],
-      ),
+  void _showDetails(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _OrderDetailSheet(order: order, fmt: fmt, onUpdate: onUpdate),
     );
   }
 
-  Future<void> _handleUpdate(BuildContext context, String status) async {
-    if (status == 'rejected') {
-      final confirmed = await showDialog<bool>(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('Отклонить заказ?'),
-          content: const Text('Заказ будет отменен.'),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('ОТМЕНА')),
-            ElevatedButton(
-              onPressed: () => Navigator.pop(context, true),
-              style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
-              child: const Text('ПОДТВЕРДИТЬ'),
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => _showDetails(context),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: AppColors.surfaceCard,
+          border: Border.all(color: AppColors.border),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
             ),
           ],
         ),
-      );
-
-      if (confirmed != true) return;
-
-      try {
-        await DataRepository().updateOrderStatus(order.id, status: status);
-        onUpdate();
-      } catch (e) {
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Ошибка: $e')));
-        }
-      }
-      return;
-    }
-
-    // For 'accepted' status
-    if (order.deliveryMethod == 'self_pickup') {
-      final confirmed = await showDialog<bool>(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('Взять в работу?'),
-          content: const Text('Заказ будет отмечен как принятый (Самовывоз).'),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('ОТМЕНА')),
-            ElevatedButton(
-              onPressed: () => Navigator.pop(context, true),
-              style: ElevatedButton.styleFrom(backgroundColor: AppColors.brandBlack),
-              child: const Text('ПОДТВЕРДИТЬ'),
-            ),
-          ],
-        ),
-      );
-      if (confirmed != true) return;
-      
-      try {
-        await DataRepository().updateOrderStatus(order.id, status: status);
-        onUpdate();
-      } catch (e) {
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Ошибка: $e')));
-        }
-      }
-    } else {
-      // Courier delivery: require assignment dialog
-      String? selectedCourierId;
-      DateTime? selectedDate = DateTime.now().add(const Duration(days: 1));
-      bool loadingCouriers = true;
-      List<Map<String, dynamic>> couriers = [];
-
-      final result = await showDialog<Map<String, dynamic>>(
-        context: context,
-        builder: (context) => StatefulBuilder(
-          builder: (ctx, setS) {
-            if (loadingCouriers) {
-              DataRepository().distributorCouriers().then((data) {
-                if (ctx.mounted) {
-                  setS(() {
-                    couriers = data;
-                    loadingCouriers = false;
-                  });
-                }
-              }).catchError((e) {
-                if (ctx.mounted) {
-                  setS(() => loadingCouriers = false);
-                }
-              });
-            }
-
-            return AlertDialog(
-              title: const Text('Назначить доставку', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('Выберите курьера и дату для заказа с доставкой:', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
-                    const SizedBox(height: 16),
-                    const Text('КУРЬЕР', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 10, color: AppColors.brandRed)),
-                    const SizedBox(height: 4),
-                    if (loadingCouriers)
-                      const LinearProgressIndicator()
-                    else
-                      DropdownButtonFormField<String>(
-                        value: selectedCourierId,
-                        decoration: const InputDecoration(contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8)),
-                        items: [
-                          const DropdownMenuItem(value: null, child: Text('Не назначен')),
-                          ...couriers.map((c) => DropdownMenuItem(value: c['id'].toString(), child: Text(c['name']))),
-                        ],
-                        onChanged: (v) => setS(() => selectedCourierId = v),
-                      ),
-                    const SizedBox(height: 16),
-                    const Text('ОЖИДАЕМАЯ ДАТА', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 10, color: AppColors.brandRed)),
-                    const SizedBox(height: 4),
-                    InkWell(
-                      onTap: () async {
-                        final picked = await showDatePicker(
-                          context: ctx,
-                          initialDate: selectedDate ?? DateTime.now(),
-                          firstDate: DateTime.now().subtract(const Duration(days: 1)),
-                          lastDate: DateTime.now().add(const Duration(days: 30)),
-                        );
-                        if (picked != null) {
-                          setS(() => selectedDate = picked);
-                        }
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                        decoration: BoxDecoration(border: Border.all(color: AppColors.border), borderRadius: BorderRadius.circular(4)),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(selectedDate != null ? DateFormat('dd.MM.yyyy').format(selectedDate!) : 'Не указана'),
-                            const Icon(Icons.calendar_today, size: 18, color: AppColors.brandRed),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+        child: Row(
+          children: [
+            const PremiumIconBadge(icon: Icons.shopping_cart_outlined, size: 36, iconSize: 18),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(order.documentNumber.toUpperCase(), style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12)),
+                  Text(
+                    (order.clientName ?? 'ID: ${order.clientId}').toUpperCase(),
+                    style: const TextStyle(color: AppColors.textSecondary, fontSize: 10, fontWeight: FontWeight.bold),
+                  ),
+                ],
               ),
-              actions: [
-                TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('ОТМЕНА')),
-                ElevatedButton(
-                  onPressed: selectedCourierId == null ? null : () {
-                    Navigator.pop(ctx, {
-                      'courierId': selectedCourierId,
-                      'date': selectedDate != null ? DateFormat('yyyy-MM-dd').format(selectedDate!) : null,
-                    });
-                  },
-                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.brandBlack),
-                  child: const Text('В РАБОТУ', style: TextStyle(fontWeight: FontWeight.w900)),
-                ),
-              ],
-            );
-          },
+            ),
+            const SizedBox(width: 8),
+            StatusBadge.fromOrderStatus(order.status),
+            const SizedBox(width: 4),
+            const Icon(Icons.chevron_right, size: 16, color: AppColors.textSecondary),
+          ],
         ),
-      );
-
-      if (result == null) return;
-
-      try {
-        await DataRepository().updateOrderStatus(
-          order.id, 
-          status: status,
-          courierId: result['courierId'] as String?,
-          estimatedDeliveryDate: result['date'] as String?,
-        );
-        onUpdate();
-      } catch (e) {
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Ошибка: $e')));
-        }
-      }
-    }
+      ),
+    );
   }
 }
 
@@ -526,86 +332,197 @@ class _DeliveryTile extends StatelessWidget {
   final VoidCallback onUpdate;
   const _DeliveryTile({required this.task, required this.onUpdate});
 
+  void _showDetails(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _DeliveryDetailSheet(task: task, onUpdate: onUpdate),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => _showDetails(context),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: AppColors.surfaceCard,
+          border: Border.all(color: AppColors.border),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            const PremiumIconBadge(icon: Icons.local_shipping_outlined, size: 36, iconSize: 18, iconColor: AppColors.info),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(task.typeDisplay.toUpperCase(), style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12)),
+                  Text(
+                    task.clientName.toUpperCase(),
+                    style: const TextStyle(color: AppColors.textSecondary, fontSize: 10, fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            StatusBadge.fromCourierStatus(task.status),
+            const SizedBox(width: 4),
+            const Icon(Icons.chevron_right, size: 16, color: AppColors.textSecondary),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ColorLabTile extends StatelessWidget {
+  final ColorRequest request;
+  final VoidCallback onUpdate;
+  const _ColorLabTile({required this.request, required this.onUpdate});
+
+  void _showDetails(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _ColorRequestDetailSheet(request: request, onUpdate: onUpdate),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => _showDetails(context),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: AppColors.surfaceCard,
+          border: Border.all(color: AppColors.border),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            const PremiumIconBadge(icon: Icons.colorize_outlined, size: 36, iconSize: 18, iconColor: AppColors.accent),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('${request.carBrand} ${request.carModel}'.toUpperCase(), style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12)),
+                  Text(
+                    'Код: ${request.colorCode} · ${request.clientName ?? "Клиент"}'.toUpperCase(),
+                    style: const TextStyle(color: AppColors.textSecondary, fontSize: 10, fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            StatusBadge.fromColorStatus(request.status),
+            const SizedBox(width: 4),
+            const Icon(Icons.chevron_right, size: 16, color: AppColors.textSecondary),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Delivery task detail sheet
+// ─────────────────────────────────────────────────────────────────────────────
+class _DeliveryDetailSheet extends StatelessWidget {
+  final CourierTask task;
+  final VoidCallback onUpdate;
+  const _DeliveryDetailSheet({required this.task, required this.onUpdate});
+
   @override
   Widget build(BuildContext context) {
     final isNew = task.status == CourierTaskStatus.created;
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceCard,
-        border: Border.all(color: AppColors.border),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
+      decoration: const BoxDecoration(color: Colors.white),
+      padding: const EdgeInsets.fromLTRB(16, 20, 16, 32),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Row(
             children: [
-              const PremiumIconBadge(icon: Icons.local_shipping_outlined, size: 36, iconSize: 18, iconColor: AppColors.info),
+              const PremiumIconBadge(icon: Icons.local_shipping_outlined, size: 40, iconSize: 20, iconColor: AppColors.info),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(task.typeDisplay.toUpperCase(), style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12)),
-                    Text(
-                      (task.clientName).toUpperCase(),
-                      style: const TextStyle(color: AppColors.textSecondary, fontSize: 10, fontWeight: FontWeight.bold),
-                    ),
+                    Text(task.typeDisplay.toUpperCase(), style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900)),
+                    StatusBadge.fromCourierStatus(task.status),
                   ],
                 ),
               ),
-              StatusBadge.fromCourierStatus(task.status),
+              IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close)),
             ],
           ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              const Icon(Icons.location_on_outlined, size: 14, color: AppColors.textSecondary),
-              const SizedBox(width: 4),
-              Expanded(
-                child: Text(
-                  task.address,
-                  style: const TextStyle(color: AppColors.textSecondary, fontSize: 11),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
-          ),
+          const Divider(height: 24),
+          _DetailRow(icon: Icons.person_outline, label: 'Клиент', value: task.clientName),
+          if (task.contactName != null)
+            _DetailRow(icon: Icons.badge_outlined, label: 'Контакт', value: task.contactName!),
+          if (task.contactPhone != null)
+            _DetailRow(icon: Icons.phone_outlined, label: 'Телефон', value: task.contactPhone!),
+          _DetailRow(icon: Icons.location_on_outlined, label: 'Адрес', value: task.address),
+          if (task.timeSlot.isNotEmpty)
+            _DetailRow(icon: Icons.schedule_outlined, label: 'Время', value: task.timeSlot),
+          if (task.courierName != null)
+            _DetailRow(icon: Icons.delivery_dining_outlined, label: 'Курьер', value: task.courierName!),
+          if (task.comment != null && task.comment!.isNotEmpty)
+            _DetailRow(icon: Icons.comment_outlined, label: 'Комментарий', value: task.comment!),
+          if (task.courierComment != null && task.courierComment!.isNotEmpty)
+            _DetailRow(icon: Icons.chat_bubble_outline, label: 'Отчёт курьера', value: task.courierComment!),
           if (isNew) ...[
-            const Divider(height: 24, thickness: 0.5),
+            const SizedBox(height: 16),
             Row(
               children: [
                 Expanded(
                   child: OutlinedButton(
-                    onPressed: () => _handleUpdate(context, 'cancelled'),
+                    onPressed: () {
+                      Navigator.pop(context);
+                      _handleCancel(context);
+                    },
                     style: OutlinedButton.styleFrom(
                       foregroundColor: AppColors.error,
                       side: const BorderSide(color: AppColors.error),
-                      minimumSize: const Size(0, 34),
-                      padding: EdgeInsets.zero,
                     ),
-                    child: const Text('ОТМЕНИТЬ', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900)),
+                    child: const Text('ОТМЕНИТЬ', style: TextStyle(fontWeight: FontWeight.w900)),
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 12),
                 Expanded(
                   child: ElevatedButton(
-                    onPressed: () => _handleUpdate(context, 'assigned'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.brandBlack,
-                      minimumSize: const Size(0, 34),
-                      padding: EdgeInsets.zero,
-                    ),
-                    child: const Text('НАЗНАЧИТЬ', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900)),
+                    onPressed: () {
+                      Navigator.pop(context);
+                      _handleAssign(context);
+                    },
+                    style: ElevatedButton.styleFrom(backgroundColor: AppColors.brandBlack),
+                    child: const Text('НАЗНАЧИТЬ КУРЬЕРА', style: TextStyle(fontWeight: FontWeight.w900)),
                   ),
                 ),
               ],
@@ -616,95 +533,62 @@ class _DeliveryTile extends StatelessWidget {
     );
   }
 
-  Future<void> _handleUpdate(BuildContext context, String status) async {
-    if (status == 'cancelled') {
-      final confirmed = await showDialog<bool>(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('Отменить заявку?'),
-          content: const Text('Заявка на доставку будет аннулирована.'),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('ОТМЕНА')),
-            ElevatedButton(
-              onPressed: () => Navigator.pop(context, true),
-              style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
-              child: const Text('ПОДТВЕРДИТЬ'),
-            ),
-          ],
-        ),
-      );
-
-      if (confirmed != true) return;
-
-      try {
-        await DataRepository().updateDeliveryStatus(task.id, status: status);
-        onUpdate();
-      } catch (e) {
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Ошибка: $e')));
-        }
-      }
-      return;
+  Future<void> _handleCancel(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Отменить заявку?'),
+        content: const Text('Заявка на доставку будет аннулирована.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('НЕТ')),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+            child: const Text('ОТМЕНИТЬ'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    try {
+      await DataRepository().updateDeliveryStatus(task.id, status: 'cancelled');
+      onUpdate();
+    } catch (e) {
+      if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Ошибка: $e')));
     }
+  }
 
-    // For 'assigned' status
+  Future<void> _handleAssign(BuildContext context) async {
     String? selectedCourierId;
     bool loadingCouriers = true;
     List<Map<String, dynamic>> couriers = [];
 
     final result = await showDialog<Map<String, dynamic>>(
       context: context,
-      builder: (context) => StatefulBuilder(
+      builder: (ctx) => StatefulBuilder(
         builder: (ctx, setS) {
           if (loadingCouriers) {
             DataRepository().distributorCouriers().then((data) {
-              if (ctx.mounted) {
-                setS(() {
-                  couriers = data;
-                  loadingCouriers = false;
-                });
-              }
-            }).catchError((e) {
-              if (ctx.mounted) {
-                setS(() => loadingCouriers = false);
-              }
-            });
+              if (ctx.mounted) setS(() { couriers = data; loadingCouriers = false; });
+            }).catchError((_) { if (ctx.mounted) setS(() => loadingCouriers = false); });
           }
-
           return AlertDialog(
-            title: const Text('Назначить курьера', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
-            content: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('Выберите курьера для выполнения заявки:', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
-                  const SizedBox(height: 16),
-                  const Text('КУРЬЕР', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 10, color: AppColors.brandRed)),
-                  const SizedBox(height: 4),
-                  if (loadingCouriers)
-                    const LinearProgressIndicator()
-                  else
-                    DropdownButtonFormField<String>(
-                      value: selectedCourierId,
-                      decoration: const InputDecoration(contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8)),
-                      items: [
-                        const DropdownMenuItem(value: null, child: Text('Не назначен')),
-                        ...couriers.map((c) => DropdownMenuItem(value: c['id'].toString(), child: Text(c['name']))),
-                      ],
-                      onChanged: (v) => setS(() => selectedCourierId = v),
-                    ),
-                ],
-              ),
-            ),
+            title: const Text('Назначить курьера', style: TextStyle(fontWeight: FontWeight.w900)),
+            content: loadingCouriers
+                ? const SizedBox(height: 60, child: Center(child: CircularProgressIndicator()))
+                : DropdownButtonFormField<String>(
+                    value: selectedCourierId,
+                    decoration: const InputDecoration(contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8)),
+                    items: [
+                      const DropdownMenuItem(value: null, child: Text('Не назначен')),
+                      ...couriers.map((c) => DropdownMenuItem(value: c['id'].toString(), child: Text(c['name']))),
+                    ],
+                    onChanged: (v) => setS(() => selectedCourierId = v),
+                  ),
             actions: [
               TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('ОТМЕНА')),
               ElevatedButton(
-                onPressed: selectedCourierId == null ? null : () {
-                  Navigator.pop(ctx, {
-                    'courierId': selectedCourierId,
-                  });
-                },
+                onPressed: selectedCourierId == null ? null : () => Navigator.pop(ctx, {'courierId': selectedCourierId}),
                 style: ElevatedButton.styleFrom(backgroundColor: AppColors.brandBlack),
                 child: const Text('НАЗНАЧИТЬ', style: TextStyle(fontWeight: FontWeight.w900)),
               ),
@@ -715,80 +599,131 @@ class _DeliveryTile extends StatelessWidget {
     );
 
     if (result == null) return;
-
     try {
-      await DataRepository().updateDeliveryStatus(
-        task.id, 
-        status: status,
-        courierId: result['courierId'] as String?,
-      );
+      await DataRepository().updateDeliveryStatus(task.id, status: 'assigned', courierId: result['courierId'] as String?);
       onUpdate();
     } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Ошибка: $e')));
-      }
+      if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Ошибка: $e')));
     }
   }
 }
 
-class _ColorLabTile extends StatelessWidget {
-  final ColorRequest request;
+// ─────────────────────────────────────────────────────────────────────────────
+// Order detail sheet
+// ─────────────────────────────────────────────────────────────────────────────
+class _OrderDetailSheet extends StatelessWidget {
+  final Order order;
+  final NumberFormat fmt;
   final VoidCallback onUpdate;
-  const _ColorLabTile({required this.request, required this.onUpdate});
+  const _OrderDetailSheet({required this.order, required this.fmt, required this.onUpdate});
 
   @override
   Widget build(BuildContext context) {
-    final status = request.status;
-    final canProcess = status == ColorRequestStatus.created || status == ColorRequestStatus.pickedUp || status == ColorRequestStatus.inProgress;
+    final isPending = order.status == OrderStatus.newOrder;
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceCard,
-        border: Border.all(color: AppColors.border),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
+      decoration: const BoxDecoration(color: Colors.white),
+      padding: const EdgeInsets.fromLTRB(16, 20, 16, 32),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Row(
             children: [
-              const PremiumIconBadge(icon: Icons.colorize_outlined, size: 36, iconSize: 18, iconColor: AppColors.accent),
+              const PremiumIconBadge(icon: Icons.shopping_cart_outlined, size: 40, iconSize: 20),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('${request.carBrand} ${request.carModel}'.toUpperCase(), style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12)),
-                    Text(
-                      'Код: ${request.colorCode} · ${request.clientName ?? "Клиент"}'.toUpperCase(),
-                      style: const TextStyle(color: AppColors.textSecondary, fontSize: 10, fontWeight: FontWeight.bold),
-                    ),
+                    Text(order.documentNumber.toUpperCase(),
+                        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900)),
+                    StatusBadge.fromOrderStatus(order.status),
                   ],
                 ),
               ),
-              StatusBadge.fromColorStatus(request.status),
+              IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close)),
             ],
           ),
-          if (canProcess) ...[
-            const Divider(height: 24, thickness: 0.5),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () => _showCompleteSheet(context),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.brandBlack,
-                  minimumSize: const Size(0, 34),
-                  padding: EdgeInsets.zero,
-                ),
-                child: const Text('ЗАВЕРШИТЬ ПОДБОР', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900)),
+          const Divider(height: 24),
+          _DetailRow(icon: Icons.person_outline, label: 'Клиент', value: order.clientName ?? 'ID: ${order.clientId}'),
+          if (order.clientInn != null)
+            _DetailRow(icon: Icons.badge_outlined, label: 'ИНН', value: order.clientInn!),
+          _DetailRow(icon: Icons.store_outlined, label: 'Магазин', value: order.storeName),
+          _DetailRow(icon: Icons.calendar_today_outlined, label: 'Дата', value: DateFormat('dd.MM.yyyy').format(order.date)),
+          _DetailRow(
+            icon: Icons.payments_outlined,
+            label: 'Сумма',
+            value: '${fmt.format(order.totalAmount)} ₽',
+            valueColor: AppColors.brandRed,
+          ),
+          _DetailRow(
+            icon: Icons.local_shipping_outlined,
+            label: 'Доставка',
+            value: order.deliveryMethod == 'self_pickup' ? 'Самовывоз' : 'Курьером',
+          ),
+          if (order.courierName != null)
+            _DetailRow(icon: Icons.delivery_dining_outlined, label: 'Курьер', value: order.courierName!),
+          if (order.estimatedDeliveryDate != null)
+            _DetailRow(
+              icon: Icons.event_available_outlined,
+              label: 'Ожид. дата',
+              value: DateFormat('dd.MM.yyyy').format(order.estimatedDeliveryDate!),
+            ),
+          if (order.comment != null && order.comment!.isNotEmpty)
+            _DetailRow(icon: Icons.comment_outlined, label: 'Комментарий', value: order.comment!),
+          if (order.rejectionReason != null && order.rejectionReason!.isNotEmpty)
+            _DetailRow(
+              icon: Icons.cancel_outlined,
+              label: 'Причина отмены',
+              value: order.rejectionReason!,
+              valueColor: AppColors.error,
+            ),
+          if (order.items.isNotEmpty) ...[
+            const Divider(height: 24),
+            const Text('ПОЗИЦИИ', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 10, color: AppColors.textSecondary, letterSpacing: 1)),
+            const SizedBox(height: 8),
+            ...order.items.map((item) => Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(item.name, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+                        Text(item.sku, style: const TextStyle(fontSize: 10, color: AppColors.textSecondary)),
+                      ],
+                    ),
+                  ),
+                  Text('${item.quantity} шт.', style: const TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+                ],
               ),
+            )),
+          ],
+          if (isPending) ...[
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => _handleReject(context),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.error,
+                      side: const BorderSide(color: AppColors.error),
+                    ),
+                    child: const Text('ОТМЕНИТЬ', style: TextStyle(fontWeight: FontWeight.w900)),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () => _handleAccept(context),
+                    style: ElevatedButton.styleFrom(backgroundColor: AppColors.brandBlack),
+                    child: const Text('В РАБОТУ', style: TextStyle(fontWeight: FontWeight.w900)),
+                  ),
+                ),
+              ],
             ),
           ],
         ],
@@ -796,15 +731,439 @@ class _ColorLabTile extends StatelessWidget {
     );
   }
 
-  void _showCompleteSheet(BuildContext context) {
+  Future<void> _handleReject(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Отклонить заказ?'),
+        content: const Text('Заказ будет отменён.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('НАЗАД')),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+            child: const Text('ОТМЕНИТЬ'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    try {
+      await DataRepository().updateOrderStatus(order.id, status: 'rejected');
+      onUpdate();
+      if (context.mounted) Navigator.pop(context);
+    } catch (e) {
+      if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Ошибка: $e')));
+    }
+  }
+
+  Future<void> _handleAccept(BuildContext context) async {
+    if (order.deliveryMethod == 'self_pickup') {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Взять в работу?'),
+          content: const Text('Заказ будет принят (Самовывоз).'),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('НАЗАД')),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              style: ElevatedButton.styleFrom(backgroundColor: AppColors.brandBlack),
+              child: const Text('ПОДТВЕРДИТЬ'),
+            ),
+          ],
+        ),
+      );
+      if (confirmed != true) return;
+      try {
+        await DataRepository().updateOrderStatus(order.id, status: 'accepted');
+        onUpdate();
+        if (context.mounted) Navigator.pop(context);
+      } catch (e) {
+        if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Ошибка: $e')));
+      }
+      return;
+    }
+
+    // Courier delivery: open styled bottom sheet for courier + date selection.
+    final success = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _CourierAssignmentSheet(order: order, fmt: fmt, onUpdate: onUpdate),
+    );
+
+    // Sheet already called onUpdate and closed itself on success.
+    // Close the order detail sheet too.
+    if (success == true && context.mounted) Navigator.pop(context);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Courier assignment bottom sheet (replaces old showDialog for Task 3)
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _CourierAssignmentSheet extends StatefulWidget {
+  final Order order;
+  final NumberFormat fmt;
+  final VoidCallback onUpdate;
+  const _CourierAssignmentSheet({required this.order, required this.fmt, required this.onUpdate});
+
+  @override
+  State<_CourierAssignmentSheet> createState() => _CourierAssignmentSheetState();
+}
+
+class _CourierAssignmentSheetState extends State<_CourierAssignmentSheet> {
+  String? _selectedCourierId;
+  DateTime _selectedDate = DateTime.now().add(const Duration(days: 1));
+  bool _loadingCouriers = true;
+  bool _saving = false;
+  List<Map<String, dynamic>> _couriers = [];
+
+  @override
+  void initState() {
+    super.initState();
+    DataRepository().distributorCouriers().then((data) {
+      if (mounted) setState(() { _couriers = data; _loadingCouriers = false; });
+    }).catchError((_) {
+      if (mounted) setState(() => _loadingCouriers = false);
+    });
+  }
+
+  Future<void> _submit() async {
+    if (_selectedCourierId == null) return;
+    setState(() => _saving = true);
+    try {
+      await DataRepository().updateOrderStatus(
+        widget.order.id,
+        status: 'accepted',
+        courierId: _selectedCourierId,
+        estimatedDeliveryDate: DateFormat('yyyy-MM-dd').format(_selectedDate),
+      );
+      widget.onUpdate();
+      if (mounted) Navigator.pop(context, true);
+    } catch (e) {
+      if (mounted) {
+        setState(() => _saving = false);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Ошибка: $e')));
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final order = widget.order;
+    final fmt = widget.fmt;
+
+    return Container(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Drag handle
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.border,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Header
+            Row(
+              children: [
+                const PremiumIconBadge(icon: Icons.delivery_dining_outlined, size: 40, iconSize: 20),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'НАЗНАЧИТЬ ДОСТАВКУ',
+                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900, letterSpacing: 0.5),
+                      ),
+                      Text(
+                        order.documentNumber.toUpperCase(),
+                        style: const TextStyle(fontSize: 11, color: AppColors.textSecondary, fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close)),
+              ],
+            ),
+            const Divider(height: 24),
+
+            // Order summary
+            const Text(
+              'ДЕТАЛИ ЗАКАЗА',
+              style: TextStyle(fontWeight: FontWeight.w900, fontSize: 10, color: AppColors.brandRed, letterSpacing: 1),
+            ),
+            const SizedBox(height: 8),
+            _DetailRow(
+              icon: Icons.person_outline,
+              label: 'Клиент',
+              value: order.clientName ?? 'ID: ${order.clientId}',
+            ),
+            _DetailRow(icon: Icons.store_outlined, label: 'Магазин', value: order.storeName),
+            _DetailRow(
+              icon: Icons.payments_outlined,
+              label: 'Сумма',
+              value: '${fmt.format(order.totalAmount)} ₽',
+              valueColor: AppColors.brandRed,
+            ),
+            if (order.items.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              ...order.items.map((item) => Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: Row(
+                  children: [
+                    const Icon(Icons.circle, size: 5, color: AppColors.textSecondary),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        '${item.name} × ${item.quantity}',
+                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                  ],
+                ),
+              )),
+            ],
+            const Divider(height: 24),
+
+            // Courier section
+            const Text(
+              'КУРЬЕР',
+              style: TextStyle(fontWeight: FontWeight.w900, fontSize: 10, color: AppColors.brandRed, letterSpacing: 1),
+            ),
+            const SizedBox(height: 8),
+            if (_loadingCouriers)
+              const LinearProgressIndicator()
+            else
+              DropdownButtonFormField<String>(
+                value: _selectedCourierId,
+                decoration: const InputDecoration(
+                  border: OutlineInputBorder(),
+                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                ),
+                hint: const Text('Выберите курьера'),
+                items: _couriers
+                    .map((c) => DropdownMenuItem(value: c['id'].toString(), child: Text(c['name'])))
+                    .toList(),
+                onChanged: (v) => setState(() => _selectedCourierId = v),
+              ),
+            const SizedBox(height: 16),
+
+            // Date section
+            const Text(
+              'ОЖИДАЕМАЯ ДАТА',
+              style: TextStyle(fontWeight: FontWeight.w900, fontSize: 10, color: AppColors.brandRed, letterSpacing: 1),
+            ),
+            const SizedBox(height: 8),
+            InkWell(
+              onTap: () async {
+                final picked = await showDatePicker(
+                  context: context,
+                  initialDate: _selectedDate,
+                  firstDate: DateTime.now().subtract(const Duration(days: 1)),
+                  lastDate: DateTime.now().add(const Duration(days: 30)),
+                );
+                if (picked != null) setState(() => _selectedDate = picked);
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                decoration: BoxDecoration(
+                  border: Border.all(color: AppColors.border),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      DateFormat('dd.MM.yyyy').format(_selectedDate),
+                      style: const TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                    const Icon(Icons.calendar_today, size: 18, color: AppColors.brandRed),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            SizedBox(
+              height: 54,
+              child: ElevatedButton(
+                onPressed: (_saving || _selectedCourierId == null) ? null : _submit,
+                style: ElevatedButton.styleFrom(backgroundColor: AppColors.brandBlack),
+                child: _saving
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                      )
+                    : const Text('В РАБОТУ', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 0.5)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Color request detail sheet
+// ─────────────────────────────────────────────────────────────────────────────
+class _ColorRequestDetailSheet extends StatelessWidget {
+  final ColorRequest request;
+  final VoidCallback onUpdate;
+  const _ColorRequestDetailSheet({required this.request, required this.onUpdate});
+
+  void _openComplete(BuildContext context) {
+    Navigator.pop(context);
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => _CompleteColorRequestSheet(
-        request: request,
-        onUpdate: onUpdate,
+      builder: (_) => _CompleteColorRequestSheet(request: request, onUpdate: onUpdate),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final canProcess = request.status == ColorRequestStatus.created ||
+        request.status == ColorRequestStatus.pickedUp ||
+        request.status == ColorRequestStatus.inProgress;
+    final fmt = DateFormat('dd.MM.yyyy HH:mm');
+
+    return Container(
+      decoration: const BoxDecoration(color: Colors.white),
+      padding: const EdgeInsets.fromLTRB(16, 20, 16, 32),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              const PremiumIconBadge(icon: Icons.colorize_outlined, size: 40, iconSize: 20, iconColor: AppColors.accent),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('${request.carBrand} ${request.carModel}'.toUpperCase(),
+                        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900)),
+                    Row(
+                      children: [
+                        StatusBadge.fromColorStatus(request.status),
+                        if (request.urgent) ...[
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            color: AppColors.error,
+                            child: const Text('СРОЧНО', style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w900)),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close)),
+            ],
+          ),
+          const Divider(height: 24),
+          _DetailRow(icon: Icons.palette_outlined, label: 'Код цвета', value: request.colorCode),
+          if (request.colorName.isNotEmpty)
+            _DetailRow(icon: Icons.label_outline, label: 'Название цвета', value: request.colorName),
+          if (request.vin.isNotEmpty)
+            _DetailRow(icon: Icons.directions_car_outlined, label: 'VIN', value: request.vin),
+          _DetailRow(icon: Icons.person_outline, label: 'Клиент', value: request.clientName ?? '—'),
+          if (request.contactPerson != null)
+            _DetailRow(icon: Icons.badge_outlined, label: 'Контакт', value: request.contactPerson!),
+          if (request.contactPhone != null)
+            _DetailRow(icon: Icons.phone_outlined, label: 'Телефон', value: request.contactPhone!),
+          _DetailRow(
+            icon: Icons.swap_horiz_outlined,
+            label: 'Способ передачи',
+            value: request.transferMethod == 'courier' ? 'Курьер' : 'Самовывоз',
+          ),
+          if (request.pickupAddress != null)
+            _DetailRow(icon: Icons.location_on_outlined, label: 'Адрес', value: request.pickupAddress!),
+          if (request.pickupTime != null)
+            _DetailRow(icon: Icons.schedule_outlined, label: 'Время', value: fmt.format(request.pickupTime!)),
+          if (request.slaDeadline != null)
+            _DetailRow(
+              icon: Icons.timer_outlined,
+              label: 'Дедлайн SLA',
+              value: fmt.format(request.slaDeadline!),
+              valueColor: request.isOverdue ? AppColors.error : null,
+            ),
+          if (request.comment != null && request.comment!.isNotEmpty)
+            _DetailRow(icon: Icons.comment_outlined, label: 'Комментарий', value: request.comment!),
+          if (request.recipe != null && request.recipe!.isNotEmpty) ...[
+            const Divider(height: 20),
+            const Text('РЕЦЕПТ / ФОРМУЛА', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: AppColors.brandRed)),
+            const SizedBox(height: 6),
+            Text(request.recipe!, style: const TextStyle(fontSize: 13, height: 1.5)),
+          ],
+          if (canProcess) ...[
+            const SizedBox(height: 20),
+            SizedBox(
+              height: 48,
+              child: ElevatedButton(
+                onPressed: () => _openComplete(context),
+                style: ElevatedButton.styleFrom(backgroundColor: AppColors.brandBlack),
+                child: const Text('ЗАВЕРШИТЬ ПОДБОР', style: TextStyle(fontWeight: FontWeight.w900)),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Reusable detail row
+// ─────────────────────────────────────────────────────────────────────────────
+class _DetailRow extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+  final Color? valueColor;
+  const _DetailRow({required this.icon, required this.label, required this.value, this.valueColor});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 5),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 15, color: AppColors.textSecondary),
+          const SizedBox(width: 8),
+          SizedBox(
+            width: 90,
+            child: Text(label, style: const TextStyle(fontSize: 11, color: AppColors.textSecondary, fontWeight: FontWeight.w600)),
+          ),
+          Expanded(
+            child: Text(value, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: valueColor ?? AppColors.textPrimary)),
+          ),
+        ],
       ),
     );
   }
@@ -918,12 +1277,6 @@ class _PurchaseTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final needsAction = purchase.status == PurchaseStatus.newPurchase ||
-                        purchase.status == PurchaseStatus.pending || 
-                        purchase.status == PurchaseStatus.pendingVerification ||
-                        purchase.status == PurchaseStatus.underReview ||
-                        purchase.status == PurchaseStatus.duplicateReview;
-
     return GestureDetector(
       onTap: () => _showDetails(context),
       child: Container(
@@ -940,58 +1293,26 @@ class _PurchaseTile extends StatelessWidget {
             ),
           ],
         ),
-        child: Column(
+        child: Row(
           children: [
-            Row(
-              children: [
-                const PremiumIconBadge(icon: Icons.receipt_outlined, size: 36, iconSize: 18, iconColor: AppColors.warning),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(purchase.documentNumber.toUpperCase(), style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12)),
-                      Text(
-                        (purchase.clientName ?? 'Сумма: ${fmt.format(purchase.totalAmount)} ₽').toUpperCase(),
-                        style: const TextStyle(color: AppColors.textSecondary, fontSize: 10, fontWeight: FontWeight.bold),
-                      ),
-                    ],
-                  ),
-                ),
-                StatusBadge.fromPurchaseStatus(purchase.status),
-              ],
-            ),
-            if (needsAction) ...[
-              const Divider(height: 24, thickness: 0.5),
-              Row(
+            const PremiumIconBadge(icon: Icons.receipt_outlined, size: 36, iconSize: 18, iconColor: AppColors.warning),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () => _handleVerify(context, false),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: AppColors.error,
-                        side: const BorderSide(color: AppColors.error),
-                        minimumSize: const Size(0, 34),
-                        padding: EdgeInsets.zero,
-                      ),
-                      child: const Text('ОТКЛОНИТЬ', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900)),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () => _handleVerify(context, true),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.success,
-                        minimumSize: const Size(0, 34),
-                        padding: EdgeInsets.zero,
-                      ),
-                      child: const Text('ПОДТВЕРДИТЬ', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900)),
-                    ),
+                  Text(purchase.documentNumber.toUpperCase(), style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12)),
+                  Text(
+                    (purchase.clientName ?? 'Сумма: ${fmt.format(purchase.totalAmount)} ₽').toUpperCase(),
+                    style: const TextStyle(color: AppColors.textSecondary, fontSize: 10, fontWeight: FontWeight.bold),
                   ),
                 ],
               ),
-            ],
+            ),
+            const SizedBox(width: 8),
+            StatusBadge.fromPurchaseStatus(purchase.status),
+            const SizedBox(width: 4),
+            const Icon(Icons.chevron_right, size: 16, color: AppColors.textSecondary),
           ],
         ),
       ),
@@ -1013,32 +1334,4 @@ class _PurchaseTile extends StatelessWidget {
     );
   }
 
-  Future<void> _handleVerify(BuildContext context, bool verify) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(verify ? 'Подтвердить покупку?' : 'Отклонить покупку?'),
-        content: Text(verify ? 'Баллы будут начислены клиенту.' : 'Покупка будет аннулирована.'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('ОТМЕНА')),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(backgroundColor: verify ? AppColors.success : AppColors.error),
-            child: const Text('ПОДТВЕРДИТЬ'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed != true) return;
-
-    try {
-      await DataRepository().verifyPurchase(purchase.id, verify: verify);
-      onUpdate();
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Ошибка: $e')));
-      }
-    }
-  }
 }

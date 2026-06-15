@@ -104,10 +104,6 @@ class _DistributorIntegrationScreenState extends State<DistributorIntegrationScr
       appBar: AppBar(
         title: const Text('ИНТЕГРАЦИЯ 1С'),
         backgroundColor: AppColors.brandBlack,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
-          onPressed: () => Navigator.maybePop(context),
-        ),
       ),
       body: RefreshIndicator(
         onRefresh: _fetch,
