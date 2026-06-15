@@ -109,6 +109,10 @@ class ApiClient {
     });
   }
 
+  Future<void> cancelOrder(String orderId) async {
+    await _post('/orders/$orderId/cancel/', {});
+  }
+
   Future<List<Map<String, dynamic>>> purchases() async {
     final result = await _get('/purchases/');
     return (result['results'] as List).map((e) => Map<String, dynamic>.from(e as Map)).toList();
@@ -126,6 +130,14 @@ class ApiClient {
 
   Future<Map<String, dynamic>> createCourierTask(Map<String, dynamic> body) {
     return _post('/courier-tasks/create/', body);
+  }
+
+  Future<void> cancelCourierTask(String id) {
+    return _post('/courier-tasks/$id/cancel/', {});
+  }
+
+  Future<Map<String, dynamic>> updateCourierTask(String id, Map<String, dynamic> body) {
+    return _post('/courier-tasks/$id/update/', body);
   }
 
   String exportUrl({String? regionId}) {
@@ -258,6 +270,14 @@ class ApiClient {
     return _post('/color-requests/create/', body);
   }
 
+  Future<void> cancelColorRequest(String id) {
+    return _post('/color-requests/$id/cancel/', {});
+  }
+
+  Future<void> updateColorRequest(String id, Map<String, dynamic> body) {
+    return _post('/color-requests/$id/update/', body);
+  }
+
   Future<Map<String, dynamic>> _multipartPost(
     String path,
     Map<String, dynamic> body,
@@ -350,9 +370,23 @@ class ApiClient {
   }
 
   Future<List<Map<String, dynamic>>> distributorOrders({String? status}) async {
-    final query = status != null ? '?status=$status' : '';
-    final result = await _get('/distributor/orders/$query');
+    final params = status != null ? {'status': status} : null;
+    final result = await _get('/distributor/orders/', params: params);
     return (result['results'] as List).map((e) => Map<String, dynamic>.from(e as Map)).toList();
+  }
+
+  Future<List<Map<String, dynamic>>> distributorDeliveryTasks({String? status}) async {
+    final params = status != null ? {'status': status} : null;
+    final result = await _get('/distributor/delivery-tasks/', params: params);
+    return (result['results'] as List).map((e) => Map<String, dynamic>.from(e as Map)).toList();
+  }
+
+  Future<Map<String, dynamic>> updateDeliveryStatus(String taskId, {String? status, String? courierId, String? reason}) async {
+    return _post('/distributor/delivery-tasks/$taskId/status/', {
+      if (status != null) 'status': status,
+      if (courierId != null) 'courierId': courierId,
+      if (reason != null) 'reason': reason,
+    });
   }
 
   Future<List<Map<String, dynamic>>> distributorPurchases({String? status, bool? toVerify}) async {
@@ -415,6 +449,10 @@ class ApiClient {
 
   Future<void> distributorStockUpload(List<Map<String, dynamic>> items) async {
     await _post('/distributor/stock/upload/', {'items': items}, timeout: const Duration(seconds: 60));
+  }
+
+  Future<Map<String, dynamic>> addProduct(Map<String, dynamic> body) async {
+    return _post('/distributor/stock/add/', body);
   }
 
   Future<Map<String, dynamic>> _patch(String path, dynamic body) async {

@@ -7,7 +7,8 @@ import '../../widgets/common/premium_icon_badge.dart';
 
 class OrderScreen extends StatefulWidget {
   final DataRepository? repository;
-  const OrderScreen({super.key, this.repository});
+  final Order? initialOrder;
+  const OrderScreen({super.key, this.repository, this.initialOrder});
 
   @override
   State<OrderScreen> createState() => _OrderScreenState();
@@ -27,13 +28,56 @@ class _OrderScreenState extends State<OrderScreen> {
   String _deliveryMethod = 'courier';
   bool _sending = false;
 
+  // Baseline for change tracking
+  Map<String, int>? _initialQty;
+  String? _initialComment;
+  String? _initialStoreId;
+  String? _initialDeliveryMethod;
+
   int get _totalQty => _qty.values.fold(0, (sum, value) => sum + value);
+
+  bool get _hasChanges {
+    if (widget.initialOrder == null) return _totalQty > 0;
+    
+    // Compare quantities
+    if (_initialQty == null) return false;
+    if (_qty.length != _initialQty!.length) return true;
+    for (final entry in _qty.entries) {
+      if (_initialQty![entry.key] != entry.value) return true;
+    }
+
+    // Compare fields
+    if (_commentCtrl.text != (_initialComment ?? '')) return true;
+    if (_selectedStoreId != _initialStoreId) return true;
+    if (_deliveryMethod != _initialDeliveryMethod) return true;
+
+    return false;
+  }
+
+  double _totalAmount(List<ProductData> products) {
+    double total = 0;
+    _qty.forEach((id, count) {
+      final product = products.firstWhere((p) => p.id == id, orElse: () => products.first);
+      total += product.price * count;
+    });
+    return total;
+  }
 
   @override
   void initState() {
     super.initState();
     _repo = widget.repository ?? DataRepository();
     _future = _repo.orderConfig();
+
+    if (widget.initialOrder != null) {
+      _commentCtrl.text = widget.initialOrder!.comment ?? '';
+      _deliveryMethod = widget.initialOrder!.deliveryMethod;
+    }
+    
+    // Listen to comments to track changes in real-time
+    _commentCtrl.addListener(() {
+      if (mounted) setState(() {});
+    });
   }
 
   @override
@@ -44,7 +88,31 @@ class _OrderScreenState extends State<OrderScreen> {
   }
 
   void _ensureStore(OrderConfigData data) {
+    if (_selectedStoreId == null && widget.initialOrder != null) {
+      // Find matching store by name/address if possible, or ID
+      final matching = data.stores.where((s) => s.name == widget.initialOrder!.storeName).firstOrNull;
+      if (matching != null) {
+        _selectedStoreId = matching.id;
+      }
+    }
     _selectedStoreId ??= data.stores.isEmpty ? null : data.stores.first.id;
+
+    // One-time population of quantities from initialOrder
+    if (widget.initialOrder != null && _initialQty == null && data.products.isNotEmpty) {
+      for (final item in widget.initialOrder!.items) {
+        // Find matching product in catalog by SKU
+        final p = data.products.where((x) => x.sku == item.sku).firstOrNull;
+        if (p != null) {
+          _qty[p.id] = item.quantity;
+        }
+      }
+      
+      // Capture baseline for change tracking
+      _initialQty = Map.from(_qty);
+      _initialComment = _commentCtrl.text;
+      _initialStoreId = _selectedStoreId;
+      _initialDeliveryMethod = _deliveryMethod;
+    }
   }
 
   StoreData? _selectedStore(List<StoreData> stores) {
@@ -57,7 +125,12 @@ class _OrderScreenState extends State<OrderScreen> {
   void _changeQty(ProductData product, int delta) {
     if (!_canOrder(product)) return;
     final current = _qty[product.id] ?? 0;
-    final maxQty = product.quantity;
+    
+    // If onOrder and quantity is 0, allow ordering without a hard limit
+    // If status is inStock/low, limit by current quantity
+    final isUnlimited = product.status == StockStatus.onOrder && product.quantity == 0;
+    final maxQty = isUnlimited ? 999 : product.quantity;
+    
     final requested = current + delta;
     final next = requested.clamp(0, maxQty);
     setState(() {
@@ -66,16 +139,19 @@ class _OrderScreenState extends State<OrderScreen> {
       } else {
         _qty[product.id] = next;
       }
-      if (requested > maxQty) {
+      if (!isUnlimited && requested > maxQty) {
         _stockWarnings.add(product.id);
-      } else if (next < maxQty) {
+      } else if (isUnlimited || next < maxQty) {
         _stockWarnings.remove(product.id);
       }
     });
   }
 
   bool _canOrder(ProductData product) {
-    return product.status != StockStatus.outOfStock && product.quantity > 0;
+    if (product.status == StockStatus.outOfStock) return false;
+    // If quantity is 0, only allow if explicitly 'onOrder'
+    if (product.quantity <= 0 && product.status != StockStatus.onOrder) return false;
+    return true;
   }
 
   List<String> _categories(List<ProductData> products) {
@@ -106,25 +182,69 @@ class _OrderScreenState extends State<OrderScreen> {
 
   Future<void> _submit(OrderConfigData data) async {
     if (_totalQty == 0) return;
-    if (_deliveryMethod == 'self_pickup' && data.stores.isNotEmpty && _selectedStoreId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Выберите магазин для самовывоза')));
+    if (data.stores.isNotEmpty && _selectedStoreId == null) {
+      final msg = _deliveryMethod == 'courier' ? 'Выберите адрес для доставки' : 'Выберите магазин для самовывоза';
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
       return;
     }
 
     setState(() => _sending = true);
     try {
+      if (widget.initialOrder != null) {
+        await _repo.cancelOrder(widget.initialOrder!.id);
+      }
+
       await _repo.createOrder(
-        storeId: _deliveryMethod == 'self_pickup' ? _selectedStoreId : null,
+        storeId: _selectedStoreId,
         deliveryMethod: _deliveryMethod,
         comment: _commentCtrl.text,
         items: _qty.entries.map((entry) => {'productId': entry.key, 'quantity': entry.value}).toList(),
       );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Заказ отправлен дистрибьютору'),
+        SnackBar(
+          content: Text(widget.initialOrder != null ? 'Заказ обновлен' : 'Заказ отправлен дистрибьютору'),
           backgroundColor: AppColors.success,
         ),
+      );
+      Navigator.pop(context);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString()), backgroundColor: AppColors.error),
+      );
+    } finally {
+      if (mounted) setState(() => _sending = false);
+    }
+  }
+
+  Future<void> _handleCancel() async {
+    if (widget.initialOrder == null) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Отменить заказ?'),
+        content: const Text('Заказ будет аннулирован, товары вернутся на склад.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('НЕТ')),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+            child: const Text('ОТМЕНИТЬ ЗАКАЗ'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    setState(() => _sending = true);
+    try {
+      await _repo.cancelOrder(widget.initialOrder!.id);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Заказ отменен'), backgroundColor: AppColors.info),
       );
       Navigator.pop(context);
     } catch (e) {
@@ -146,7 +266,7 @@ class _OrderScreenState extends State<OrderScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Заказ')),
+      appBar: AppBar(title: Text(widget.initialOrder != null ? 'Изменение заказа' : 'Оформление заказа')),
       body: FutureBuilder<OrderConfigData>(
         future: _future,
         builder: (context, snapshot) {
@@ -172,10 +292,8 @@ class _OrderScreenState extends State<OrderScreen> {
                   const SizedBox(height: 16),
                   _deliveryMethodCard(data),
                   const SizedBox(height: 16),
-                  if (_deliveryMethod == 'self_pickup') ...[
-                    _storesCard(data.stores),
-                    const SizedBox(height: 16),
-                  ],
+                  _storesCard(data.stores),
+                  const SizedBox(height: 16),
                   _requestForm(data),
                   const SizedBox(height: 16),
                   _distributorCard(data),
@@ -291,21 +409,24 @@ class _OrderScreenState extends State<OrderScreen> {
   }
 
   Widget _storesCard(List<StoreData> stores) {
+    final isCourier = _deliveryMethod == 'courier';
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Магазин выдачи',
-              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+            Text(
+              isCourier ? 'Адрес доставки' : 'Ваш магазин / Объект',
+              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
             ),
             const SizedBox(height: 4),
             if (stores.isEmpty)
-              const Text(
-                'Магазин пока не назначен. Заказ уйдёт дистрибьютору, он уточнит выдачу.',
-                style: TextStyle(color: AppColors.textSecondary),
+              Text(
+                isCourier 
+                  ? 'У вас не добавлены магазины/адреса. Добавьте их в профиле, чтобы указать точку доставки.'
+                  : 'Магазин пока не назначен. Заказ уйдёт дистрибьютору, он уточнит выдачу.',
+                style: const TextStyle(color: AppColors.textSecondary),
               )
             else if (stores.length == 1)
               _storeTile(stores.first, selected: true, onTap: null)
@@ -375,8 +496,10 @@ class _OrderScreenState extends State<OrderScreen> {
   }
 
   Widget _requestForm(OrderConfigData data) {
-    final disabled = _sending || _totalQty == 0 || (_deliveryMethod == 'self_pickup' && data.stores.isNotEmpty && _selectedStoreId == null);
+    final disabled = _sending || !_hasChanges || _totalQty == 0 || (data.stores.isNotEmpty && _selectedStoreId == null);
     final store = _selectedStore(data.stores);
+    final totalAmount = _totalAmount(data.products);
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -390,8 +513,8 @@ class _OrderScreenState extends State<OrderScreen> {
             const SizedBox(height: 6),
             Text(
               _deliveryMethod == 'courier'
-                  ? 'Дистрибьютор привезет заказ по вашему адресу.'
-                  : (store == null ? 'Выберите товары. Дистрибьютор уточнит выдачу.' : 'Выбрано: ${store.name}'),
+                  ? (store == null ? 'Укажите адрес для курьера.' : 'Доставка на адрес: ${store.address}')
+                  : (store == null ? 'Выберите ваш объект для оформления.' : 'Заказ для объекта: ${store.name}'),
               style: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
             ),
             const SizedBox(height: 14),
@@ -408,25 +531,60 @@ class _OrderScreenState extends State<OrderScreen> {
               ),
             ),
             const SizedBox(height: 20),
-            SizedBox(
-              width: double.infinity,
-              height: 48,
-              child: ElevatedButton(
-                onPressed: disabled ? null : () => _submit(data),
-                child: _sending
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
+            if (widget.initialOrder != null)
+              Row(
+                children: [
+                  Expanded(
+                    child: SizedBox(
+                      height: 48,
+                      child: OutlinedButton(
+                        onPressed: _sending ? null : _handleCancel,
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppColors.error,
+                          side: const BorderSide(color: AppColors.error),
                         ),
-                      )
-                    : Text(
-                        _totalQty == 0 ? 'Добавьте товар' : 'Отправить дистрибьютору · $_totalQty шт.',
+                        child: const Text('ОТМЕНИТЬ ЗАКАЗ', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 11)),
                       ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: SizedBox(
+                      height: 48,
+                      child: ElevatedButton(
+                        onPressed: disabled ? null : () => _submit(data),
+                        child: _sending
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                              )
+                            : const Text('ПОДТВЕРДИТЬ', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 11)),
+                      ),
+                    ),
+                  ),
+                ],
+              )
+            else
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: ElevatedButton(
+                  onPressed: disabled ? null : () => _submit(data),
+                  child: _sending
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : Text(
+                          _totalQty == 0 ? 'Добавьте товар' : 'Отправить дистрибьютору · ${totalAmount.toStringAsFixed(0)} ₽',
+                        ),
+                ),
               ),
-            ),
           ],
         ),
       ),
@@ -508,98 +666,123 @@ class _OrderScreenState extends State<OrderScreen> {
   Widget _productTile(ProductData item) {
     final qty = _qty[item.id] ?? 0;
     final canOrder = _canOrder(item);
-    final showStockWarning = _stockWarnings.contains(item.id) || qty >= item.quantity;
+    final effectiveRemaining = item.quantity - qty;
+    final showStockWarning = _stockWarnings.contains(item.id) || (item.quantity > 0 && qty >= item.quantity);
 
     String stockStatusText;
     Color stockColor;
-    if (item.quantity > 5) {
+    if (effectiveRemaining > 5) {
       stockStatusText = 'В НАЛИЧИИ';
       stockColor = AppColors.success;
-    } else if (item.quantity > 0) {
+    } else if (effectiveRemaining > 0) {
       stockStatusText = 'МАЛО';
       stockColor = AppColors.warning;
-    } else {
+    } else if (item.status == StockStatus.onOrder) {
       stockStatusText = 'ПОД ЗАКАЗ';
       stockColor = AppColors.textHint;
+    } else {
+      stockStatusText = 'НЕТ В НАЛИЧИИ';
+      stockColor = AppColors.error;
     }
+
+    final isOutOfStock = !canOrder && qty == 0;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: ShapeDecoration(
-        color: qty > 0 ? const Color(0xFFF01D2C).withValues(alpha: 0.05) : Colors.white,
+        color: isOutOfStock 
+            ? AppColors.border.withValues(alpha: 0.2) 
+            : (qty > 0 ? const Color(0xFFF01D2C).withValues(alpha: 0.05) : Colors.white),
         shape: BeveledRectangleBorder(
-          side: BorderSide(color: qty > 0 ? const Color(0xFFF01D2C) : AppColors.border),
+          side: BorderSide(
+            color: isOutOfStock ? AppColors.border : (qty > 0 ? const Color(0xFFF01D2C) : AppColors.border)
+          ),
           borderRadius: BorderRadius.zero,
         ),
       ),
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+      child: Opacity(
+        opacity: isOutOfStock ? 0.5 : 1.0,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      item.name.toUpperCase(),
-                      style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 0.5),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          item.name.toUpperCase(),
+                          style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 0.5),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '${item.brand} · ${item.sku}',
+                          style: const TextStyle(color: AppColors.textSecondary, fontSize: 11, fontWeight: FontWeight.bold),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '${item.brand} · ${item.sku}',
-                      style: const TextStyle(color: AppColors.textSecondary, fontSize: 11, fontWeight: FontWeight.bold),
-                    ),
-                  ],
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: ShapeDecoration(
-                  color: stockColor.withValues(alpha: 0.1),
-                  shape: const BeveledRectangleBorder(borderRadius: BorderRadius.only(topRight: Radius.circular(5))),
-                ),
-                child: Text(
-                  stockStatusText,
-                  style: TextStyle(color: stockColor, fontSize: 10, fontWeight: FontWeight.w900),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Text(
-                '${_formatPrice(item.price)} ₽',
-                style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: Color(0xFF171717)),
-              ),
-              const Spacer(),
-              if (!canOrder)
-                const Text('НЕТ В НАЛИЧИИ', style: TextStyle(color: AppColors.error, fontWeight: FontWeight.bold, fontSize: 12))
-              else if (qty == 0)
-                ElevatedButton(
-                  onPressed: () => _changeQty(item, 1),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF171717),
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    minimumSize: const Size(100, 36),
                   ),
-                  child: const Text('ДОБАВИТЬ', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
-                )
-              else
-                _qtyStepper(item, qty),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: ShapeDecoration(
+                      color: stockColor.withValues(alpha: 0.1),
+                      shape: const BeveledRectangleBorder(borderRadius: BorderRadius.only(topRight: Radius.circular(5))),
+                    ),
+                    child: Text(
+                      stockStatusText,
+                      style: TextStyle(color: stockColor, fontSize: 10, fontWeight: FontWeight.w900),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Text(
+                    '${_formatPrice(item.price)} ₽',
+                    style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: Color(0xFF171717)),
+                  ),
+                  const Spacer(),
+                  if (isOutOfStock)
+                    const SizedBox(height: 36) // Empty space instead of the button
+                  else if (qty == 0)
+                    ElevatedButton(
+                      onPressed: () => _changeQty(item, 1),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF171717),
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        minimumSize: const Size(100, 36),
+                      ),
+                      child: const Text('ДОБАВИТЬ', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                    )
+                  else
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        _qtyStepper(item, qty),
+                        if (!canOrder)
+                          const Padding(
+                            padding: EdgeInsets.only(top: 4),
+                            child: Text('БОЛЬШЕ НЕТ', style: TextStyle(color: AppColors.error, fontSize: 9, fontWeight: FontWeight.bold)),
+                          ),
+                      ],
+                    ),
+                ],
+              ),
+              if (showStockWarning && canOrder && item.quantity > 0) ...[
+                const SizedBox(height: 8),
+                const Text(
+                  'ДОСТИГНУТ МАКСИМАЛЬНЫЙ ОСТАТОК',
+                  style: TextStyle(color: AppColors.error, fontSize: 10, fontWeight: FontWeight.w900),
+                ),
+              ],
             ],
           ),
-          if (showStockWarning && canOrder) ...[
-            const SizedBox(height: 8),
-            const Text(
-              'ДОСТИГНУТ МАКСИМАЛЬНЫЙ ОСТАТОК',
-              style: TextStyle(color: AppColors.error, fontSize: 10, fontWeight: FontWeight.w900),
-            ),
-          ],
-        ],
+        ),
       ),
     );
   }
@@ -665,6 +848,9 @@ class _OrderScreenState extends State<OrderScreen> {
   }
 
   Widget _qtyStepper(ProductData product, int qty) {
+    final isUnlimited = product.status == StockStatus.onOrder && product.quantity == 0;
+    final reachedLimit = !isUnlimited && qty >= product.quantity;
+
     return Container(
       height: 36,
       decoration: BoxDecoration(
@@ -685,7 +871,7 @@ class _OrderScreenState extends State<OrderScreen> {
           ),
           _qtyButton(
             Icons.add,
-            qty >= product.quantity,
+            reachedLimit,
             () => _changeQty(product, 1),
           ),
         ],

@@ -8,9 +8,8 @@ import '../../services/data_repository.dart';
 import '../../services/auth_service.dart';
 import '../../services/api_client.dart';
 import '../../widgets/common/status_badge.dart';
+import '../../widgets/common/premium_icon_badge.dart';
 import '../../widgets/common/section_header.dart';
-import '../../widgets/common/app_logo.dart';
-import '../../widgets/layouts/admin_layout.dart';
 
 import 'expert_profile_screen.dart';
 
@@ -469,36 +468,110 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void _showLogoutDialog(BuildContext context) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        shape: const BeveledRectangleBorder(
-          side: BorderSide(color: AppColors.border, width: 1),
-        ),
-        backgroundColor: Colors.white,
-        surfaceTintColor: Colors.transparent,
-        title: const Text('ВЫХОД ИЗ СИСТЕМЫ'),
-        content: const Text(
-          'Вы уверены, что хотите завершить сеанс? Все несохраненные данные могут быть потеряны.',
-          style: TextStyle(fontSize: 13),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('ОТМЕНА', style: TextStyle(color: AppColors.textSecondary, fontWeight: FontWeight.bold)),
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            border: Border.all(color: AppColors.brandBlack, width: 2),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.1),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+              ),
+            ],
           ),
-          ElevatedButton(
-            onPressed: () async {
-              await authService.logout();
-              if (context.mounted) {
-                context.go(AppRoutes.login);
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.brandRed,
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-            ),
-            child: const Text('ВЫЙТИ'),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 24),
+              PremiumIconBadge(
+                icon: Icons.logout_rounded,
+                size: 54,
+                iconSize: 26,
+              ),
+              const SizedBox(height: 20),
+              const Text(
+                'ВЫХОД ИЗ СИСТЕМЫ',
+                style: TextStyle(
+                  fontFamily: 'TTOctosquares',
+                  fontWeight: FontWeight.w900,
+                  fontSize: 16,
+                  letterSpacing: 1,
+                  color: AppColors.brandBlack,
+                ),
+              ),
+              const SizedBox(height: 12),
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 24),
+                child: Text(
+                  'Вы уверены, что хотите завершить сеанс? Для возобновления работы потребуется повторный вход.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontFamily: 'TTNeoris',
+                    fontSize: 13,
+                    color: AppColors.textSecondary,
+                    height: 1.4,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 32),
+              const Divider(height: 1, color: AppColors.border),
+              Row(
+                children: [
+                  Expanded(
+                    child: InkWell(
+                      onTap: () => Navigator.pop(context),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        alignment: Alignment.center,
+                        child: const Text(
+                          'ОТМЕНА',
+                          style: TextStyle(
+                            fontFamily: 'TTOctosquares',
+                            fontWeight: FontWeight.w900,
+                            fontSize: 12,
+                            letterSpacing: 0.5,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  Container(width: 1, height: 48, color: AppColors.border),
+                  Expanded(
+                    child: InkWell(
+                      onTap: () async {
+                        await authService.logout();
+                        if (context.mounted) {
+                          context.go(AppRoutes.login);
+                        }
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        alignment: Alignment.center,
+                        decoration: const BoxDecoration(
+                          color: AppColors.brandBlack,
+                        ),
+                        child: const Text(
+                          'ВЫЙТИ',
+                          style: TextStyle(
+                            fontFamily: 'TTOctosquares',
+                            fontWeight: FontWeight.w900,
+                            fontSize: 12,
+                            letterSpacing: 0.5,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

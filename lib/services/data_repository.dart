@@ -83,16 +83,19 @@ class DistributorDashboardData {
   final DistributorDashboardMetrics metrics;
   final List<Order> recentOrders;
   final List<Purchase> pendingPurchases;
+  final List<CourierTask> recentDeliveryTasks;
 
   const DistributorDashboardData({
     required this.metrics,
     required this.recentOrders,
     required this.pendingPurchases,
+    required this.recentDeliveryTasks,
   });
 }
 
 class DataRepository {
   final ApiClient _api;
+  ApiClient get api => _api;
 
   DataRepository({ApiClient? api}) : _api = api ?? ApiClient();
 
@@ -125,6 +128,7 @@ class DataRepository {
     final data = await _api.distributorDashboard();
     final orders = await _api.distributorOrders();
     final purchases = await _api.distributorPurchases(toVerify: true);
+    final deliveryTasks = await _api.distributorDeliveryTasks();
 
     return DistributorDashboardData(
       metrics: _distributorMetricsFromJson(
@@ -132,6 +136,7 @@ class DataRepository {
       ),
       recentOrders: orders.map((item) => _orderFromJson(item)).toList(),
       pendingPurchases: purchases.map((item) => _purchaseFromJson(item)).toList(),
+      recentDeliveryTasks: deliveryTasks.map((item) => _courierTaskFromJson(item)).toList(),
     );
   }
 
@@ -142,6 +147,7 @@ class DataRepository {
       clients: (json['clients'] as num? ?? 0).toInt(),
       purchasesToVerify: (json['purchasesToVerify'] as num? ?? 0).toInt(),
       ordersToProcess: (json['ordersToProcess'] as num? ?? 0).toInt(),
+      deliveriesToAssign: (json['deliveriesToAssign'] as num? ?? 0).toInt(),
     );
   }
 
@@ -216,6 +222,15 @@ class DataRepository {
     return items.map(_orderFromJson).toList();
   }
 
+  Future<List<CourierTask>> distributorDeliveryTasks() async {
+    final items = await _api.distributorDeliveryTasks();
+    return items.map(_courierTaskFromJson).toList();
+  }
+
+  Future<void> updateDeliveryStatus(String taskId, {String? status, String? courierId, String? reason}) async {
+    await _api.updateDeliveryStatus(taskId, status: status, courierId: courierId, reason: reason);
+  }
+
   Future<List<ProductData>> distributorStock() async {
     final items = await _api.distributorStock();
     // Use compute for large lists to keep UI responsive
@@ -232,6 +247,10 @@ class DataRepository {
 
   Future<void> distributorStockUpload(List<Map<String, dynamic>> items) async {
     await _api.distributorStockUpload(items);
+  }
+
+  Future<void> addProduct(Map<String, dynamic> data) async {
+    await _api.addProduct(data);
   }
 
   Future<Order> updateOrderStatus(String id, {required String status, String? reason, String? courierId, String? estimatedDeliveryDate}) async {
@@ -265,8 +284,18 @@ class DataRepository {
     await _api.createCourierTask(data);
   }
 
+  Future<void> cancelCourierTask(String id) async {
+    await _api.cancelCourierTask(id);
+  }
+
+  Future<void> updateCourierTask(String id, Map<String, dynamic> data) async {
+    await _api.updateCourierTask(id, data);
+  }
+
   Future<List<CourierTask>> courierTasks() async {
-    final items = await _api.courierTasks();
+    final items = (ApiClient.role == 'distributor')
+        ? await _api.distributorDeliveryTasks()
+        : await _api.courierTasks();
     return items.map(_courierTaskFromJson).toList();
   }
 
@@ -398,6 +427,10 @@ class DataRepository {
     );
   }
 
+  Future<void> cancelOrder(String orderId) async {
+    await _api.cancelOrder(orderId);
+  }
+
   Future<Map<String, dynamic>> register(Map<String, dynamic> data) {
     return _api.register(data);
   }
@@ -416,6 +449,14 @@ class DataRepository {
 
   Future<Map<String, dynamic>> createColorRequest(Map<String, dynamic> data, {List<int>? fileBytes, String? fileName}) {
     return _api.createColorRequest(data, fileBytes: fileBytes, fileName: fileName);
+  }
+
+  Future<void> cancelColorRequest(String id) {
+    return _api.cancelColorRequest(id);
+  }
+
+  Future<void> updateColorRequest(String id, Map<String, dynamic> data) {
+    return _api.updateColorRequest(id, data);
   }
 
   Future<Map<String, dynamic>> createExpertTicket(Map<String, dynamic> data, {List<int>? fileBytes, String? fileName}) {
@@ -547,6 +588,7 @@ class DataRepository {
       orderStatus: _toString(json['orderStatus']),
       items: _list(json['items']).map((item) => _purchaseItemFromJson(item)).toList(),
       documentUrl: _toString(json['documentUrl']),
+      attachments: _list(json['attachments']).map((item) => AppAttachment.fromJson(item)).toList(),
       createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? '') ?? DateTime.now(),
     );
   }
@@ -564,26 +606,7 @@ class DataRepository {
   }
 
   static ColorRequest _colorRequestFromJson(Map<String, dynamic> json) {
-    return ColorRequest(
-      id: json['id'] as String,
-      clientId: json['clientId'] as String,
-      carBrand: json['carBrand'] as String,
-      carModel: json['carModel'] as String,
-      vin: json['vin'] as String,
-      colorCode: json['colorCode'] as String,
-      colorName: json['colorName'] as String,
-      urgent: json['urgent'] as bool? ?? false,
-      status: _colorRequestStatus(json['status'] as String),
-      transferMethod: json['transferMethod'] as String? ?? 'courier',
-      pickupAddress: json['pickupAddress'] as String?,
-      pickupTime: json['pickupTime'] != null ? DateTime.parse(json['pickupTime'] as String) : null,
-      contactPerson: json['contactPerson'] as String?,
-      contactPhone: json['contactPhone'] as String?,
-      slaDeadline: json['slaDeadline'] != null ? DateTime.parse(json['slaDeadline'] as String) : null,
-      isOverdue: json['isOverdue'] as bool? ?? false,
-      recipe: json['recipe'] as String?,
-      createdAt: DateTime.parse(json['createdAt'] as String),
-    );
+    return ColorRequest.fromJson(json);
   }
 
   static CourierTask _courierTaskFromJson(Map<String, dynamic> json) {

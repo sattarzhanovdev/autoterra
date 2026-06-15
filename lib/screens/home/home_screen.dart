@@ -364,8 +364,21 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
           onAction: () => context.push(AppRoutes.colorCenter),
         ),
         const SizedBox(height: 12),
-        ...requests.take(2).map((r) => _ColorRequestItem(request: r)),
+        ...requests.take(2).map((r) => _ColorRequestItem(
+          request: r,
+          onTap: () => _showColorDetails(r),
+        )),
       ],
+    );
+  }
+
+  void _showColorDetails(ColorRequest request) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _ColorRequestDetailsSheet(request: request),
     );
   }
 
@@ -543,70 +556,199 @@ class _PurchaseListItem extends StatelessWidget {
 
 class _ColorRequestItem extends StatelessWidget {
   final ColorRequest request;
-  const _ColorRequestItem({required this.request});
+  final VoidCallback? onTap;
+  const _ColorRequestItem({required this.request, this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceCard,
-        border: Border.all(color: AppColors.border),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          const PremiumIconBadge(
-            icon: Icons.palette_outlined,
-            size: 40,
-            iconSize: 20,
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: AppColors.surfaceCard,
+          border: Border.all(color: AppColors.border),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            const PremiumIconBadge(
+              icon: Icons.palette_outlined,
+              size: 40,
+              iconSize: 20,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '${request.carBrand} ${request.carModel}'.toUpperCase(),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w900,
+                      fontSize: 12,
+                    ),
+                  ),
+                  Text(
+                    '${request.colorCode} · ${request.colorName}'.toUpperCase(),
+                    style: const TextStyle(
+                      color: AppColors.textSecondary,
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 0.2,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                Text(
-                  '${request.carBrand} ${request.carModel}'.toUpperCase(),
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w900,
-                    fontSize: 12,
+                StatusBadge.fromColorStatus(request.status),
+                if (request.urgent) ...[
+                  const SizedBox(height: 4),
+                  const StatusBadge(
+                    label: 'СРОЧНО',
+                    color: AppColors.brandRed,
+                    filled: true,
                   ),
-                ),
-                Text(
-                  '${request.colorCode} · ${request.colorName}'.toUpperCase(),
-                  style: const TextStyle(
-                    color: AppColors.textSecondary,
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 0.2,
-                  ),
-                ),
+                ],
               ],
             ),
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              StatusBadge.fromColorStatus(request.status),
-              if (request.urgent) ...[
-                const SizedBox(height: 4),
-                const StatusBadge(
-                  label: 'СРОЧНО',
-                  color: AppColors.brandRed,
-                  filled: true,
-                ),
-              ],
-            ],
-          ),
-        ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ColorRequestDetailsSheet extends StatelessWidget {
+  final ColorRequest request;
+  const _ColorRequestDetailsSheet({required this.request});
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: Container(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.9,
+        ),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.zero,
+        ),
+        child: Column(
+          children: [
+            Container(
+              width: 36,
+              height: 4,
+              margin: const EdgeInsets.only(top: 12),
+              decoration: BoxDecoration(
+                color: AppColors.border,
+                borderRadius: BorderRadius.zero,
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 10, 8, 10),
+              child: Row(
+                children: [
+                  const PremiumIconBadge(
+                    icon: Icons.palette_outlined,
+                    size: 44,
+                    iconSize: 22,
+                    iconColor: AppColors.brandRed,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '${request.carBrand} ${request.carModel}'.toUpperCase(),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w800,
+                            fontSize: 18,
+                          ),
+                        ),
+                        Text(
+                          '${request.colorCode} · ${request.colorName}'.toUpperCase(),
+                          style: const TextStyle(
+                            color: AppColors.textSecondary,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.close, color: AppColors.textHint),
+                  ),
+                ],
+              ),
+            ),
+            const Divider(height: 1),
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.all(20),
+                children: [
+                  InfoRow(label: 'СТАТУС', value: StatusBadge.fromColorStatus(request.status).label),
+                  InfoRow(label: 'VIN', value: request.vin.toUpperCase()),
+                  InfoRow(
+                    label: 'ДАТА ЗАЯВКИ',
+                    value: DateFormat('dd.MM.yyyy HH:mm', 'ru_RU').format(request.createdAt),
+                  ),
+                  if (request.comment != null && request.comment!.isNotEmpty)
+                    InfoRow(label: 'КОММЕНТАРИЙ', value: request.comment!),
+                  
+                  if (request.status == ColorRequestStatus.ready && request.recipe != null) ...[
+                    const Divider(height: 32),
+                    const Text(
+                      'РЕЦЕПТ ЦВЕТА',
+                      style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16),
+                    ),
+                    const SizedBox(height: 12),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: AppColors.canvas,
+                        border: Border.all(color: AppColors.border),
+                      ),
+                      child: Text(
+                        request.recipe!,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          height: 1.5,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.brandBlack,
+                      ),
+                      child: const Text('ЗАКРЫТЬ'),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

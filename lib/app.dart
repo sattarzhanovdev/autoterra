@@ -83,7 +83,7 @@ final GoRouter _router = GoRouter(
     GoRoute(path: AppRoutes.referral, builder: (ctx, _) => const ReferralScreen()),
     GoRoute(path: AppRoutes.notifications, builder: (ctx, _) => const NotificationsScreen()),
     GoRoute(path: AppRoutes.distributor, builder: (ctx, _) => const DistributorScreen()),
-    GoRoute(path: AppRoutes.order, builder: (ctx, _) => const OrderScreen()),
+    GoRoute(path: AppRoutes.order, builder: (ctx, state) => OrderScreen(initialOrder: state.extra as Order?)),
     GoRoute(path: AppRoutes.delivery, builder: (ctx, _) => const DeliveryScreen()),
   ],
 );

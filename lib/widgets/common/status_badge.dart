@@ -89,12 +89,18 @@ class StatusBadge extends StatelessWidget {
     switch (status) {
       case ColorRequestStatus.created:
         return const StatusBadge(label: 'СОЗДАНА', color: AppColors.info);
+      case ColorRequestStatus.assigned:
+        return const StatusBadge(label: 'НАЗНАЧЕНА', color: AppColors.brandBlack);
+      case ColorRequestStatus.pickedUp:
+        return const StatusBadge(label: 'ЗАБРАНО', color: AppColors.info);
       case ColorRequestStatus.inProgress:
         return const StatusBadge(label: 'В РАБОТЕ', color: AppColors.warning);
       case ColorRequestStatus.ready:
         return const StatusBadge(label: 'ГОТОВО', color: AppColors.success);
       case ColorRequestStatus.delivered:
         return const StatusBadge(label: 'ВЫДАНО', color: AppColors.textSecondary);
+      case ColorRequestStatus.cancelled:
+        return const StatusBadge(label: 'ОТМЕНЕНА', color: AppColors.error);
     }
   }
 

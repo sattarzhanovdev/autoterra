@@ -88,7 +88,7 @@ class _ColorCenterScreenState extends State<ColorCenterScreen>
           return Center(child: Text(snapshot.error.toString()));
         }
         final requests = snapshot.data!
-            .where((item) => item.status != ColorRequestStatus.delivered)
+            .where((item) => item.status != ColorRequestStatus.delivered && item.status != ColorRequestStatus.cancelled)
             .toList();
         if (requests.isEmpty) {
           return RefreshIndicator(
@@ -112,6 +112,7 @@ class _ColorCenterScreenState extends State<ColorCenterScreen>
             itemBuilder: (context, i) => _ColorCard(
               request: requests[i],
               onTap: () => _showRecipe(requests[i]),
+              onUpdate: _reload,
             ),
           ),
         );
@@ -214,9 +215,7 @@ class _ColorCenterScreenState extends State<ColorCenterScreen>
   }
 
   void _showRecipe(ColorRequest request) {
-    if (request.recipe == null) {
-      return;
-    }
+    if (request.recipe == null) return;
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -275,17 +274,26 @@ class _ColorCenterScreenState extends State<ColorCenterScreen>
 class _ColorCard extends StatelessWidget {
   final ColorRequest request;
   final VoidCallback? onTap;
-  const _ColorCard({required this.request, this.onTap});
+  final VoidCallback? onUpdate;
+  const _ColorCard({required this.request, this.onTap, this.onUpdate});
 
   @override
   Widget build(BuildContext context) {
+    final canAction = request.status == ColorRequestStatus.created;
+
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
         border: Border.all(color: AppColors.border),
       ),
       child: InkWell(
-        onTap: request.status == ColorRequestStatus.ready ? onTap : null,
+        onTap: () {
+          if (request.status == ColorRequestStatus.ready) {
+            onTap?.call();
+          } else if (canAction) {
+            _showEditMenu(context);
+          }
+        },
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
@@ -346,6 +354,19 @@ class _ColorCard extends StatelessWidget {
     );
   }
 
+  void _showEditMenu(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _NewColorRequestSheet(
+        initialRequest: request,
+        onCreated: () => onUpdate?.call(),
+      ),
+    );
+  }
+
   Widget _infoChip(IconData icon, String label, [Color color = AppColors.textSecondary]) {
     return Row(
       children: [
@@ -359,7 +380,8 @@ class _ColorCard extends StatelessWidget {
 
 class _NewColorRequestSheet extends StatefulWidget {
   final VoidCallback onCreated;
-  const _NewColorRequestSheet({required this.onCreated});
+  final ColorRequest? initialRequest;
+  const _NewColorRequestSheet({required this.onCreated, this.initialRequest});
 
   @override
   State<_NewColorRequestSheet> createState() => _NewColorRequestSheetState();
@@ -382,6 +404,54 @@ class _NewColorRequestSheetState extends State<_NewColorRequestSheet> {
   Uint8List? _webBytes;
   final bool _urgent = false;
   bool _saving = false;
+
+  bool get _hasChanges {
+    if (widget.initialRequest == null) {
+      return _brandCtrl.text.isNotEmpty || _modelCtrl.text.isNotEmpty;
+    }
+    final r = widget.initialRequest!;
+    if (_brandCtrl.text != r.carBrand) return true;
+    if (_modelCtrl.text != r.carModel) return true;
+    if (_vinCtrl.text != r.vin) return true;
+    if (_colorCodeCtrl.text != r.colorCode) return true;
+    if (_colorNameCtrl.text != r.colorName) return true;
+    if (_addressCtrl.text != (r.pickupAddress ?? '')) return true;
+    if (_contactPersonCtrl.text != (r.contactPerson ?? '')) return true;
+    if (_contactPhoneCtrl.text != (r.contactPhone ?? '')) return true;
+    if (_commentCtrl.text != (r.comment ?? '')) return true;
+    if (_transferMethod != r.transferMethod) return true;
+    if (_pickupTime != r.pickupTime) return true;
+    return false;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.initialRequest != null) {
+      final r = widget.initialRequest!;
+      _brandCtrl.text = r.carBrand;
+      _modelCtrl.text = r.carModel;
+      _vinCtrl.text = r.vin;
+      _colorCodeCtrl.text = r.colorCode;
+      _colorNameCtrl.text = r.colorName;
+      _addressCtrl.text = r.pickupAddress ?? '';
+      _contactPersonCtrl.text = r.contactPerson ?? '';
+      _contactPhoneCtrl.text = r.contactPhone ?? '';
+      _commentCtrl.text = r.comment ?? '';
+      _transferMethod = r.transferMethod;
+      _pickupTime = r.pickupTime;
+    }
+
+    // Refresh UI when any text changes to update button state
+    for (final controller in [
+      _brandCtrl, _modelCtrl, _vinCtrl, _colorCodeCtrl, _colorNameCtrl,
+      _addressCtrl, _contactPersonCtrl, _contactPhoneCtrl, _commentCtrl
+    ]) {
+      controller.addListener(() {
+        if (mounted) setState(() {});
+      });
+    }
+  }
 
   Future<void> _pickImage() async {
     final picker = ImagePicker();
@@ -407,22 +477,69 @@ class _NewColorRequestSheetState extends State<_NewColorRequestSheet> {
   Future<void> _submit() async {
     setState(() => _saving = true);
     try {
-      final bytes = _webBytes ?? (_photo != null ? await _photo!.readAsBytes() : null);
-      await DataRepository().createColorRequest({
-        'carBrand': _brandCtrl.text,
-        'carModel': _modelCtrl.text,
-        'vin': _vinCtrl.text,
-        'colorCode': _colorCodeCtrl.text,
-        'colorName': _colorNameCtrl.text,
-        'urgent': _urgent,
-        'transferMethod': _transferMethod,
-        'pickupAddress': _addressCtrl.text,
-        'pickupTime': _pickupTime?.toIso8601String(),
-        'contactPerson': _contactPersonCtrl.text,
-        'contactPhone': _contactPhoneCtrl.text,
-        'comment': _commentCtrl.text,
-      }, fileBytes: bytes, fileName: _photo?.name);
+      if (widget.initialRequest != null) {
+        await DataRepository().updateColorRequest(widget.initialRequest!.id, {
+          'carBrand': _brandCtrl.text,
+          'carModel': _modelCtrl.text,
+          'vin': _vinCtrl.text,
+          'colorCode': _colorCodeCtrl.text,
+          'colorName': _colorNameCtrl.text,
+          'transferMethod': _transferMethod,
+          'pickupAddress': _addressCtrl.text,
+          'contactPerson': _contactPersonCtrl.text,
+          'contactPhone': _contactPhoneCtrl.text,
+          'comment': _commentCtrl.text,
+        });
+      } else {
+        final bytes = _webBytes ?? (_photo != null ? await _photo!.readAsBytes() : null);
+        await DataRepository().createColorRequest({
+          'carBrand': _brandCtrl.text,
+          'carModel': _modelCtrl.text,
+          'vin': _vinCtrl.text,
+          'colorCode': _colorCodeCtrl.text,
+          'colorName': _colorNameCtrl.text,
+          'urgent': _urgent,
+          'transferMethod': _transferMethod,
+          'pickupAddress': _addressCtrl.text,
+          'pickupTime': _pickupTime?.toIso8601String(),
+          'contactPerson': _contactPersonCtrl.text,
+          'contactPhone': _contactPhoneCtrl.text,
+          'comment': _commentCtrl.text,
+        }, fileBytes: bytes, fileName: _photo?.name);
+      }
       
+      if (!mounted) return;
+      widget.onCreated();
+      Navigator.pop(context);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  Future<void> _handleDelete() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Отменить заявку?'),
+        content: const Text('Заявка будет аннулирована.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('НЕТ')),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+            child: const Text('ОТМЕНИТЬ'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    setState(() => _saving = true);
+    try {
+      await DataRepository().cancelColorRequest(widget.initialRequest!.id);
       if (!mounted) return;
       widget.onCreated();
       Navigator.pop(context);
@@ -443,7 +560,7 @@ class _NewColorRequestSheetState extends State<_NewColorRequestSheet> {
         child: Column(
           children: [
             AppBar(
-              title: const Text('НОВАЯ ЗАЯВКА', style: TextStyle(fontWeight: FontWeight.w900)),
+              title: Text(widget.initialRequest != null ? 'ИЗМЕНЕНИЕ ЗАЯВКИ' : 'НОВАЯ ЗАЯВКА', style: const TextStyle(fontWeight: FontWeight.w900)),
               automaticallyImplyLeading: false,
               actions: [IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close))],
             ),
@@ -470,23 +587,25 @@ class _NewColorRequestSheetState extends State<_NewColorRequestSheet> {
                     Expanded(child: TextFormField(controller: _colorNameCtrl, decoration: const InputDecoration(labelText: 'НАЗВАНИЕ ЦВЕТА'))),
                   ],
                 ),
-                const SizedBox(height: 24),
-                _sectionTitle('2. ФОТО ЛЮЧКА'),
-                const SizedBox(height: 12),
-                GestureDetector(
-                  onTap: _pickImage,
-                  child: Container(
-                    height: 100,
-                    decoration: BoxDecoration(color: AppColors.canvas, border: Border.all(color: AppColors.border)),
-                    child: _photo == null 
-                      ? const Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.add_a_photo, color: AppColors.brandRed), Text('ДОБАВИТЬ ФОТО', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold))])
-                      : kIsWeb
-                        ? Image.memory(_webBytes!, fit: BoxFit.cover)
-                        : Image.file(File(_photo!.path), fit: BoxFit.cover),
+                if (widget.initialRequest == null) ...[
+                  const SizedBox(height: 24),
+                  _sectionTitle('2. ФОТО ЛЮЧКА'),
+                  const SizedBox(height: 12),
+                  GestureDetector(
+                    onTap: _pickImage,
+                    child: Container(
+                      height: 100,
+                      decoration: BoxDecoration(color: AppColors.canvas, border: Border.all(color: AppColors.border)),
+                      child: _photo == null 
+                        ? const Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.add_a_photo, color: AppColors.brandRed), Text('ДОБАВИТЬ ФОТО', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold))])
+                        : kIsWeb
+                          ? Image.memory(_webBytes!, fit: BoxFit.cover)
+                          : Image.file(File(_photo!.path), fit: BoxFit.cover),
+                    ),
                   ),
-                ),
+                ],
                 const SizedBox(height: 24),
-                _sectionTitle('3. ПЕРЕДАЧА ЛЮЧКА'),
+                _sectionTitle(widget.initialRequest == null ? '3. ПЕРЕДАЧА ЛЮЧКА' : '2. ПЕРЕДАЧА ЛЮЧКА'),
                 const SizedBox(height: 12),
                 Row(
                   children: [
@@ -524,22 +643,52 @@ class _NewColorRequestSheetState extends State<_NewColorRequestSheet> {
                 const SizedBox(height: 24),
                 TextFormField(controller: _commentCtrl, maxLines: 2, decoration: const InputDecoration(labelText: 'КОММЕНТАРИЙ')),
                 const SizedBox(height: 32),
-                SizedBox(
-                  height: 54,
-                  child: ElevatedButton(
-                    onPressed: _saving ? null : _submit,
-                    style: ElevatedButton.styleFrom(backgroundColor: AppColors.brandRed),
-                    child: Text(_saving ? 'ОТПРАВКА...' : 'ОТПРАВИТЬ ЗАЯВКУ'),
+                if (widget.initialRequest != null)
+                  Row(
+                    children: [
+                      Expanded(
+                        child: SizedBox(
+                          height: 54,
+                          child: OutlinedButton(
+                            onPressed: _saving ? null : _handleDelete,
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: AppColors.error,
+                              side: const BorderSide(color: AppColors.error),
+                            ),
+                            child: const Text('ОТМЕНИТЬ'),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: SizedBox(
+                          height: 54,
+                          child: ElevatedButton(
+                            onPressed: (_saving || !_hasChanges) ? null : _submit,
+                            style: ElevatedButton.styleFrom(backgroundColor: AppColors.brandBlack),
+                            child: Text(_saving ? 'СОХРАНЕНИЕ...' : 'ПОДТВЕРДИТЬ'),
+                          ),
+                        ),
+                      ),
+                    ],
+                  )
+                else
+                  SizedBox(
+                    height: 54,
+                    child: ElevatedButton(
+                      onPressed: (_saving || !_hasChanges) ? null : _submit,
+                      style: ElevatedButton.styleFrom(backgroundColor: AppColors.brandRed),
+                      child: Text(_saving ? 'ОТПРАВКА...' : 'ОТПРАВИТЬ ЗАЯВКУ'),
+                    ),
                   ),
-                ),
               ],
             ),
           ),
-        ],
+          ],
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
 
   Widget _sectionTitle(String title) => Text(title, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 0.5));
 

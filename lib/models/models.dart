@@ -10,7 +10,7 @@ enum StockStatus { inStock, low, onOrder, outOfStock }
 
 enum CourierTaskStatus { created, assigned, inProgress, delivered, returned, cancelled }
 
-enum ColorRequestStatus { created, inProgress, ready, delivered }
+enum ColorRequestStatus { created, assigned, pickedUp, inProgress, ready, delivered, cancelled }
 
 enum UserRole { client, distributor, manager, admin, courier, aiExpert }
 
@@ -129,11 +129,13 @@ class DistributorDashboardMetrics {
   final int clients;
   final int purchasesToVerify;
   final int ordersToProcess;
+  final int deliveriesToAssign;
 
   const DistributorDashboardMetrics({
     required this.clients,
     required this.purchasesToVerify,
     required this.ordersToProcess,
+    required this.deliveriesToAssign,
   });
 }
 
@@ -194,6 +196,7 @@ class Purchase {
   final String? orderStatus;
   final List<PurchaseItem> items;
   final String? documentUrl;
+  final List<AppAttachment> attachments;
   final DateTime createdAt;
 
   const Purchase({
@@ -209,8 +212,32 @@ class Purchase {
     this.orderStatus,
     required this.items,
     this.documentUrl,
+    this.attachments = const [],
     required this.createdAt,
   });
+}
+
+class AppAttachment {
+  final String id;
+  final String url;
+  final String name;
+  final String? fileType;
+
+  const AppAttachment({
+    required this.id,
+    required this.url,
+    required this.name,
+    this.fileType,
+  });
+
+  factory AppAttachment.fromJson(Map<String, dynamic> json) {
+    return AppAttachment(
+      id: json['id'].toString(),
+      url: json['url'] ?? '',
+      name: json['name'] ?? '',
+      fileType: json['fileType'],
+    );
+  }
 }
 
 class PurchaseItem {
@@ -277,6 +304,7 @@ class ColorRequest {
   final DateTime? slaDeadline;
   final bool isOverdue;
   final String? recipe;
+  final String? comment;
   final DateTime createdAt;
 
   const ColorRequest({
@@ -297,14 +325,53 @@ class ColorRequest {
     this.slaDeadline,
     this.isOverdue = false,
     this.recipe,
+    this.comment,
     required this.createdAt,
   });
+
+  factory ColorRequest.fromJson(Map<String, dynamic> json) {
+    return ColorRequest(
+      id: json['id'].toString(),
+      clientId: json['clientId'].toString(),
+      carBrand: json['carBrand'] ?? '',
+      carModel: json['carModel'] ?? '',
+      vin: json['vin'] ?? '',
+      colorCode: json['colorCode'] ?? '',
+      colorName: json['colorName'] ?? '',
+      urgent: json['urgent'] ?? false,
+      status: _parseStatus(json['status']?.toString()),
+      transferMethod: json['transferMethod'] ?? 'courier',
+      pickupAddress: json['pickupAddress'],
+      pickupTime: json['pickupTime'] != null ? DateTime.parse(json['pickupTime']) : null,
+      contactPerson: json['contactPerson'],
+      contactPhone: json['contactPhone'],
+      slaDeadline: json['slaDeadline'] != null ? DateTime.parse(json['slaDeadline']) : null,
+      isOverdue: json['isOverdue'] ?? false,
+      recipe: json['recipe'],
+      comment: json['comment'],
+      createdAt: json['createdAt'] != null ? DateTime.parse(json['createdAt']) : DateTime.now(),
+    );
+  }
+
+  static ColorRequestStatus _parseStatus(String? value) {
+    switch (value) {
+      case 'created': return ColorRequestStatus.created;
+      case 'assigned': return ColorRequestStatus.assigned;
+      case 'picked_up': return ColorRequestStatus.pickedUp;
+      case 'in_progress': return ColorRequestStatus.inProgress;
+      case 'ready': return ColorRequestStatus.ready;
+      case 'delivered': return ColorRequestStatus.delivered;
+      case 'cancelled': return ColorRequestStatus.cancelled;
+      default: return ColorRequestStatus.created;
+    }
+  }
 }
 
 class CourierTask {
   final String id;
   final String clientId;
   final String clientName;
+  final String? courierName;
   final String taskType; // 'pickup' | 'delivery' | 'return'
   final String typeDisplay;
   final String address;
@@ -323,6 +390,7 @@ class CourierTask {
     required this.id,
     required this.clientId,
     required this.clientName,
+    this.courierName,
     required this.taskType,
     required this.typeDisplay,
     required this.address,
@@ -345,6 +413,7 @@ class CourierTask {
       id: json['id'].toString(),
       clientId: json['clientId'].toString(),
       clientName: json['clientName'] ?? '',
+      courierName: json['courierName'],
       taskType: json['taskType'] ?? 'delivery',
       typeDisplay: json['typeDisplay'] ?? '',
       address: json['address'] ?? '',
