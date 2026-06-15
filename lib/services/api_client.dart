@@ -211,6 +211,52 @@ class ApiClient {
     return _get('/manager/clients/$clientId/unified/');
   }
 
+  Future<List<Map<String, dynamic>>> managerClientsFiltered({
+    String? status,
+    String? category,
+    String? regionId,
+    String? distributorId,
+  }) async {
+    final params = <String, String>{};
+    if (status != null) params['status'] = status;
+    if (category != null) params['category'] = category;
+    if (regionId != null) params['region'] = regionId;
+    if (distributorId != null) params['distributor'] = distributorId;
+    final result = await _get('/manager/clients/', params: params.isEmpty ? null : params);
+    return (result['results'] as List).map((e) => Map<String, dynamic>.from(e as Map)).toList();
+  }
+
+  Future<Map<String, dynamic>> managerCreateClient(Map<String, dynamic> body) {
+    return _post('/manager/clients/', body);
+  }
+
+  Future<Map<String, dynamic>> managerUpdateClientStatus(String clientId, String status) {
+    return _post('/manager/clients/$clientId/status/', {'status': status});
+  }
+
+  Future<List<Map<String, dynamic>>> managerClientHistory(String clientId) async {
+    final result = await _get('/manager/clients/$clientId/history/');
+    return (result['results'] as List).map((e) => Map<String, dynamic>.from(e as Map)).toList();
+  }
+
+  Future<Map<String, dynamic>> managerAddContactHistory(String clientId, Map<String, dynamic> body) {
+    return _post('/manager/clients/$clientId/history/', body);
+  }
+
+  Future<List<Map<String, dynamic>>> managerTasks({String? status}) async {
+    final params = status != null ? {'status': status} : null;
+    final result = await _get('/manager/tasks/', params: params);
+    return (result['results'] as List).map((e) => Map<String, dynamic>.from(e as Map)).toList();
+  }
+
+  Future<Map<String, dynamic>> managerCreateTask(Map<String, dynamic> body) {
+    return _post('/manager/tasks/', body);
+  }
+
+  Future<Map<String, dynamic>> managerUpdateTask(String taskId, Map<String, dynamic> body) {
+    return _post('/manager/tasks/$taskId/', body);
+  }
+
   Future<Map<String, dynamic>> createExpertTicket(Map<String, dynamic> body, {List<int>? fileBytes, String? fileName}) {
     if (fileBytes != null && fileName != null) {
       return _multipartPost('/tickets/create/', body, fileBytes, fileName, fileField: 'photo');

@@ -29,12 +29,14 @@ import 'services/push_notification_manager.dart';
 import 'widgets/layouts/admin_layout.dart';
 import 'widgets/layouts/courier_layout.dart';
 import 'widgets/layouts/expert_layout.dart';
+import 'widgets/layouts/manager_layout.dart';
 import 'screens/expert/expert_knowledge_base_screen.dart';
 
 import 'screens/distributor/distributor_clients_screen.dart';
 import 'screens/distributor/distributor_stock_screen.dart';
 import 'screens/distributor/distributor_integration_screen.dart';
 import 'screens/distributor/distributor_color_lab_screen.dart';
+import 'screens/manager/manager_client_detail_screen.dart';
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>();
 final GlobalKey<NavigatorState> _shellNavigatorKey = GlobalKey<NavigatorState>();
@@ -60,7 +62,10 @@ final GoRouter _router = GoRouter(
     if (loc.startsWith('/distributor/') && role != UserRole.distributor) {
       return AppRoutes.home;
     }
-    if (loc.startsWith(AppRoutes.admin) && role != UserRole.admin && role != UserRole.manager) {
+    if (loc.startsWith(AppRoutes.admin) && role != UserRole.admin) {
+      return AppRoutes.home;
+    }
+    if (loc.startsWith('/manager/') && role != UserRole.manager && role != UserRole.admin) {
       return AppRoutes.home;
     }
 
@@ -90,6 +95,10 @@ final GoRouter _router = GoRouter(
         GoRoute(path: '/courier-cabinet', builder: (ctx, _) => const CourierScreen()),
         GoRoute(path: AppRoutes.admin, builder: (ctx, _) => AdminLayout()),
         GoRoute(path: '/unified-client/:id', builder: (ctx, state) => UnifiedClientCardScreen(clientId: state.pathParameters['id']!)),
+        GoRoute(
+          path: '${AppRoutes.managerClients}/:clientId',
+          builder: (ctx, state) => ManagerClientDetailScreen(clientId: state.pathParameters['clientId']!),
+        ),
       ],
     ),
     GoRoute(path: AppRoutes.addPurchase, builder: (ctx, _) => const AddPurchaseScreen()),
@@ -162,8 +171,11 @@ class _MainShellState extends State<_MainShell> {
         if (role == UserRole.courier) {
           return const CourierLayout(child: SizedBox());
         }
-        if (role == UserRole.admin || role == UserRole.manager) {
+        if (role == UserRole.admin) {
           return AdminLayout();
+        }
+        if (role == UserRole.manager) {
+          return const ManagerLayout();
         }
         if (role == UserRole.aiExpert) {
           return const ExpertLayout();

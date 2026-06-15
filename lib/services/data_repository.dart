@@ -404,6 +404,55 @@ class DataRepository {
     return _api.managerClientUnified(clientId);
   }
 
+  Future<List<Client>> managerClientsFiltered({
+    String? status,
+    String? category,
+    String? regionId,
+    String? distributorId,
+  }) async {
+    final items = await _api.managerClientsFiltered(
+      status: status,
+      category: category,
+      regionId: regionId,
+      distributorId: distributorId,
+    );
+    return items.map(_clientFromJson).toList();
+  }
+
+  Future<Client> managerCreateClient(Map<String, dynamic> data) async {
+    final result = await _api.managerCreateClient(data);
+    return _clientFromJson(result['client'] as Map<String, dynamic>);
+  }
+
+  Future<void> managerUpdateClientStatus(String clientId, String status) async {
+    await _api.managerUpdateClientStatus(clientId, status);
+  }
+
+  Future<List<ContactHistoryEntry>> managerClientHistory(String clientId) async {
+    final items = await _api.managerClientHistory(clientId);
+    return items.map(ContactHistoryEntry.fromJson).toList();
+  }
+
+  Future<ContactHistoryEntry> managerAddContactHistory(String clientId, Map<String, dynamic> data) async {
+    final result = await _api.managerAddContactHistory(clientId, data);
+    return ContactHistoryEntry.fromJson(result['entry'] as Map<String, dynamic>);
+  }
+
+  Future<List<ManagerTask>> managerTasks({String? status}) async {
+    final items = await _api.managerTasks(status: status);
+    return items.map(ManagerTask.fromJson).toList();
+  }
+
+  Future<ManagerTask> managerCreateTask(Map<String, dynamic> data) async {
+    final result = await _api.managerCreateTask(data);
+    return ManagerTask.fromJson(result['task'] as Map<String, dynamic>);
+  }
+
+  Future<ManagerTask> managerUpdateTask(String taskId, Map<String, dynamic> data) async {
+    final result = await _api.managerUpdateTask(taskId, data);
+    return ManagerTask.fromJson(result['task'] as Map<String, dynamic>);
+  }
+
   Future<Map<String, dynamic>> me() {
     return _api.me();
   }
@@ -523,6 +572,8 @@ class DataRepository {
       partnerStatus: json['partnerStatus']?.toString() ?? 'Silver',
       totalPurchases: _toDouble(json['totalPurchases']),
       createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? '') ?? DateTime.now(),
+      distributorName: _toString(json['distributorName']),
+      regionId: _toString(json['regionId']),
     );
   }
 

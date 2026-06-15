@@ -1,5 +1,7 @@
 enum ClientStatus { newClient, pending, underReview, active, blocked, archived }
 
+enum ManagerTaskStatus { pending, completed }
+
 enum ClientCategory { a, b, c }
 
 enum PurchaseStatus { newPurchase, pending, pendingVerification, underReview, duplicateReview, verified, rejected }
@@ -62,6 +64,9 @@ class Client {
   final double totalPurchases;
   final DateTime createdAt;
 
+  final String? distributorName;
+  final String? regionId;
+
   const Client({
     required this.id,
     this.externalId,
@@ -78,6 +83,8 @@ class Client {
     this.partnerStatus = 'Silver',
     this.totalPurchases = 0,
     required this.createdAt,
+    this.distributorName,
+    this.regionId,
   });
 
   String get categoryLabel {
@@ -559,4 +566,82 @@ class KnowledgeCard {
     this.isApproved = true,
     required this.createdAt,
   });
+}
+
+// ── Manager entities ──────────────────────────────────────────────────────────
+
+class ManagerTask {
+  final String id;
+  final String clientId;
+  final String clientName;
+  final String text;
+  final DateTime? deadline;
+  final ManagerTaskStatus status;
+  final String comment;
+  final DateTime createdAt;
+
+  const ManagerTask({
+    required this.id,
+    required this.clientId,
+    required this.clientName,
+    required this.text,
+    this.deadline,
+    required this.status,
+    this.comment = '',
+    required this.createdAt,
+  });
+
+  factory ManagerTask.fromJson(Map<String, dynamic> json) {
+    ManagerTaskStatus parseStatus(String? s) =>
+        s == 'completed' ? ManagerTaskStatus.completed : ManagerTaskStatus.pending;
+
+    return ManagerTask(
+      id: json['id'].toString(),
+      clientId: json['clientId'].toString(),
+      clientName: json['clientName']?.toString() ?? '',
+      text: json['text']?.toString() ?? '',
+      deadline: json['deadline'] != null
+          ? DateTime.tryParse(json['deadline'].toString())
+          : null,
+      status: parseStatus(json['status']?.toString()),
+      comment: json['comment']?.toString() ?? '',
+      createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? '') ?? DateTime.now(),
+    );
+  }
+}
+
+class ContactHistoryEntry {
+  final String id;
+  final String clientId;
+  final String type; // 'call' | 'visit' | 'email' | 'other'
+  final String typeDisplay;
+  final String result;
+  final DateTime date;
+  final String authorId;
+  final String authorName;
+
+  const ContactHistoryEntry({
+    required this.id,
+    required this.clientId,
+    required this.type,
+    required this.typeDisplay,
+    required this.result,
+    required this.date,
+    required this.authorId,
+    required this.authorName,
+  });
+
+  factory ContactHistoryEntry.fromJson(Map<String, dynamic> json) {
+    return ContactHistoryEntry(
+      id: json['id'].toString(),
+      clientId: json['clientId'].toString(),
+      type: json['type']?.toString() ?? 'call',
+      typeDisplay: json['typeDisplay']?.toString() ?? 'Звонок',
+      result: json['result']?.toString() ?? '',
+      date: DateTime.tryParse(json['date']?.toString() ?? '') ?? DateTime.now(),
+      authorId: json['authorId']?.toString() ?? '',
+      authorName: json['authorName']?.toString() ?? '',
+    );
+  }
+
 }

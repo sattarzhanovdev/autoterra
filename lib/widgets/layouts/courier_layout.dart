@@ -509,10 +509,7 @@ class _CourierRouteScreen extends StatelessWidget {
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
-                                trailing: const Icon(
-                                  CupertinoIcons.chevron_right,
-                                  size: 16,
-                                ),
+                              
                                 onTap: () {
                                   // Could navigate to detail or show on map
                                 },
