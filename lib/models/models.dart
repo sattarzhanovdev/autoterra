@@ -47,6 +47,30 @@ class User {
   });
 }
 
+class Store {
+  final String id;
+  final String name;
+  final String address;
+  final bool isActive;
+  final DateTime createdAt;
+
+  const Store({
+    required this.id,
+    required this.name,
+    required this.address,
+    this.isActive = true,
+    required this.createdAt,
+  });
+
+  factory Store.fromJson(Map<String, dynamic> json) => Store(
+        id: json['id'].toString(),
+        name: json['name'] as String,
+        address: json['address'] as String,
+        isActive: (json['isActive'] as bool?) ?? true,
+        createdAt: DateTime.parse(json['createdAt'] as String),
+      );
+}
+
 class Client {
   final String id;
   final String? externalId;
@@ -574,6 +598,8 @@ class ManagerTask {
   final String id;
   final String clientId;
   final String clientName;
+  final String managerId;
+  final String managerName;
   final String text;
   final DateTime? deadline;
   final ManagerTaskStatus status;
@@ -584,6 +610,8 @@ class ManagerTask {
     required this.id,
     required this.clientId,
     required this.clientName,
+    this.managerId = '',
+    this.managerName = '',
     required this.text,
     this.deadline,
     required this.status,
@@ -599,6 +627,8 @@ class ManagerTask {
       id: json['id'].toString(),
       clientId: json['clientId'].toString(),
       clientName: json['clientName']?.toString() ?? '',
+      managerId: json['managerId']?.toString() ?? '',
+      managerName: json['managerName']?.toString() ?? '',
       text: json['text']?.toString() ?? '',
       deadline: json['deadline'] != null
           ? DateTime.tryParse(json['deadline'].toString())

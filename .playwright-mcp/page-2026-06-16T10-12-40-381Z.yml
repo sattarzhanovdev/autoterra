@@ -1,0 +1,145 @@
+- generic [active] [ref=e5]:
+  - generic:
+    - generic:
+      - generic:
+        - generic:
+          - generic:
+            - banner:
+              - img [ref=e23]
+          - group:
+            - generic [ref=e24]:
+              - generic: СТРУКТУРА СИСТЕМЫ
+            - generic [ref=e25]:
+              - generic: "1"
+            - generic [ref=e26]:
+              - generic: "2"
+            - generic [ref=e27]:
+              - generic: "2"
+            - generic [ref=e28]:
+              - generic: МЕНЕДЖЕРЫ
+            - generic [ref=e29]:
+              - generic: ДИСТРИБЬЮТОРЫ
+            - generic [ref=e30]:
+              - generic: РЕГИОНЫ
+            - generic [ref=e31]:
+              - generic: ФИЛЬТРЫ ДАННЫХ
+            - button "РЕГИОН Все регионы" [ref=e32]
+            - button "ДИСТРИБЬЮТОР Все дистрибьюторы" [ref=e33]
+            - generic [ref=e34]:
+              - generic: ЭФФЕКТИВНОСТЬ (KPI)
+            - generic:
+              - generic:
+                - generic [ref=e35]:
+                  - generic: КЛИЕНТЫ 5
+                - generic [ref=e36]:
+                  - generic: ВЫРУЧКА 80 000 ₽
+                - generic [ref=e37]:
+                  - generic: ЗАКАЗЫ 3
+                - generic [ref=e38]:
+                  - generic: ТИКЕТЫ (АКТИВ) 2
+            - generic [ref=e39]:
+              - generic: АНАЛИЗ ЛИДЕРОВ РЫНКА
+            - generic [ref=e40]:
+              - generic: "#1"
+            - generic [ref=e41]:
+              - generic: AUTOTERRA МСК
+            - generic [ref=e42]:
+              - generic: 65 000 ₽
+            - generic [ref=e43]:
+              - generic: "#2"
+            - generic [ref=e44]:
+              - generic: AUTOTERRA КЗН
+            - generic [ref=e45]:
+              - generic: 15 000 ₽
+            - generic [ref=e46]:
+              - generic: ДИНАМИКА ПРОДАЖ (6 МЕС)
+            - generic [ref=e47]:
+              - generic: Jan
+            - generic [ref=e48]:
+              - generic: Jan
+            - generic [ref=e49]:
+              - generic: Jan
+            - generic [ref=e50]:
+              - generic: Jan
+            - generic [ref=e51]:
+              - generic: Jan
+            - generic [ref=e52]:
+              - generic: Feb
+            - generic [ref=e53]:
+              - generic: Feb
+            - generic [ref=e54]:
+              - generic: Feb
+            - generic [ref=e55]:
+              - generic: Feb
+            - generic [ref=e56]:
+              - generic: Feb
+            - generic [ref=e57]:
+              - generic: Feb
+            - generic [ref=e58]:
+              - generic: Mar
+            - generic [ref=e59]:
+              - generic: Mar
+            - generic [ref=e60]:
+              - generic: Mar
+            - generic [ref=e61]:
+              - generic: Mar
+            - generic [ref=e62]:
+              - generic: Apr
+            - generic [ref=e63]:
+              - generic: Apr
+            - generic [ref=e64]:
+              - generic: Apr
+            - generic [ref=e65]:
+              - generic: Apr
+            - generic [ref=e66]:
+              - generic: Apr
+            - generic [ref=e67]:
+              - generic: May
+            - generic [ref=e68]:
+              - generic: May
+            - generic [ref=e69]:
+              - generic: May
+            - generic [ref=e70]:
+              - generic: May
+            - generic [ref=e71]:
+              - generic: May
+            - generic [ref=e72]:
+              - generic: Jun
+            - generic [ref=e73]:
+              - generic: КАТЕГОРИИ
+            - generic [ref=e74]:
+              - generic: ДЕЙСТВИЯ
+            - generic [ref=e75]:
+              - generic: НОВЫЙ КЛИЕНТ
+            - generic [ref=e76]:
+              - generic: 09:15
+            - generic [ref=e77]:
+              - generic: ООО ТЕСТ АВТО
+            - generic [ref=e78]:
+              - generic: СИНХРОНИЗАЦИЯ AUTOTERRA МСК
+            - generic [ref=e79]:
+              - generic: 10:00
+            - generic [ref=e80]:
+              - generic: "Результат: Успех"
+            - generic [ref=e81]:
+              - generic: СИНХРОНИЗАЦИЯ AUTOTERRA МСК
+            - generic [ref=e82]:
+              - generic: 10:00
+            - generic [ref=e83]:
+              - generic: "Результат: Успех"
+            - generic [ref=e84]:
+              - generic: СИНХРОНИЗАЦИЯ AUTOTERRA МСК
+            - generic [ref=e85]:
+              - generic: 10:00
+            - generic [ref=e86]:
+              - generic: "Результат: Успех"
+            - generic [ref=e87]:
+              - generic: НОВЫЙ КЛИЕНТ
+            - generic [ref=e88]:
+              - generic: 09:19
+            - generic [ref=e89]:
+              - generic: ИП Иванов
+          - button "ДАШБОРД Tab 1 of 4" [ref=e90]
+          - button "ИНТЕГРАЦИИ 1С Tab 2 of 4" [ref=e91]
+          - button "ЗАДАЧИ Tab 3 of 4" [ref=e92]
+          - button "ПРОФИЛЬ Tab 4 of 4" [ref=e93]

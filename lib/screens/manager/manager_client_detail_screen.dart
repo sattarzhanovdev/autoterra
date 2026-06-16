@@ -3,6 +3,15 @@ import 'package:intl/intl.dart';
 import '../../models/models.dart';
 import '../../services/data_repository.dart';
 
+const _kStatusLabels = {
+  'new': 'НОВЫЙ',
+  'pending': 'ОЖИДАНИЕ',
+  'under_review': 'НА ПРОВЕРКЕ',
+  'active': 'АКТИВНЫЙ',
+  'blocked': 'ЗАБЛОКИРОВАН',
+  'archived': 'АРХИВ',
+};
+
 class ManagerClientDetailScreen extends StatefulWidget {
   final String clientId;
   const ManagerClientDetailScreen({super.key, required this.clientId});
@@ -187,7 +196,7 @@ class _ManagerClientDetailScreenState extends State<ManagerClientDetailScreen> {
             const SizedBox(height: 16),
             _InfoRow(label: 'ИНН', value: c['inn']?.toString() ?? '—'),
             _InfoRow(label: 'НАЗВАНИЕ', value: c['name']?.toString() ?? '—'),
-            _InfoRow(label: 'СТАТУС', value: c['statusDisplay']?.toString() ?? c['status']?.toString() ?? '—'),
+            _InfoRow(label: 'СТАТУС', value: _kStatusLabels[c['status']?.toString()] ?? c['statusDisplay']?.toString() ?? c['status']?.toString() ?? '—'),
             _InfoRow(label: 'РЕГИОН', value: c['region']?.toString() ?? '—'),
             _InfoRow(label: 'ГОРОД', value: c['city']?.toString() ?? '—'),
             _InfoRow(label: 'ПАРТНЁР', value: c['partnerStatus']?.toString() ?? '—'),

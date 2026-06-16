@@ -1,0 +1,7 @@
+- group "Dismiss" [ref=e69] [cursor=pointer]:
+  - menu "Popup menu":
+    - generic:
+      - group:
+        - menuitem "A — Дилерский салон" [active] [ref=e70]
+        - menuitem "B — Автосервис с кузовным цехом" [ref=e71]
+        - menuitem "C — Гаражный / малый сервис" [ref=e72]

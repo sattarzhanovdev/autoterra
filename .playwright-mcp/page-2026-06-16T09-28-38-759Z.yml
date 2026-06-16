@@ -1,0 +1,50 @@
+- generic [ref=e4]:
+  - generic:
+    - generic:
+      - generic:
+        - generic:
+          - generic:
+            - button "Back" [active] [ref=e48]
+            - heading "ООО ТЕСТ АВТО" [level=2] [ref=e49]
+            - button [ref=e50]
+          - group:
+            - generic [ref=e51]:
+              - generic: КАТ. B
+            - button "ИЗМЕНИТЬ СТАТУС" [ref=e52]
+            - generic [ref=e53]:
+              - generic: ИНН
+            - generic [ref=e54]:
+              - generic: "7712345678"
+            - generic [ref=e55]:
+              - generic: НАЗВАНИЕ
+            - generic [ref=e56]:
+              - generic: ООО ТЕСТ АВТО
+            - generic [ref=e57]:
+              - generic: СТАТУС
+            - generic [ref=e58]:
+              - generic: new
+            - generic [ref=e59]:
+              - generic: РЕГИОН
+            - generic [ref=e60]:
+              - generic: Москва - Центральный
+            - generic [ref=e61]:
+              - generic: ГОРОД
+            - generic [ref=e62]:
+              - generic: Москва
+            - generic [ref=e63]:
+              - generic: ПАРТНЁР
+            - generic [ref=e64]:
+              - generic: Silver
+            - generic [ref=e65]:
+              - generic: КОНТАКТ
+            - generic [ref=e66]:
+              - generic: Иван Петров
+            - generic [ref=e67]:
+              - generic: ТЕЛЕФОН
+            - generic [ref=e68]:
+              - generic: "+79161234567"
+            - generic [ref=e69]:
+              - generic: ИСТОРИЯ КОНТАКТОВ
+            - button "ДОБАВИТЬ" [ref=e70]
+            - generic [ref=e71]:
+              - generic: НЕТ ЗАПИСЕЙ О КОНТАКТАХ

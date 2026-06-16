@@ -90,6 +90,16 @@ class ApiClient {
     return (result['results'] as List).map((e) => Map<String, dynamic>.from(e as Map)).toList();
   }
 
+  Future<Map<String, dynamic>> createStore(String name, String address) =>
+      _post('/stores/', {'name': name, 'address': address});
+
+  Future<Map<String, dynamic>> updateStore(String storeId, String name, String address) =>
+      _patch('/stores/$storeId/', {'name': name, 'address': address});
+
+  Future<void> deleteStore(String storeId) async {
+    await _delete('/stores/$storeId/');
+  }
+
   Future<List<Map<String, dynamic>>> orders() async {
     final result = await _get('/orders/');
     return (result['results'] as List).map((e) => Map<String, dynamic>.from(e as Map)).toList();
@@ -255,6 +265,32 @@ class ApiClient {
 
   Future<Map<String, dynamic>> managerUpdateTask(String taskId, Map<String, dynamic> body) {
     return _post('/manager/tasks/$taskId/', body);
+  }
+
+  Future<List<Map<String, dynamic>>> adminManagers() async {
+    final result = await _get('/admin/managers/');
+    return (result['results'] as List).map((e) => Map<String, dynamic>.from(e as Map)).toList();
+  }
+
+  Future<List<Map<String, dynamic>>> adminManagerTasks({String? managerId, String? status}) async {
+    final params = <String, String>{};
+    if (managerId != null) params['managerId'] = managerId;
+    if (status != null) params['status'] = status;
+    final result = await _get('/admin/manager-tasks/', params: params.isEmpty ? null : params);
+    return (result['results'] as List).map((e) => Map<String, dynamic>.from(e as Map)).toList();
+  }
+
+  Future<Map<String, dynamic>> adminCreateManagerTask(Map<String, dynamic> body) {
+    return _post('/admin/manager-tasks/', body);
+  }
+
+  Future<void> adminDeleteManagerTask(String taskId) async {
+    await _delete('/admin/manager-tasks/$taskId/');
+  }
+
+  Future<List<Map<String, dynamic>>> adminManagerClients(String managerId) async {
+    final result = await _get('/admin/managers/$managerId/clients/');
+    return (result['results'] as List).map((e) => Map<String, dynamic>.from(e as Map)).toList();
   }
 
   Future<Map<String, dynamic>> createExpertTicket(Map<String, dynamic> body, {List<int>? fileBytes, String? fileName}) {
@@ -503,9 +539,23 @@ class ApiClient {
     return _get(path);
   }
 
-  Future<Map<String, dynamic>> test1CIntegration(List<dynamic> payload) {
-    // Increased timeout for integration testing
-    return _post('/integration/erp/stock-update/?dry_run=true', payload, timeout: const Duration(seconds: 60));
+  Future<Map<String, dynamic>> test1CIntegration(List<dynamic> payload, String integrationToken) async {
+    try {
+      final fullUrl = baseUrl.endsWith('/')
+          ? '${baseUrl}integration/erp/stock-update/?dry_run=true'
+          : '$baseUrl/integration/erp/stock-update/?dry_run=true';
+      final response = await _httpClient
+          .post(
+            Uri.parse(fullUrl),
+            headers: {'Content-Type': 'application/json', 'X-Integration-Token': integrationToken},
+            body: jsonEncode(payload),
+          )
+          .timeout(const Duration(seconds: 60));
+      return _decode(response);
+    } catch (e) {
+      _handleError(e);
+      rethrow;
+    }
   }
 
   Future<void> distributorStockUpload(List<Map<String, dynamic>> items) async {
@@ -574,6 +624,20 @@ class ApiClient {
             body: jsonEncode(body),
           )
           .timeout(timeout);
+      return _decode(response);
+    } catch (e) {
+      _handleError(e);
+      rethrow;
+    }
+  }
+
+  Future<Map<String, dynamic>> _delete(String path) async {
+    try {
+      final normalizedPath = path.startsWith('/') ? path.substring(1) : path;
+      final fullUrl = baseUrl.endsWith('/') ? '$baseUrl$normalizedPath' : '$baseUrl/$normalizedPath';
+      final response = await _httpClient
+          .delete(Uri.parse(fullUrl), headers: _headers())
+          .timeout(const Duration(seconds: 15));
       return _decode(response);
     } catch (e) {
       _handleError(e);

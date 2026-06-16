@@ -1,0 +1,38 @@
+- generic [ref=e4] [cursor=pointer]:
+  - generic:
+    - generic:
+      - generic:
+        - generic:
+          - generic:
+            - generic:
+              - generic:
+                - heading "ПРОФИЛЬ" [active] [level=2] [ref=e39]
+                - button [ref=e40]
+              - group:
+                - generic [ref=e41]:
+                  - generic: AutoTerra МСК
+                - generic [ref=e42]:
+                  - generic: ДИСТРИБЬЮТОР AUTOTERRA
+                - button "Мои клиенты Список всех автосервисов региона" [ref=e43]
+                - button "Интеграция 1С Настройка обмена данными и остатков" [ref=e44]
+                - generic [ref=e45]:
+                  - generic: Данные организации
+                - generic [ref=e46]:
+                  - generic: ИНН
+                - generic [ref=e47]:
+                  - generic: "7700000010"
+                - generic [ref=e48]:
+                  - generic: EMAIL
+                - generic [ref=e49]:
+                  - generic: msk@autoterra.ru
+                - generic [ref=e50]:
+                  - generic: ТЕЛЕФОН
+                - generic [ref=e51]:
+                  - generic: "+79001112233"
+                - generic [ref=e52]:
+                  - generic: РЕГИОНЫ
+                - button "Уведомления" [ref=e54]
+                - button "Выйти из аккаунта" [ref=e55]
+          - button "Панель Tab 1 of 3" [ref=e36]
+          - button "Заказы Tab 2 of 3" [ref=e37]
+          - button "Профиль Tab 3 of 3" [ref=e38]

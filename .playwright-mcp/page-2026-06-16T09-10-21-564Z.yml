@@ -1,0 +1,52 @@
+- generic [ref=e5]:
+  - generic:
+    - generic:
+      - generic:
+        - button "Scrim" [ref=e73]
+        - generic [ref=e74]:
+          - generic:
+            - generic [ref=e75]:
+              - generic: РЕГИСТРАЦИЯ КЛИЕНТА
+            - button [ref=e76]
+            - group:
+              - generic:
+                - generic [ref=e77]:
+                  - generic: ИНН
+                - generic [ref=e78]:
+                  - generic: "*"
+                - textbox [ref=e80]
+                - generic [ref=e81]:
+                  - generic: НАЗВАНИЕ ОРГАНИЗАЦИИ
+                - generic [ref=e82]:
+                  - generic: "*"
+                - textbox [ref=e84]
+                - generic [ref=e85]:
+                  - generic: ТИП ОБЪЕКТА / КАТЕГОРИЯ
+                - generic [ref=e86]:
+                  - generic: "*"
+                - button "B — Автосервис с кузовным цехом" [active] [ref=e87]
+                - generic [ref=e88]:
+                  - generic: РЕГИОН
+                - generic [ref=e89]:
+                  - generic: "*"
+                - button "Выберите регион" [ref=e90]
+                - generic [ref=e91]:
+                  - generic: ДИСТРИБЬЮТОР
+                - generic [ref=e92]:
+                  - generic: Если не указан — назначается автоматически по региону
+                - button "Авто (по региону)" [ref=e93]
+                - generic [ref=e94]:
+                  - generic: ГОРОД
+                - textbox [ref=e96]
+                - generic [ref=e97]:
+                  - generic: КОНТАКТНОЕ ЛИЦО
+                - textbox [ref=e99]
+                - generic [ref=e100]:
+                  - generic: ТЕЛЕФОН
+                - textbox [ref=e102]
+                - generic [ref=e103]:
+                  - generic: EMAIL
+                - textbox [ref=e105]
+                - generic [ref=e106]:
+                  - generic: Менеджер будет назначен автоматически (вы)
+                - button "ЗАРЕГИСТРИРОВАТЬ" [ref=e107]

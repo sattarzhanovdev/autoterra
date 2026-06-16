@@ -1,0 +1,5 @@
+- group "Dismiss" [ref=e368] [cursor=pointer]:
+  - menu "Popup menu":
+    - generic:
+      - group:
+        - menuitem "manager_msk" [active] [ref=e369]

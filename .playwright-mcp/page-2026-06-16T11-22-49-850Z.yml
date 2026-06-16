@@ -1,0 +1,65 @@
+- generic [active] [ref=e5]:
+  - generic:
+    - generic:
+      - generic:
+        - generic:
+          - generic:
+            - generic:
+              - generic:
+                - generic:
+                  - generic:
+                    - banner:
+                      - img [ref=e21]
+                - group:
+                  - generic [ref=e22]:
+                    - generic: ЧТО НУЖНО СДЕЛАТЬ?
+                  - generic:
+                    - generic:
+                      - button "Заказ и ассортимент" [ref=e23]
+                      - button "Мои покупки" [ref=e24]
+                      - button "Подбор цвета" [ref=e25]
+                      - button "Доставка" [ref=e26]
+                      - button "Вопрос-ответ" [ref=e27]
+                      - button "AI-помощник" [ref=e28]
+                  - generic [ref=e29]:
+                    - generic: ПОСЛЕДНИЕ ПОКУПКИ
+                  - button "ВСЕ" [ref=e30]
+                  - generic [ref=e31]:
+                    - generic: TEST-001
+                  - generic [ref=e32]:
+                    - generic: 35 000 ₽
+                  - generic [ref=e33]:
+                    - generic: 15.06.2026
+                  - generic [ref=e34]:
+                    - generic: ПОДТВЕРЖДЕНА
+                  - generic [ref=e35]:
+                    - generic: B
+                  - generic [ref=e36]:
+                    - generic: ИП ИВАНОВ
+                  - generic [ref=e37]:
+                    - generic: "ИНН: 7709876543"
+                  - generic [ref=e38]:
+                    - generic: SILVER
+                  - generic [ref=e39]:
+                    - generic: ЗАКУПКИ
+                  - generic [ref=e40]:
+                    - generic: РЕГИОН
+                  - generic [ref=e41]:
+                    - generic: СТАТУС
+                  - generic [ref=e42]:
+                    - generic: 35 000 ₽
+                  - generic [ref=e43]:
+                    - generic: МОСКВА - ЦЕНТРАЛЬНЫЙ
+                  - generic [ref=e44]:
+                    - generic: АКТИВНЫЙ
+                  - generic [ref=e45]:
+                    - generic: ЦЕНТР ЦВЕТА
+                  - button "ВСЕ" [ref=e46]
+                  - generic [ref=e47]:
+                    - generic: МОЙ ДИСТРИБЬЮТОР
+                  - button "AUTOTERRA МСК +79001112233" [ref=e48]
+          - button "Главная Tab 1 of 5" [ref=e49]
+          - button "Покупки Tab 2 of 5" [ref=e50]
+          - button "Цвет Tab 3 of 5" [ref=e51]
+          - button "AI Tab 4 of 5" [ref=e52]
+          - button "Профиль Tab 5 of 5" [ref=e53]

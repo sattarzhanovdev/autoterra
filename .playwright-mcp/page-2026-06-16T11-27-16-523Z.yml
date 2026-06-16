@@ -1,0 +1,80 @@
+- generic [ref=e5]:
+  - generic:
+    - generic:
+      - generic:
+        - generic:
+          - generic:
+            - generic:
+              - generic:
+                - heading "ПРОФИЛЬ" [level=2] [ref=e154]
+                - button [ref=e155]
+              - group:
+                - generic [ref=e156]:
+                  - generic: ИП Иванов
+                - generic [ref=e157]:
+                  - generic: АВТОСЕРВИС
+                - generic [ref=e158]:
+                  - generic: SILVER
+                - generic [ref=e159]:
+                  - generic: АКТИВНЫЙ
+                - generic [ref=e160]:
+                  - generic: B
+                - generic [ref=e161]:
+                  - generic: 35 000 ₽
+                - generic [ref=e162]:
+                  - generic: "2"
+                - generic [ref=e163]:
+                  - generic: "06.2026"
+                - generic [ref=e164]:
+                  - generic: Покупки
+                - generic [ref=e165]:
+                  - generic: Рефералы
+                - generic [ref=e166]:
+                  - generic: С нами с
+                - generic [ref=e167]:
+                  - generic: Статус партнёра
+                - generic [ref=e168]:
+                  - generic: SILVER
+                - generic [ref=e169]:
+                  - generic: Silver
+                - generic [ref=e170]:
+                  - generic: Gold
+                - generic [ref=e171]:
+                  - generic: Platinum
+                - generic [ref=e172]:
+                  - generic: Certified Partner
+                - generic [ref=e173]:
+                  - generic: Данные сервиса
+                - generic [ref=e174]:
+                  - generic: ИНН
+                - generic [ref=e175]:
+                  - generic: "7709876543"
+                - generic [ref=e176]:
+                  - generic: РЕГИОН
+                - generic [ref=e177]:
+                  - generic: Москва - Центральный
+                - generic [ref=e178]:
+                  - generic: КОНТАКТ
+                - generic [ref=e179]:
+                  - generic: Иванов Иван
+                - generic [ref=e180]:
+                  - generic: ТЕЛЕФОН
+                - generic [ref=e181]:
+                  - generic: "+79001234567"
+                - generic [ref=e182]:
+                  - generic: Мои точки / магазины
+                - button "Добавить" [active] [ref=e183]
+                - generic:
+                  - generic:
+                    - group "Test Shop Moscow, Lenin st 5":
+                      - button "Show menu" [ref=e184]
+                    - group "Сервис на Тверской Тверская ул., д. 15, Москва":
+                      - button "Show menu" [ref=e185]
+                - button "Уведомления" [ref=e186]
+                - button "Поддержка и FAQ" [ref=e187]
+                - button "Выйти из аккаунта" [ref=e188]
+          - button "Главная Tab 1 of 5" [ref=e49]
+          - button "Покупки Tab 2 of 5" [ref=e50]
+          - button "Цвет Tab 3 of 5" [ref=e51]
+          - button "AI Tab 4 of 5" [ref=e52]
+          - button "Профиль Tab 5 of 5" [ref=e53]

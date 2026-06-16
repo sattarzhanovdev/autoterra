@@ -1,0 +1,16 @@
+- generic [ref=e5] [cursor=pointer]:
+  - generic:
+    - generic:
+      - generic:
+        - button "Scrim" [ref=e265]
+        - generic [ref=e266]:
+          - generic:
+            - group:
+              - generic [ref=e267]:
+                - generic: Новая задача
+              - button "Менеджер manager_msk" [active] [ref=e268]
+              - button "Клиент" [ref=e269]
+              - textbox "Текст задачи *" [ref=e271]
+              - textbox "Комментарий (необязательно)" [ref=e273]
+              - button "Установить срок (необязательно)" [ref=e274]
+              - button "СОЗДАТЬ ЗАДАЧУ" [ref=e275]

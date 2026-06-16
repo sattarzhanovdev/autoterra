@@ -1,0 +1,5 @@
+- group "Dismiss" [ref=e485]:
+  - generic [ref=e486]:
+    - dialog:
+      - button "ОТМЕНА" [active] [ref=e487]
+      - button "ВЫЙТИ" [ref=e488]

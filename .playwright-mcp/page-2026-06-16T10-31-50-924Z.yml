@@ -1,0 +1,15 @@
+- generic [ref=e5]:
+  - generic:
+    - generic:
+      - group:
+        - generic:
+          - generic:
+            - heading "ЗАДАЧИ МЕНЕДЖЕРА" [level=2] [ref=e519]
+            - button [ref=e520]
+            - button "АКТИВНЫЕ (0)" [ref=e527]
+            - button "ВЫПОЛНЕННЫЕ (1)" [ref=e528]
+          - generic [ref=e529]:
+            - generic: НЕТ АКТИВНЫХ ЗАДАЧ
+          - button "КЛИЕНТЫ Tab 1 of 3" [ref=e516]
+          - button "ЗАДАЧИ Tab 2 of 3" [ref=e517]
+          - button "ПРОФИЛЬ Tab 3 of 3" [ref=e518]

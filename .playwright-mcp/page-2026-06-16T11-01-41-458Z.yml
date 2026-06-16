@@ -1,0 +1,29 @@
+- generic [ref=e4] [cursor=pointer]:
+  - generic:
+    - generic:
+      - generic:
+        - button "Scrim" [ref=e87]
+        - generic [ref=e88]:
+          - generic:
+            - group:
+              - generic [ref=e89]:
+                - generic: НОВАЯ ЗАДАЧА
+              - button [ref=e90]
+              - generic [ref=e91]:
+                - generic: МЕНЕДЖЕР
+              - button "Выберите менеджера" [ref=e92]
+              - generic [ref=e93]:
+                - generic: КЛИЕНТ
+              - button "Сначала выберите менеджера" [ref=e94]
+              - generic [ref=e95]:
+                - generic: ТЕКСТ ЗАДАЧИ
+              - textbox "Опишите задачу для менеджера..." [ref=e97]
+              - generic [ref=e98]:
+                - generic: КОММЕНТАРИЙ
+              - textbox "Необязательно" [ref=e100]
+              - generic [ref=e101]:
+                - generic: СРОК ВЫПОЛНЕНИЯ
+              - button "Выбрать дату (необязательно)" [ref=e102]
+              - generic [ref=e104]:
+                - generic: Введите текст задачи
+              - button "СОЗДАТЬ ЗАДАЧУ" [active] [ref=e103]

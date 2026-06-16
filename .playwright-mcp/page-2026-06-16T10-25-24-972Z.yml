@@ -1,0 +1,30 @@
+- generic [ref=e5] [cursor=pointer]:
+  - generic:
+    - generic:
+      - generic:
+        - generic:
+          - generic:
+            - heading "ПРОФИЛЬ" [level=2] [ref=e473]
+            - button [ref=e474]
+          - group:
+            - generic [ref=e475]:
+              - generic: Импортер
+            - generic [ref=e476]:
+              - generic: ЦЕНТРАЛЬНЫЙ ОФИС / ИМПОРТЕР
+            - generic [ref=e477]:
+              - generic: Личные данные
+            - generic [ref=e478]:
+              - generic: EMAIL
+            - generic [ref=e479]:
+              - generic: "-"
+            - generic [ref=e480]:
+              - generic: ТЕЛЕФОН
+            - generic [ref=e481]:
+              - generic: manager_main
+            - button "Уведомления" [ref=e482]
+            - button "Поддержка и FAQ" [ref=e483]
+            - button "Выйти из аккаунта" [ref=e484]
+          - button "ДАШБОРД Tab 1 of 4" [ref=e464]
+          - button "ИНТЕГРАЦИИ 1С Tab 2 of 4" [ref=e465]
+          - button "ЗАДАЧИ Tab 3 of 4" [ref=e466]
+          - button "ПРОФИЛЬ Tab 4 of 4" [active] [ref=e467]

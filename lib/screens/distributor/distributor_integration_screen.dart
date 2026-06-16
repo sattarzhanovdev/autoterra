@@ -77,8 +77,11 @@ class _DistributorIntegrationScreenState extends State<DistributorIntegrationScr
       final payload = jsonDecode(_testController.text);
       if (payload is! List) throw 'Ожидается JSON массив [{}, ...]';
       
-      final res = await _repo.test1CIntegration(payload);
+      final integrationToken = _data?['token'] as String?;
+      if (integrationToken == null) throw 'Сначала сгенерируйте ключ доступа';
+      final res = await _repo.test1CIntegration(payload, integrationToken);
       setState(() => _testResult = res);
+      await _fetch();
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Ошибка формата: $e')));

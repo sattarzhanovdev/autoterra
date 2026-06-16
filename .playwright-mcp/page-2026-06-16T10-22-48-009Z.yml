@@ -1,0 +1,16 @@
+- generic [ref=e5]:
+  - generic:
+    - generic:
+      - generic:
+        - button "Scrim" [ref=e386]
+        - generic [ref=e387]:
+          - generic:
+            - group:
+              - generic [ref=e388]:
+                - generic: Новая задача
+              - button "Менеджер manager_msk" [ref=e389]
+              - button "Клиент ООО ТЕСТ АВТО" [active] [ref=e390]
+              - textbox "Текст задачи *" [ref=e392]
+              - textbox "Комментарий (необязательно)" [ref=e394]
+              - button "Установить срок (необязательно)" [ref=e395]
+              - button "СОЗДАТЬ ЗАДАЧУ" [ref=e396]

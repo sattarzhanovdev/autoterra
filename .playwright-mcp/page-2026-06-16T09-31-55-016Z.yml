@@ -1,0 +1,19 @@
+- generic [ref=e4]:
+  - generic:
+    - generic:
+      - generic:
+        - button "Scrim" [ref=e137]
+        - generic [ref=e138]:
+          - generic:
+            - generic [ref=e139]:
+              - generic: ДОБАВИТЬ КОНТАКТ
+            - generic [ref=e140]:
+              - generic: ТИП КОНТАКТА
+            - button "ЗВОНОК" [ref=e141]
+            - button "ВИЗИТ" [ref=e142]
+            - button "EMAIL" [ref=e143]
+            - button "ДРУГОЕ" [ref=e144]
+            - generic [ref=e145]:
+              - generic: РЕЗУЛЬТАТ
+            - textbox "Опишите результат контакта..." [active] [ref=e147]
+            - button "СОХРАНИТЬ" [ref=e148]

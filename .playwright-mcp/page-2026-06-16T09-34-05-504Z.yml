@@ -1,0 +1,15 @@
+- generic [ref=e4] [cursor=pointer]:
+  - generic:
+    - generic:
+      - generic:
+        - generic:
+          - generic:
+            - heading "ЗАДАЧИ КУРАТОРА" [level=2] [ref=e192]
+            - button [ref=e193]
+            - button "АКТИВНЫЕ (0)" [ref=e194]
+            - button "ВЫПОЛНЕННЫЕ (0)" [ref=e195]
+          - generic [ref=e196]:
+            - generic: НЕТ АКТИВНЫХ ЗАДАЧ
+          - button "КЛИЕНТЫ Tab 1 of 3" [ref=e189]
+          - button "ЗАДАЧИ Tab 2 of 3" [active] [ref=e190]
+          - button "ПРОФИЛЬ Tab 3 of 3" [ref=e191]

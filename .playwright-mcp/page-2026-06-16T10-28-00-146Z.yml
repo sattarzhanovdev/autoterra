@@ -1,0 +1,17 @@
+- generic [ref=e5] [cursor=pointer]:
+  - generic:
+    - generic:
+      - group:
+        - generic:
+          - generic:
+            - heading "ЗАДАЧИ МЕНЕДЖЕРА" [level=2] [ref=e519]
+            - button [ref=e520]
+            - button "АКТИВНЫЕ (1)" [ref=e521]
+            - button "ВЫПОЛНЕННЫЕ (0)" [ref=e522]
+          - generic:
+            - group:
+              - group "ООО ТЕСТ АВТО Позвонить клиенту и уточнить статус заказа на ЛКМ":
+                - button "ВЫПОЛНЕНО" [ref=e523]
+          - button "КЛИЕНТЫ Tab 1 of 3" [ref=e516]
+          - button "ЗАДАЧИ Tab 2 of 3" [active] [ref=e517]
+          - button "ПРОФИЛЬ Tab 3 of 3" [ref=e518]

@@ -1,0 +1,56 @@
+- generic [ref=e4]:
+  - generic:
+    - generic:
+      - generic:
+        - generic:
+          - generic:
+            - button "Back" [ref=e149]
+            - heading "ООО ТЕСТ АВТО" [level=2] [ref=e150]
+            - button [ref=e151]
+          - group:
+            - generic [ref=e152]:
+              - generic: КАТ. B
+            - button "ИЗМЕНИТЬ СТАТУС" [ref=e153]
+            - generic [ref=e154]:
+              - generic: ИНН
+            - generic [ref=e155]:
+              - generic: "7712345678"
+            - generic [ref=e156]:
+              - generic: НАЗВАНИЕ
+            - generic [ref=e157]:
+              - generic: ООО ТЕСТ АВТО
+            - generic [ref=e158]:
+              - generic: СТАТУС
+            - generic [ref=e159]:
+              - generic: active
+            - generic [ref=e160]:
+              - generic: РЕГИОН
+            - generic [ref=e161]:
+              - generic: Москва - Центральный
+            - generic [ref=e162]:
+              - generic: ГОРОД
+            - generic [ref=e163]:
+              - generic: Москва
+            - generic [ref=e164]:
+              - generic: ПАРТНЁР
+            - generic [ref=e165]:
+              - generic: Silver
+            - generic [ref=e166]:
+              - generic: КОНТАКТ
+            - generic [ref=e167]:
+              - generic: Иван Петров
+            - generic [ref=e168]:
+              - generic: ТЕЛЕФОН
+            - generic [ref=e169]:
+              - generic: "+79161234567"
+            - generic [ref=e170]:
+              - generic: ИСТОРИЯ КОНТАКТОВ
+            - button "ДОБАВИТЬ" [active] [ref=e171]
+            - generic [ref=e172]:
+              - generic: ЗВОНОК
+            - generic [ref=e173]:
+              - generic: 16.06.2026
+            - generic [ref=e174]:
+              - generic: Договорились о встрече на следующей неделе
+            - generic [ref=e175]:
+              - generic: manager_msk

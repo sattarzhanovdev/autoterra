@@ -1,0 +1,14 @@
+- generic [active] [ref=e4]:
+  - generic:
+    - generic:
+      - generic:
+        - button "Scrim" [ref=e105]
+        - generic [ref=e106]:
+          - generic:
+            - generic [ref=e107]:
+              - generic: ИЗМЕНИТЬ СТАТУС
+            - button "НОВЫЙ" [ref=e108]
+            - button "ОЖИДАНИЕ" [ref=e109]
+            - button "АКТИВНЫЙ" [ref=e110]
+            - button "ЗАБЛОКИРОВАН" [ref=e111]
+            - button "АРХИВ" [ref=e112]

@@ -1,0 +1,29 @@
+- generic [ref=e5] [cursor=pointer]:
+  - generic:
+    - generic:
+      - generic:
+        - generic:
+          - generic:
+            - heading "ПРОФИЛЬ" [level=2] [ref=e23]
+            - button [ref=e24]
+          - group:
+            - generic [ref=e25]:
+              - generic: Менеджер
+            - generic [ref=e26]:
+              - generic: МЕНЕДЖЕР ПЛАТФОРМЫ
+            - generic [ref=e27]:
+              - generic: Личные данные
+            - generic [ref=e28]:
+              - generic: EMAIL
+            - generic [ref=e29]:
+              - generic: "-"
+            - generic [ref=e30]:
+              - generic: ТЕЛЕФОН
+            - generic [ref=e31]:
+              - generic: manager_msk
+            - button "Уведомления" [ref=e32]
+            - button "Поддержка и FAQ" [ref=e33]
+            - button "Выйти из аккаунта" [ref=e34]
+          - button "КЛИЕНТЫ Tab 1 of 3" [ref=e20]
+          - button "ЗАДАЧИ Tab 2 of 3" [ref=e21]
+          - button "ПРОФИЛЬ Tab 3 of 3" [active] [ref=e22]

@@ -1,0 +1,42 @@
+- generic [ref=e4]:
+  - generic:
+    - generic:
+      - generic:
+        - generic:
+          - generic:
+            - generic:
+              - generic:
+                - button "Back" [active] [ref=e56]
+                - heading "ИНТЕГРАЦИЯ 1С" [level=2] [ref=e57]
+              - generic:
+                - group:
+                  - group "КЛЮЧ ДОСТУПА (API KEY) ********************************":
+                    - button [ref=e58]
+                    - button [ref=e59]
+                    - button "СГЕНЕРИРОВАТЬ НОВЫЙ КЛЮЧ" [ref=e60]
+                  - 'group "БЕЗ ПРОГРАММИРОВАНИЯ (1С) Используйте стандартную функцию 1С «Обмен с сайтом». Просто введите эти данные в настройки 1С: Адрес сайта http://127.0.0.1:8000/api/integration/1c/exchange/?token=cffe5491669ebe68cb1aef48d935d5043be66be9b1dad8f47e80dda95b007c88 Имя пользователя AutoTerra Пароль Любой символ 1С сама выгрузит товары, остатки и цены по расписанию."':
+                    - button [ref=e62]
+                    - button [ref=e63]
+                    - button [ref=e64]
+                  - generic [ref=e66]:
+                    - 'textbox "ПЕСОЧНИЦА (ТЕСТ JSON) Вставьте JSON для проверки сопоставления товаров (dry run). Данные в базе не изменятся. [{\"sku\": \"...\", \"quantity\": 10}]" [ref=e67]'
+                    - button "ПРОВЕРИТЬ СОПОСТАВЛЕНИЕ" [ref=e68]
+                  - 'group "ДОКУМЕНТАЦИЯ ДЛЯ ПРОГРАММИСТА 1С HEADER 1. Обновление остатков (POST) 2. Синхронизация каталога (POST) 3. Синхронизация клиентов (POST) 4. Получение заказов (GET) СОВЕТ: Используйте ?dry_run=true для тестов."':
+                    - textbox [disabled] [ref=e71]
+                    - textbox [disabled] [ref=e73]
+                    - textbox [disabled] [ref=e75]
+                    - textbox [disabled] [ref=e77]
+                    - textbox [disabled] [ref=e79]
+                  - generic [ref=e81]:
+                    - generic: ЖУРНАЛ СИНХРОНИЗАЦИИ
+                  - generic [ref=e83]:
+                    - generic: "CATALOG_SYNC 16.06.26 12:31 {created: 0, updated: 1, errors: []}"
+                  - generic [ref=e84]:
+                    - generic: "STOCK_UPDATE 16.06.26 12:31 {updated_count: 1, error_count: 0, dry_run: false, results: [{sku: AT-PAINT-R7, external_id: null, status: updated}]}"
+                  - generic [ref=e85]:
+                    - generic: "STOCK_UPDATE 16.06.26 12:31 {updated_count: 1, error_count: 0, dry_run: true, results: [{sku: AT-PAINT-R7, external_id: null, status: valid}]}"
+                  - generic [ref=e86]:
+                    - generic: "STOCK_UPDATE 16.06.26 12:29 {updated_count: 1, error_count: 2, dry_run: true, results: [{sku: AT-PAINT-R7, external_id: null, status: valid}, {sku: GRN-9-02, external_id: null, status: error, message: Product not found (sku: GRN-9-02, external_id: None)}, {sku: NONEXISTENT-SKU, external_id: null, status: error, message: Product not found (sku: NONEXISTENT-SKU, external_id: None)}]}"
+          - button "Панель Tab 1 of 3" [ref=e36]
+          - button "Заказы Tab 2 of 3" [ref=e37]
+          - button "Профиль Tab 3 of 3" [ref=e38]

@@ -1,0 +1,16 @@
+- generic [ref=e5] [cursor=pointer]:
+  - generic:
+    - generic:
+      - generic:
+        - generic:
+          - generic:
+            - heading "ЗАДАЧИ МЕНЕДЖЕРОВ" [level=2] [ref=e352]
+            - button [ref=e353]
+          - button "Фильтр по менеджеру Все менеджеры" [ref=e354]
+          - generic [ref=e355]:
+            - generic: Нет задач
+          - button [ref=e356]
+          - button "ДАШБОРД Tab 1 of 4" [ref=e348]
+          - button "ИНТЕГРАЦИИ 1С Tab 2 of 4" [ref=e349]
+          - button "ЗАДАЧИ Tab 3 of 4" [active] [ref=e350]
+          - button "ПРОФИЛЬ Tab 4 of 4" [ref=e351]

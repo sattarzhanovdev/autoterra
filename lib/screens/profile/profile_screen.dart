@@ -12,6 +12,168 @@ import '../../widgets/common/section_header.dart';
 
 import 'expert_profile_screen.dart';
 
+class _StoreFormSheet extends StatefulWidget {
+  final Store? store;
+  final DataRepository repo;
+  final VoidCallback onSaved;
+
+  const _StoreFormSheet({this.store, required this.repo, required this.onSaved});
+
+  @override
+  State<_StoreFormSheet> createState() => _StoreFormSheetState();
+}
+
+class _StoreFormSheetState extends State<_StoreFormSheet> {
+  late final TextEditingController _nameCtrl;
+  late final TextEditingController _addressCtrl;
+  bool _saving = false;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _nameCtrl = TextEditingController(text: widget.store?.name ?? '');
+    _addressCtrl = TextEditingController(text: widget.store?.address ?? '');
+  }
+
+  @override
+  void dispose() {
+    _nameCtrl.dispose();
+    _addressCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    final name = _nameCtrl.text.trim();
+    final address = _addressCtrl.text.trim();
+    if (name.isEmpty) {
+      setState(() => _error = 'Введите название');
+      return;
+    }
+    if (address.isEmpty) {
+      setState(() => _error = 'Введите адрес');
+      return;
+    }
+    setState(() { _saving = true; _error = null; });
+    try {
+      if (widget.store == null) {
+        await widget.repo.createStore(name, address);
+      } else {
+        await widget.repo.updateStore(widget.store!.id, name, address);
+      }
+      widget.onSaved();
+      if (mounted) Navigator.pop(context);
+    } catch (e) {
+      if (mounted) setState(() { _saving = false; _error = 'Ошибка: $e'; });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isEdit = widget.store != null;
+    return SafeArea(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.fromLTRB(20, 16, 8, 16),
+            decoration: const BoxDecoration(color: AppColors.brandBlack),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    isEdit ? 'РЕДАКТИРОВАТЬ ТОЧКУ' : 'НОВАЯ ТОЧКА',
+                    style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w900, letterSpacing: 1.5),
+                  ),
+                ),
+                IconButton(
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.close, color: Colors.white54, size: 20),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                ),
+                const SizedBox(width: 8),
+              ],
+            ),
+          ),
+          Padding(
+            padding: EdgeInsets.fromLTRB(16, 16, 16, MediaQuery.of(context).viewInsets.bottom + 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('НАЗВАНИЕ', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1, color: AppColors.textSecondary)),
+                const SizedBox(height: 6),
+                TextField(
+                  controller: _nameCtrl,
+                  decoration: InputDecoration(
+                    hintText: 'Например: Автосервис на Ленина',
+                    filled: true,
+                    fillColor: AppColors.canvas,
+                    border: OutlineInputBorder(borderRadius: BorderRadius.zero, borderSide: BorderSide(color: AppColors.border)),
+                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.zero, borderSide: BorderSide(color: AppColors.border)),
+                    focusedBorder: const OutlineInputBorder(borderRadius: BorderRadius.zero, borderSide: BorderSide(color: AppColors.brandBlack, width: 1.5)),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                    hintStyle: const TextStyle(color: AppColors.textHint, fontSize: 13),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                const Text('АДРЕС', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1, color: AppColors.textSecondary)),
+                const SizedBox(height: 6),
+                TextField(
+                  controller: _addressCtrl,
+                  decoration: InputDecoration(
+                    hintText: 'Улица, дом, город',
+                    filled: true,
+                    fillColor: AppColors.canvas,
+                    border: OutlineInputBorder(borderRadius: BorderRadius.zero, borderSide: BorderSide(color: AppColors.border)),
+                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.zero, borderSide: BorderSide(color: AppColors.border)),
+                    focusedBorder: const OutlineInputBorder(borderRadius: BorderRadius.zero, borderSide: BorderSide(color: AppColors.brandBlack, width: 1.5)),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                    hintStyle: const TextStyle(color: AppColors.textHint, fontSize: 13),
+                  ),
+                ),
+                if (_error != null) ...[
+                  const SizedBox(height: 12),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFFFF0F0),
+                      border: Border(left: BorderSide(color: AppColors.brandRed, width: 3)),
+                    ),
+                    child: Text(_error!, style: const TextStyle(color: AppColors.brandRed, fontSize: 12, fontWeight: FontWeight.w600)),
+                  ),
+                ],
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: _saving ? null : _save,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.brandRed,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: const BeveledRectangleBorder(),
+                      elevation: 0,
+                    ),
+                    child: _saving
+                        ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                        : Text(
+                            isEdit ? 'СОХРАНИТЬ' : 'ДОБАВИТЬ ТОЧКУ',
+                            style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1, fontSize: 13),
+                          ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
 
@@ -21,6 +183,9 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   late Future<dynamic> _future;
+  List<Store> _stores = [];
+  bool _storesLoaded = false;
+  final _repo = DataRepository();
 
   @override
   void initState() {
@@ -31,23 +196,66 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _refresh() async {
     final role = authService.currentRole;
     Future<dynamic> next;
-    
+
     if (role == UserRole.client) {
-      next = DataRepository().dashboard();
+      next = _repo.dashboard();
+      _loadStores();
     } else if (role == UserRole.courier) {
       next = Future.value(authService.currentUserData);
     } else if (role == UserRole.aiExpert) {
-      // Handled by returning different widget in build
-      next = Future.value({}); 
+      next = Future.value({});
     } else {
-      // distributor, manager, admin
-      next = DataRepository().me();
+      next = _repo.me();
     }
-    
+
     setState(() {
       _future = next;
     });
     await next;
+  }
+
+  Future<void> _loadStores() async {
+    try {
+      final stores = await _repo.clientStores();
+      if (mounted) setState(() { _stores = stores; _storesLoaded = true; });
+    } catch (_) {
+      if (mounted) setState(() => _storesLoaded = true);
+    }
+  }
+
+  void _showStoreForm({Store? store}) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(),
+      builder: (_) => _StoreFormSheet(
+        store: store,
+        repo: _repo,
+        onSaved: _loadStores,
+      ),
+    );
+  }
+
+  Future<void> _deleteStore(Store store) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Удалить точку?'),
+        content: Text('«${store.name}» будет удалена.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Отмена')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Удалить', style: TextStyle(color: AppColors.brandRed)),
+          ),
+        ],
+      ),
+    );
+    if (ok == true) {
+      await _repo.deleteStore(store.id);
+      _loadStores();
+    }
   }
 
   @override
@@ -92,6 +300,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   _buildRoleSpecificSection(role, data),
                   const SizedBox(height: 16),
                   _buildUnifiedInfoSection(role, data),
+                  if (role == UserRole.client) ...[
+                    const SizedBox(height: 16),
+                    _buildStoresSection(),
+                  ],
                   const SizedBox(height: 16),
                   _buildUnifiedSettingsSection(context),
                   const SizedBox(height: 40),
@@ -100,6 +312,84 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           );
         },
+      ),
+    );
+  }
+
+  Widget _buildStoresSection() {
+    return AppCard(
+      padding: EdgeInsets.zero,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 14, 8, 14),
+            child: Row(
+              children: [
+                const Icon(Icons.store_outlined, size: 18, color: AppColors.brandRed),
+                const SizedBox(width: 8),
+                const Expanded(
+                  child: Text('Мои точки / магазины', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+                ),
+                TextButton.icon(
+                  onPressed: () => _showStoreForm(),
+                  icon: const Icon(Icons.add, size: 16),
+                  label: const Text('Добавить', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+                  style: TextButton.styleFrom(foregroundColor: AppColors.brandRed, padding: const EdgeInsets.symmetric(horizontal: 8)),
+                ),
+              ],
+            ),
+          ),
+          const Divider(height: 1),
+          if (!_storesLoaded)
+            const Padding(
+              padding: EdgeInsets.all(20),
+              child: Center(child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))),
+            )
+          else if (_stores.isEmpty)
+            const Padding(
+              padding: EdgeInsets.all(20),
+              child: Center(
+                child: Text('Нет добавленных точек', style: TextStyle(color: AppColors.textHint, fontSize: 13)),
+              ),
+            )
+          else
+            ListView.separated(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: _stores.length,
+              separatorBuilder: (_, __) => const Divider(height: 1),
+              itemBuilder: (context, index) {
+                final store = _stores[index];
+                return ListTile(
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  leading: Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: AppColors.canvas,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(Icons.location_on_outlined, size: 18, color: AppColors.textSecondary),
+                  ),
+                  title: Text(store.name, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                  subtitle: Text(store.address, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                  trailing: PopupMenuButton<String>(
+                    onSelected: (val) {
+                      if (val == 'edit') _showStoreForm(store: store);
+                      if (val == 'delete') _deleteStore(store);
+                    },
+                    itemBuilder: (_) => [
+                      const PopupMenuItem(value: 'edit', child: Row(children: [Icon(Icons.edit_outlined, size: 16), SizedBox(width: 8), Text('Редактировать')])),
+                      const PopupMenuItem(value: 'delete', child: Row(children: [Icon(Icons.delete_outline, size: 16, color: AppColors.brandRed), SizedBox(width: 8), Text('Удалить', style: TextStyle(color: AppColors.brandRed))])),
+                    ],
+                    icon: const Icon(Icons.more_vert, size: 18, color: AppColors.textHint),
+                  ),
+                  dense: true,
+                );
+              },
+            ),
+        ],
       ),
     );
   }

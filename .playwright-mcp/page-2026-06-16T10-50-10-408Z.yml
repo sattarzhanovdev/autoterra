@@ -1,0 +1,21 @@
+- generic [ref=e4] [cursor=pointer]:
+  - generic:
+    - generic:
+      - generic:
+        - generic:
+          - generic:
+            - heading "ЗАДАЧИ МЕНЕДЖЕРОВ" [level=2] [ref=e90]
+            - button [ref=e91]
+          - generic:
+            - group:
+              - button "ФИЛЬТР МЕНЕДЖЕР Все менеджеры" [ref=e92]
+              - generic [ref=e94]:
+                - generic: 0 АКТИВНЫХ 1 ВЫПОЛНЕНО
+              - generic [ref=e96]:
+                - generic: ВСЕ ЗАДАЧИ
+              - button "Позвонить клиенту и уточнить статус заказа на ЛКМ manager_msk ООО ТЕСТ АВТО" [ref=e98]
+          - button [ref=e100]
+          - button "ДАШБОРД Tab 1 of 4" [ref=e86]
+          - button "ИНТЕГРАЦИИ 1С Tab 2 of 4" [ref=e87]
+          - button "ЗАДАЧИ Tab 3 of 4" [active] [ref=e88]
+          - button "ПРОФИЛЬ Tab 4 of 4" [ref=e89]

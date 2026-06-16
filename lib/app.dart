@@ -95,11 +95,11 @@ final GoRouter _router = GoRouter(
         GoRoute(path: '/courier-cabinet', builder: (ctx, _) => const CourierScreen()),
         GoRoute(path: AppRoutes.admin, builder: (ctx, _) => AdminLayout()),
         GoRoute(path: '/unified-client/:id', builder: (ctx, state) => UnifiedClientCardScreen(clientId: state.pathParameters['id']!)),
-        GoRoute(
-          path: '${AppRoutes.managerClients}/:clientId',
-          builder: (ctx, state) => ManagerClientDetailScreen(clientId: state.pathParameters['clientId']!),
-        ),
       ],
+    ),
+    GoRoute(
+      path: '${AppRoutes.managerClients}/:clientId',
+      builder: (ctx, state) => ManagerClientDetailScreen(clientId: state.pathParameters['clientId']!),
     ),
     GoRoute(path: AppRoutes.addPurchase, builder: (ctx, _) => const AddPurchaseScreen()),
     GoRoute(path: AppRoutes.qa, builder: (ctx, _) => const QaScreen()),

@@ -1,0 +1,38 @@
+- generic [active] [ref=e4]:
+  - generic:
+    - generic:
+      - generic:
+        - generic:
+          - generic:
+            - generic:
+              - generic:
+                - generic:
+                  - generic:
+                    - banner:
+                      - img [ref=e19]
+                - group:
+                  - generic [ref=e20]:
+                    - generic: ЧТО НУЖНО СДЕЛАТЬ?
+                  - generic:
+                    - generic:
+                      - button "ЗАКАЗЫ 1" [ref=e21]
+                      - button "ДОСТАВКИ 0" [ref=e22]
+                      - button "ПРОВЕРКА 2" [ref=e23]
+                      - button "КЛИЕНТЫ 4" [ref=e24]
+                  - button "COLOR LAB (ПОДБОР) 2" [ref=e25]
+                  - button "СКЛАД И АССОРТИМЕНТ OK" [ref=e26]
+                  - generic [ref=e27]:
+                    - generic: НОВЫЕ ЗАКАЗЫ
+                  - button "ORD-00002 ООО РОМАШКА НОВЫЙ" [ref=e28]
+                  - generic [ref=e29]:
+                    - generic: ЗАЯВКИ НА ДОСТАВКУ
+                  - button "ЗАБОР ЛЮЧКА ООО РОМАШКА В ПУТИ" [ref=e30]
+                  - button "ДОСТАВКА ПРЕМИУМ ПОКРАСКА МСК КУРЬЕР НАЗНАЧЕН" [ref=e31]
+                  - button "ЗАБОР ДЛЯ COLOR LAB ООО РОМАШКА КУРЬЕР НАЗНАЧЕН" [ref=e32]
+                  - generic [ref=e33]:
+                    - generic: COLOR LAB (ПОДБОР)
+                  - 'button "AUDI A6 КОД: LY9B · ООО РОМАШКА СОЗДАНА" [ref=e34]'
+                  - 'button "BMW X5 КОД: 300 · ООО РОМАШКА СОЗДАНА" [ref=e35]'
+          - button "Панель Tab 1 of 3" [ref=e36]
+          - button "Заказы Tab 2 of 3" [ref=e37]
+          - button "Профиль Tab 3 of 3" [ref=e38]

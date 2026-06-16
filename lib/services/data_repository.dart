@@ -168,8 +168,25 @@ class DataRepository {
     );
   }
 
+  Future<List<Store>> clientStores() async {
+    final items = await _api.stores();
+    return items.map(Store.fromJson).toList();
+  }
+
+  Future<Store> createStore(String name, String address) async {
+    final result = await _api.createStore(name, address);
+    return Store.fromJson(result['store'] as Map<String, dynamic>);
+  }
+
+  Future<Store> updateStore(String storeId, String name, String address) async {
+    final result = await _api.updateStore(storeId, name, address);
+    return Store.fromJson(result['store'] as Map<String, dynamic>);
+  }
+
+  Future<void> deleteStore(String storeId) => _api.deleteStore(storeId);
+
   Future<List<Purchase>> purchases() async {
-    final items = (ApiClient.role == 'distributor') 
+    final items = (ApiClient.role == 'distributor')
         ? await _api.distributorPurchases()
         : await _api.purchases();
     return compute(_parsePurchaseList, items);
@@ -453,6 +470,22 @@ class DataRepository {
     return ManagerTask.fromJson(result['task'] as Map<String, dynamic>);
   }
 
+  Future<List<Map<String, dynamic>>> adminManagers() => _api.adminManagers();
+
+  Future<List<ManagerTask>> adminManagerTasks({String? managerId, String? status}) async {
+    final items = await _api.adminManagerTasks(managerId: managerId, status: status);
+    return items.map(ManagerTask.fromJson).toList();
+  }
+
+  Future<ManagerTask> adminCreateManagerTask(Map<String, dynamic> data) async {
+    final result = await _api.adminCreateManagerTask(data);
+    return ManagerTask.fromJson(result['task'] as Map<String, dynamic>);
+  }
+
+  Future<void> adminDeleteManagerTask(String taskId) => _api.adminDeleteManagerTask(taskId);
+
+  Future<List<Map<String, dynamic>>> adminManagerClients(String managerId) => _api.adminManagerClients(managerId);
+
   Future<Map<String, dynamic>> me() {
     return _api.me();
   }
@@ -527,8 +560,8 @@ class DataRepository {
     return _api.createExpertTicket(data, fileBytes: fileBytes, fileName: fileName);
   }
 
-  Future<Map<String, dynamic>> test1CIntegration(List<dynamic> payload) {
-    return _api.test1CIntegration(payload);
+  Future<Map<String, dynamic>> test1CIntegration(List<dynamic> payload, String integrationToken) {
+    return _api.test1CIntegration(payload, integrationToken);
   }
 
   static List<Map<String, dynamic>> _list(Object? value) {

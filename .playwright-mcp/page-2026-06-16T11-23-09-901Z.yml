@@ -1,0 +1,76 @@
+- generic [ref=e5] [cursor=pointer]:
+  - generic:
+    - generic:
+      - generic:
+        - generic:
+          - generic:
+            - generic:
+              - generic:
+                - heading "ПРОФИЛЬ" [active] [level=2] [ref=e54]
+                - button [ref=e55]
+              - group:
+                - generic [ref=e56]:
+                  - generic: ИП Иванов
+                - generic [ref=e57]:
+                  - generic: АВТОСЕРВИС
+                - generic [ref=e58]:
+                  - generic: SILVER
+                - generic [ref=e59]:
+                  - generic: АКТИВНЫЙ
+                - generic [ref=e60]:
+                  - generic: B
+                - generic [ref=e61]:
+                  - generic: 35 000 ₽
+                - generic [ref=e62]:
+                  - generic: "2"
+                - generic [ref=e63]:
+                  - generic: "06.2026"
+                - generic [ref=e64]:
+                  - generic: Покупки
+                - generic [ref=e65]:
+                  - generic: Рефералы
+                - generic [ref=e66]:
+                  - generic: С нами с
+                - generic [ref=e67]:
+                  - generic: Статус партнёра
+                - generic [ref=e68]:
+                  - generic: SILVER
+                - generic [ref=e69]:
+                  - generic: Silver
+                - generic [ref=e70]:
+                  - generic: Gold
+                - generic [ref=e71]:
+                  - generic: Platinum
+                - generic [ref=e72]:
+                  - generic: Certified Partner
+                - generic [ref=e73]:
+                  - generic: Данные сервиса
+                - generic [ref=e74]:
+                  - generic: ИНН
+                - generic [ref=e75]:
+                  - generic: "7709876543"
+                - generic [ref=e76]:
+                  - generic: РЕГИОН
+                - generic [ref=e77]:
+                  - generic: Москва - Центральный
+                - generic [ref=e78]:
+                  - generic: КОНТАКТ
+                - generic [ref=e79]:
+                  - generic: Иванов Иван
+                - generic [ref=e80]:
+                  - generic: ТЕЛЕФОН
+                - generic [ref=e81]:
+                  - generic: "+79001234567"
+                - generic [ref=e82]:
+                  - generic: Мои точки / магазины
+                - button "Добавить" [ref=e83]
+                - generic [ref=e84]:
+                  - generic: Нет добавленных точек
+                - button "Уведомления" [ref=e85]
+                - button "Поддержка и FAQ" [ref=e86]
+                - button "Выйти из аккаунта" [ref=e87]
+          - button "Главная Tab 1 of 5" [ref=e49]
+          - button "Покупки Tab 2 of 5" [ref=e50]
+          - button "Цвет Tab 3 of 5" [ref=e51]
+          - button "AI Tab 4 of 5" [ref=e52]
+          - button "Профиль Tab 5 of 5" [ref=e53]

@@ -63,7 +63,7 @@ class _ManagerTasksScreenState extends State<ManagerTasksScreen> {
       appBar: AppBar(
         backgroundColor: const Color(0xFF171717),
         title: const Text(
-          'ЗАДАЧИ КУРАТОРА',
+          'ЗАДАЧИ МЕНЕДЖЕРА',
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, letterSpacing: 2),
         ),
         actions: [

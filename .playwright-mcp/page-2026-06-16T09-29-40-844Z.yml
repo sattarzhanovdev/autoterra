@@ -1,0 +1,52 @@
+- generic [ref=e4]:
+  - generic:
+    - generic:
+      - generic:
+        - generic:
+          - generic:
+            - button "Back" [ref=e80]
+            - heading "ООО ТЕСТ АВТО" [level=2] [ref=e81]
+            - button [ref=e82]
+          - group:
+            - generic [ref=e83]:
+              - generic: КАТ. B
+            - button "ИЗМЕНИТЬ СТАТУС" [active] [ref=e84]
+            - generic [ref=e85]:
+              - generic: ИНН
+            - generic [ref=e86]:
+              - generic: "7712345678"
+            - generic [ref=e87]:
+              - generic: НАЗВАНИЕ
+            - generic [ref=e88]:
+              - generic: ООО ТЕСТ АВТО
+            - generic [ref=e89]:
+              - generic: СТАТУС
+            - generic [ref=e90]:
+              - generic: new
+            - generic [ref=e91]:
+              - generic: РЕГИОН
+            - generic [ref=e92]:
+              - generic: Москва - Центральный
+            - generic [ref=e93]:
+              - generic: ГОРОД
+            - generic [ref=e94]:
+              - generic: Москва
+            - generic [ref=e95]:
+              - generic: ПАРТНЁР
+            - generic [ref=e96]:
+              - generic: Silver
+            - generic [ref=e97]:
+              - generic: КОНТАКТ
+            - generic [ref=e98]:
+              - generic: Иван Петров
+            - generic [ref=e99]:
+              - generic: ТЕЛЕФОН
+            - generic [ref=e100]:
+              - generic: "+79161234567"
+            - generic [ref=e101]:
+              - generic: ИСТОРИЯ КОНТАКТОВ
+            - button "ДОБАВИТЬ" [ref=e102]
+            - generic [ref=e103]:
+              - generic: НЕТ ЗАПИСЕЙ О КОНТАКТАХ
+          - generic [ref=e104]:
+            - generic: "Ошибка: Server returned non-JSON response (Status 405)"

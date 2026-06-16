@@ -1,0 +1,54 @@
+- generic [ref=e5]:
+  - generic:
+    - generic:
+      - generic:
+        - button "Scrim" [ref=e110]
+        - generic [ref=e111]:
+          - generic:
+            - generic [ref=e112]:
+              - generic: РЕГИСТРАЦИЯ КЛИЕНТА
+            - button [ref=e113]
+            - generic [ref=e145]:
+              - generic: "'UserManager' object has no attribute 'make_random_password'"
+            - group:
+              - generic:
+                - generic [ref=e114]:
+                  - generic: ИНН
+                - generic [ref=e115]:
+                  - generic: "*"
+                - textbox [ref=e117]: "7712345678"
+                - generic [ref=e118]:
+                  - generic: НАЗВАНИЕ ОРГАНИЗАЦИИ
+                - generic [ref=e119]:
+                  - generic: "*"
+                - textbox [ref=e121]: ООО ТЕСТ АВТО
+                - generic [ref=e122]:
+                  - generic: ТИП ОБЪЕКТА / КАТЕГОРИЯ
+                - generic [ref=e123]:
+                  - generic: "*"
+                - button "B — Автосервис с кузовным цехом" [ref=e124]
+                - generic [ref=e125]:
+                  - generic: РЕГИОН
+                - generic [ref=e126]:
+                  - generic: "*"
+                - button "Москва - Центральный" [ref=e127]
+                - generic [ref=e128]:
+                  - generic: ДИСТРИБЬЮТОР
+                - generic [ref=e129]:
+                  - generic: Если не указан — назначается автоматически по региону
+                - button "Авто (по региону)" [ref=e130]
+                - generic [ref=e131]:
+                  - generic: ГОРОД
+                - textbox [ref=e133]: Москва
+                - generic [ref=e134]:
+                  - generic: КОНТАКТНОЕ ЛИЦО
+                - textbox [ref=e136]: Иван Петров
+                - generic [ref=e137]:
+                  - generic: ТЕЛЕФОН
+                - textbox [active] [ref=e139]: "+79161234567"
+                - generic [ref=e140]:
+                  - generic: EMAIL
+                - textbox [ref=e142]: test@autotest.ru
+                - generic [ref=e143]:
+                  - generic: Менеджер будет назначен автоматически (вы)
+                - button "ЗАРЕГИСТРИРОВАТЬ" [ref=e146]

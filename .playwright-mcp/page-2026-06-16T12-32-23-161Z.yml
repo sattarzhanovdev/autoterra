@@ -1,0 +1,36 @@
+- generic [active] [ref=e4]:
+  - generic:
+    - generic:
+      - generic:
+        - generic:
+          - generic:
+            - generic:
+              - generic:
+                - button "Back" [ref=e105]
+                - heading "ИНТЕГРАЦИЯ 1С" [level=2] [ref=e106]
+              - generic:
+                - group:
+                  - group "КЛЮЧ ДОСТУПА (API KEY) ********************************":
+                    - button [ref=e107]
+                    - button [ref=e108]
+                    - button "СГЕНЕРИРОВАТЬ НОВЫЙ КЛЮЧ" [ref=e109]
+                  - 'group "БЕЗ ПРОГРАММИРОВАНИЯ (1С) Используйте стандартную функцию 1С «Обмен с сайтом». Просто введите эти данные в настройки 1С: Адрес сайта http://127.0.0.1:8000/api/integration/1c/exchange/?token=cffe5491669ebe68cb1aef48d935d5043be66be9b1dad8f47e80dda95b007c88 Имя пользователя AutoTerra Пароль Любой символ 1С сама выгрузит товары, остатки и цены по расписанию."':
+                    - button [ref=e111]
+                    - button [ref=e112]
+                    - button [ref=e113]
+                  - generic [ref=e115]:
+                    - 'textbox "ПЕСОЧНИЦА (ТЕСТ JSON) Вставьте JSON для проверки сопоставления товаров (dry run). Данные в базе не изменятся. [{\"sku\": \"...\", \"quantity\": 10}]" [ref=e116]'
+                    - button "ПРОВЕРИТЬ СОПОСТАВЛЕНИЕ" [ref=e117]
+                  - 'group "ДОКУМЕНТАЦИЯ ДЛЯ ПРОГРАММИСТА 1С HEADER 1. Обновление остатков (POST) 2. Синхронизация каталога (POST) 3. Синхронизация клиентов (POST) 4. Получение заказов (GET) СОВЕТ: Используйте ?dry_run=true для тестов."':
+                    - textbox [disabled] [ref=e120]
+                    - textbox [disabled] [ref=e122]
+                    - textbox [disabled] [ref=e124]
+                    - textbox [disabled] [ref=e126]
+                    - textbox [disabled] [ref=e128]
+                  - generic [ref=e130]:
+                    - generic: ЖУРНАЛ СИНХРОНИЗАЦИИ
+                  - generic [ref=e132]:
+                    - generic: ЛОГОВ ПОКА НЕТ
+          - button "Панель Tab 1 of 3" [ref=e36]
+          - button "Заказы Tab 2 of 3" [ref=e37]
+          - button "Профиль Tab 3 of 3" [ref=e38]

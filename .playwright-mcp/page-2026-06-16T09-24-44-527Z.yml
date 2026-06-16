@@ -1,0 +1,17 @@
+- generic [ref=e4] [cursor=pointer]:
+  - generic:
+    - generic:
+      - generic:
+        - generic:
+          - generic:
+            - button "Back" [ref=e21]
+            - heading "КЛИЕНТ" [level=2] [ref=e22]
+            - button [active] [ref=e23]
+          - group:
+            - generic [ref=e28]:
+              - generic: ИСТОРИЯ КОНТАКТОВ
+            - button "ДОБАВИТЬ" [ref=e29]
+            - generic [ref=e30]:
+              - generic: НЕТ ЗАПИСЕЙ О КОНТАКТАХ
+          - generic [ref=e31]:
+            - generic: "Ошибка: Server returned non-JSON response (Status 500)"

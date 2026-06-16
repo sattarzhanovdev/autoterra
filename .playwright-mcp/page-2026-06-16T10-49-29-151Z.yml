@@ -1,0 +1,26 @@
+- generic [ref=e4]:
+  - generic:
+    - generic:
+      - generic:
+        - generic:
+          - img [ref=e5]
+          - generic [ref=e6]:
+            - generic: Федеральная B2B-платформа ЛКМ
+          - group:
+            - generic:
+              - generic [ref=e7]:
+                - generic: ВХОД В СИСТЕМУ
+              - generic [ref=e8]:
+                - generic: Введите данные для входа
+              - generic [ref=e9]:
+                - textbox "Телефон или Логин" [active] [invalid] [ref=e10]: manager_main
+                - generic [ref=e18]:
+                  - generic: Введите телефон или логин
+              - generic [ref=e11]:
+                - textbox "Пароль" [ref=e12]: admin1234
+                - button [ref=e13]
+              - button "Забыли пароль?" [ref=e14]
+              - button "ВОЙТИ" [ref=e15]
+              - generic [ref=e16]:
+                - generic: Нет аккаунта?
+              - button "Зарегистрироваться" [ref=e17]

@@ -1,0 +1,23 @@
+- generic [active] [ref=e5]:
+  - generic:
+    - generic:
+      - generic:
+        - generic:
+          - generic [ref=e88]:
+            - generic:
+              - generic [ref=e89]:
+                - generic: НОВАЯ ТОЧКА
+              - button [ref=e90]
+              - generic [ref=e91]:
+                - generic: НАЗВАНИЕ
+              - 'textbox "Например: Автосервис на Ленина" [ref=e93]'
+              - generic [ref=e94]:
+                - generic: АДРЕС
+              - textbox "Улица, дом, город" [ref=e96]
+              - button "ДОБАВИТЬ ТОЧКУ" [ref=e97]
+          - button "Scrim" [ref=e98]
+          - button "Главная Tab 1 of 5" [ref=e49]
+          - button "Покупки Tab 2 of 5" [ref=e50]
+          - button "Цвет Tab 3 of 5" [ref=e51]
+          - button "AI Tab 4 of 5" [ref=e52]
+          - button "Профиль Tab 5 of 5" [ref=e53]

@@ -1,0 +1,16 @@
+- generic [active] [ref=e5]:
+  - generic:
+    - generic:
+      - generic:
+        - button "Scrim" [ref=e252]
+        - generic [ref=e253]:
+          - generic:
+            - group:
+              - generic [ref=e254]:
+                - generic: Новая задача
+              - button "Менеджер" [ref=e255]
+              - button "Клиент" [ref=e256]
+              - textbox "Текст задачи *" [ref=e258]
+              - textbox "Комментарий (необязательно)" [ref=e260]
+              - button "Установить срок (необязательно)" [ref=e261]
+              - button "СОЗДАТЬ ЗАДАЧУ" [ref=e262]

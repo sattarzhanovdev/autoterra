@@ -1,0 +1,8 @@
+- group "Dismiss" [ref=e381] [cursor=pointer]:
+  - menu "Popup menu":
+    - generic:
+      - group:
+        - menuitem "ИП Иванов" [active] [ref=e382]
+        - menuitem "ООО Ромашка" [ref=e383]
+        - menuitem "ООО ТЕСТ АВТО" [ref=e384]
+        - menuitem "Премиум Покраска МСК" [ref=e385]

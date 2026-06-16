@@ -1,0 +1,5 @@
+- group "Dismiss" [ref=e108] [cursor=pointer]:
+  - menu "Popup menu":
+    - generic:
+      - group:
+        - menuitem "Москва - Центральный" [active] [ref=e109]

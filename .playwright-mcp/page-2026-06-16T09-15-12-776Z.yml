@@ -1,0 +1,25 @@
+- generic [ref=e5] [cursor=pointer]:
+  - generic:
+    - generic:
+      - generic:
+        - generic:
+          - generic:
+            - heading "КЛИЕНТЫ" [level=2] [ref=e147]
+            - button [ref=e148]
+          - group:
+            - button "ВСЕ" [ref=e149]
+            - button "АКТИВНЫЕ" [ref=e150]
+            - button "НОВЫЕ" [ref=e151]
+            - button "КАТ. A" [ref=e152]
+            - button "КАТ. B" [ref=e153]
+            - button "КАТ. C" [ref=e154]
+          - generic:
+            - group:
+              - 'button "КАТ. B АКТИВНЫЙ ИП ИВАНОВ ИНН: 7709876543 ДИСТРИБЬЮТОР: AutoTerra МСК Москва, Москва - Центральный" [ref=e155]'
+              - 'button "КАТ. B АКТИВНЫЙ ООО РОМАШКА ИНН: 7701234567 ДИСТРИБЬЮТОР: AutoTerra МСК Москва, Москва - Центральный" [ref=e156]'
+              - 'button "КАТ. B АКТИВНЫЙ ООО ТЕСТ АВТО ИНН: 7712345678 ДИСТРИБЬЮТОР: AutoTerra МСК Москва, Москва - Центральный" [ref=e157]'
+              - 'button "КАТ. B АКТИВНЫЙ ПРЕМИУМ ПОКРАСКА МСК ИНН: 7787654321 ДИСТРИБЬЮТОР: AutoTerra МСК Москва, Москва - Центральный" [ref=e158]'
+          - button "РЕГИСТРАЦИЯ КЛИЕНТА" [active] [ref=e159]
+          - button "КЛИЕНТЫ Tab 1 of 3" [ref=e160]
+          - button "ЗАДАЧИ Tab 2 of 3" [ref=e161]
+          - button "ПРОФИЛЬ Tab 3 of 3" [ref=e162]
