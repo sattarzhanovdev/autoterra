@@ -170,7 +170,7 @@ class _DistributorHomeScreenState extends State<DistributorHomeScreen> {
               metrics.deliveriesToAssign.toString(),
               Icons.local_shipping_outlined,
               AppColors.info,
-              () => context.push(AppRoutes.delivery),
+              () => context.push(AppRoutes.distributorDeliveries),
             ),
             _metricCard(
               'Проверка',

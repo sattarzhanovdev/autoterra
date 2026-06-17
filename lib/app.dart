@@ -36,6 +36,7 @@ import 'screens/distributor/distributor_clients_screen.dart';
 import 'screens/distributor/distributor_stock_screen.dart';
 import 'screens/distributor/distributor_integration_screen.dart';
 import 'screens/distributor/distributor_color_lab_screen.dart';
+import 'screens/distributor/distributor_deliveries_screen.dart';
 import 'screens/manager/manager_client_detail_screen.dart';
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -90,6 +91,7 @@ final GoRouter _router = GoRouter(
         GoRoute(path: AppRoutes.distributorStock, builder: (ctx, _) => const DistributorStockScreen()),
         GoRoute(path: AppRoutes.distributorIntegration, builder: (ctx, _) => const DistributorIntegrationScreen()),
         GoRoute(path: AppRoutes.distributorColorLab, builder: (ctx, _) => const DistributorColorLabScreen()),
+        GoRoute(path: AppRoutes.distributorDeliveries, builder: (ctx, _) => const DistributorDeliveriesScreen()),
         
         GoRoute(path: '/distributor-cabinet', builder: (ctx, _) => const DistributorCabinetScreen()),
         GoRoute(path: '/courier-cabinet', builder: (ctx, _) => const CourierScreen()),
