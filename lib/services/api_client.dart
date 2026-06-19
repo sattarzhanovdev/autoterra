@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
@@ -410,6 +411,7 @@ class ApiClient {
         fileField,
         fileBytes,
         filename: fileName,
+        contentType: _mediaTypeForFile(fileName),
       ));
 
       final streamedResponse = await request.send().timeout(const Duration(seconds: 30));
@@ -418,6 +420,30 @@ class ApiClient {
     } catch (e) {
       _handleError(e);
       rethrow;
+    }
+  }
+
+  /// Maps a file name to its MIME type so multipart uploads send a real
+  /// content type instead of the default application/octet-stream.
+  MediaType? _mediaTypeForFile(String fileName) {
+    final dot = fileName.lastIndexOf('.');
+    final ext = dot == -1 ? '' : fileName.substring(dot + 1).toLowerCase();
+    switch (ext) {
+      case 'jpg':
+      case 'jpeg':
+        return MediaType('image', 'jpeg');
+      case 'png':
+        return MediaType('image', 'png');
+      case 'webp':
+        return MediaType('image', 'webp');
+      case 'pdf':
+        return MediaType('application', 'pdf');
+      case 'mp4':
+        return MediaType('video', 'mp4');
+      case 'mov':
+        return MediaType('video', 'quicktime');
+      default:
+        return null;
     }
   }
 

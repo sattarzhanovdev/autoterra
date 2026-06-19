@@ -325,6 +325,7 @@ class ColorRequest {
   final String? clientName;
   final String carBrand;
   final String carModel;
+  final String carYear;
   final String vin;
   final String colorCode;
   final String colorName;
@@ -348,6 +349,7 @@ class ColorRequest {
     this.clientName,
     required this.carBrand,
     required this.carModel,
+    this.carYear = '',
     required this.vin,
     required this.colorCode,
     required this.colorName,
@@ -373,6 +375,7 @@ class ColorRequest {
       clientName: json['clientName'],
       carBrand: json['carBrand'] ?? '',
       carModel: json['carModel'] ?? '',
+      carYear: json['carYear']?.toString() ?? '',
       vin: json['vin'] ?? '',
       colorCode: json['colorCode'] ?? '',
       colorName: json['colorName'] ?? '',

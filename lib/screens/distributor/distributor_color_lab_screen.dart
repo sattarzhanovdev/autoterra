@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import '../../core/theme.dart';
 import '../../models/models.dart';
 import '../../services/data_repository.dart';
@@ -190,43 +191,46 @@ class _ColorLabCard extends StatelessWidget {
             ],
           ),
 
-          // ── Colour name ────────────────────────────────────────────────────
-          if (request.colorName.isNotEmpty) ...[
+          // ── Urgent badge ───────────────────────────────────────────────────
+          if (request.urgent) ...[
             const SizedBox(height: 8),
-            Row(
-              children: [
-                const Icon(Icons.color_lens_outlined, size: 14, color: AppColors.textSecondary),
-                const SizedBox(width: 6),
-                Text(
-                  request.colorName.toUpperCase(),
-                  style: const TextStyle(
-                    fontSize: 11,
-                    color: AppColors.textSecondary,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              color: AppColors.brandRed,
+              child: const Text(
+                '⚡ СРОЧНАЯ ЗАЯВКА',
+                style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w900),
+              ),
             ),
           ],
 
-          // ── Comment ────────────────────────────────────────────────────────
-          if (request.comment != null && request.comment!.isNotEmpty) ...[
-            const SizedBox(height: 4),
-            Row(
-              children: [
-                const Icon(Icons.comment_outlined, size: 14, color: AppColors.textSecondary),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: Text(
-                    request.comment!,
-                    style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ],
+          // ── All client-filled details ──────────────────────────────────────
+          const Divider(height: 24, thickness: 0.5),
+          if (request.colorName.isNotEmpty)
+            _DetailRow(icon: Icons.color_lens_outlined, label: 'Цвет', value: request.colorName),
+          if (request.vin.isNotEmpty)
+            _DetailRow(icon: Icons.tag_outlined, label: 'VIN/Госномер', value: request.vin),
+          if (request.carYear.isNotEmpty)
+            _DetailRow(icon: Icons.event_outlined, label: 'Год', value: request.carYear),
+          _DetailRow(
+            icon: Icons.local_shipping_outlined,
+            label: 'Передача',
+            value: request.transferMethod == 'self_delivery' ? 'Сам привезу' : 'Курьер',
+          ),
+          if (request.pickupAddress != null && request.pickupAddress!.isNotEmpty)
+            _DetailRow(icon: Icons.location_on_outlined, label: 'Адрес забора', value: request.pickupAddress!),
+          if (request.pickupTime != null)
+            _DetailRow(
+              icon: Icons.schedule_outlined,
+              label: 'Время забора',
+              value: DateFormat('dd.MM HH:mm').format(request.pickupTime!),
             ),
-          ],
+          if (request.contactPerson != null && request.contactPerson!.isNotEmpty)
+            _DetailRow(icon: Icons.person_outline, label: 'Контакт', value: request.contactPerson!),
+          if (request.contactPhone != null && request.contactPhone!.isNotEmpty)
+            _DetailRow(icon: Icons.phone_outlined, label: 'Телефон', value: request.contactPhone!),
+          if (request.comment != null && request.comment!.isNotEmpty)
+            _DetailRow(icon: Icons.comment_outlined, label: 'Комментарий', value: request.comment!),
 
           // ── Recipe preview ────────────────────────────────────────────────
           if (request.recipe != null && request.recipe!.isNotEmpty) ...[
@@ -677,6 +681,46 @@ class _AssignCourierSheetState extends State<_AssignCourierSheet> {
                       style:
                           TextStyle(fontWeight: FontWeight.w900, letterSpacing: 0.5),
                     ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Card detail row (client-filled fields) ────────────────────────────────────
+
+class _DetailRow extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+  const _DetailRow({required this.icon, required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 14, color: AppColors.textSecondary),
+          const SizedBox(width: 8),
+          SizedBox(
+            width: 92,
+            child: Text(
+              label.toUpperCase(),
+              style: const TextStyle(
+                fontSize: 10,
+                color: AppColors.textSecondary,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
             ),
           ),
         ],

@@ -1,9 +1,5 @@
-import 'dart:io';
-import 'dart:typed_data';
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:image_picker/image_picker.dart';
 import '../../core/theme.dart';
 import '../../models/models.dart';
 import '../../services/data_repository.dart';
@@ -277,6 +273,7 @@ class _NewColorRequestSheet extends StatefulWidget {
 class _NewColorRequestSheetState extends State<_NewColorRequestSheet> {
   final _brandCtrl = TextEditingController();
   final _modelCtrl = TextEditingController();
+  final _yearCtrl = TextEditingController();
   final _vinCtrl = TextEditingController();
   final _colorCodeCtrl = TextEditingController();
   final _colorNameCtrl = TextEditingController();
@@ -287,9 +284,7 @@ class _NewColorRequestSheetState extends State<_NewColorRequestSheet> {
 
   String _transferMethod = 'courier';
   DateTime? _pickupTime;
-  XFile? _photo;
-  Uint8List? _webBytes;
-  final bool _urgent = false;
+  bool _urgent = false;
   bool _saving = false;
 
   bool get _hasChanges {
@@ -299,6 +294,7 @@ class _NewColorRequestSheetState extends State<_NewColorRequestSheet> {
     final r = widget.initialRequest!;
     if (_brandCtrl.text != r.carBrand) return true;
     if (_modelCtrl.text != r.carModel) return true;
+    if (_yearCtrl.text != r.carYear) return true;
     if (_vinCtrl.text != r.vin) return true;
     if (_colorCodeCtrl.text != r.colorCode) return true;
     if (_colorNameCtrl.text != r.colorName) return true;
@@ -308,6 +304,7 @@ class _NewColorRequestSheetState extends State<_NewColorRequestSheet> {
     if (_commentCtrl.text != (r.comment ?? '')) return true;
     if (_transferMethod != r.transferMethod) return true;
     if (_pickupTime != r.pickupTime) return true;
+    if (_urgent != r.urgent) return true;
     return false;
   }
 
@@ -318,6 +315,7 @@ class _NewColorRequestSheetState extends State<_NewColorRequestSheet> {
       final r = widget.initialRequest!;
       _brandCtrl.text = r.carBrand;
       _modelCtrl.text = r.carModel;
+      _yearCtrl.text = r.carYear;
       _vinCtrl.text = r.vin;
       _colorCodeCtrl.text = r.colorCode;
       _colorNameCtrl.text = r.colorName;
@@ -327,67 +325,17 @@ class _NewColorRequestSheetState extends State<_NewColorRequestSheet> {
       _commentCtrl.text = r.comment ?? '';
       _transferMethod = r.transferMethod;
       _pickupTime = r.pickupTime;
+      _urgent = r.urgent;
     }
 
     // Refresh UI when any text changes to update button state
     for (final controller in [
-      _brandCtrl, _modelCtrl, _vinCtrl, _colorCodeCtrl, _colorNameCtrl,
+      _brandCtrl, _modelCtrl, _yearCtrl, _vinCtrl, _colorCodeCtrl, _colorNameCtrl,
       _addressCtrl, _contactPersonCtrl, _contactPhoneCtrl, _commentCtrl
     ]) {
       controller.addListener(() {
         if (mounted) setState(() {});
       });
-    }
-  }
-
-  Future<void> _pickImage() async {
-    final source = await showModalBottomSheet<ImageSource>(
-      context: context,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-      builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Padding(
-              padding: EdgeInsets.all(16),
-              child: Text('ВЫБЕРИТЕ ИСТОЧНИК ФОТО', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 1)),
-            ),
-            ListTile(
-              leading: const Icon(Icons.camera_alt_outlined, color: AppColors.brandBlack),
-              title: const Text('СДЕЛАТЬ ФОТО', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
-              onTap: () => Navigator.pop(ctx, ImageSource.camera),
-            ),
-            ListTile(
-              leading: const Icon(Icons.photo_library_outlined, color: AppColors.brandBlack),
-              title: const Text('ВЫБРАТЬ ИЗ ГАЛЕРЕИ', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
-              onTap: () => Navigator.pop(ctx, ImageSource.gallery),
-            ),
-            const SizedBox(height: 8),
-          ],
-        ),
-      ),
-    );
-
-    if (source == null) return;
-
-    final picker = ImagePicker();
-    final img = await picker.pickImage(
-      source: source,
-      imageQuality: 50,
-      maxWidth: 1024,
-      maxHeight: 1024,
-    );
-    if (img != null) {
-      if (kIsWeb) {
-        final bytes = await img.readAsBytes();
-        setState(() {
-          _photo = img;
-          _webBytes = bytes;
-        });
-      } else {
-        setState(() => _photo = img);
-      }
     }
   }
 
@@ -398,20 +346,7 @@ class _NewColorRequestSheetState extends State<_NewColorRequestSheet> {
         await DataRepository().updateColorRequest(widget.initialRequest!.id, {
           'carBrand': _brandCtrl.text,
           'carModel': _modelCtrl.text,
-          'vin': _vinCtrl.text,
-          'colorCode': _colorCodeCtrl.text,
-          'colorName': _colorNameCtrl.text,
-          'transferMethod': _transferMethod,
-          'pickupAddress': _addressCtrl.text,
-          'contactPerson': _contactPersonCtrl.text,
-          'contactPhone': _contactPhoneCtrl.text,
-          'comment': _commentCtrl.text,
-        });
-      } else {
-        final bytes = _webBytes ?? (_photo != null ? await _photo!.readAsBytes() : null);
-        await DataRepository().createColorRequest({
-          'carBrand': _brandCtrl.text,
-          'carModel': _modelCtrl.text,
+          'carYear': _yearCtrl.text,
           'vin': _vinCtrl.text,
           'colorCode': _colorCodeCtrl.text,
           'colorName': _colorNameCtrl.text,
@@ -422,7 +357,23 @@ class _NewColorRequestSheetState extends State<_NewColorRequestSheet> {
           'contactPerson': _contactPersonCtrl.text,
           'contactPhone': _contactPhoneCtrl.text,
           'comment': _commentCtrl.text,
-        }, fileBytes: bytes, fileName: _photo?.name);
+        });
+      } else {
+        await DataRepository().createColorRequest({
+          'carBrand': _brandCtrl.text,
+          'carModel': _modelCtrl.text,
+          'carYear': _yearCtrl.text,
+          'vin': _vinCtrl.text,
+          'colorCode': _colorCodeCtrl.text,
+          'colorName': _colorNameCtrl.text,
+          'urgent': _urgent,
+          'transferMethod': _transferMethod,
+          'pickupAddress': _addressCtrl.text,
+          'pickupTime': _pickupTime?.toIso8601String(),
+          'contactPerson': _contactPersonCtrl.text,
+          'contactPhone': _contactPhoneCtrl.text,
+          'comment': _commentCtrl.text,
+        });
       }
       
       if (!mounted) return;
@@ -495,7 +446,20 @@ class _NewColorRequestSheetState extends State<_NewColorRequestSheet> {
                   ],
                 ),
                 const SizedBox(height: 12),
-                TextFormField(controller: _vinCtrl, decoration: const InputDecoration(labelText: 'VIN / ГОСНОМЕР')),
+                Row(
+                  children: [
+                    Expanded(flex: 2, child: TextFormField(controller: _vinCtrl, decoration: const InputDecoration(labelText: 'VIN / ГОСНОМЕР'))),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: TextFormField(
+                        controller: _yearCtrl,
+                        keyboardType: TextInputType.number,
+                        maxLength: 4,
+                        decoration: const InputDecoration(labelText: 'ГОД', counterText: ''),
+                      ),
+                    ),
+                  ],
+                ),
                 const SizedBox(height: 12),
                 Row(
                   children: [
@@ -504,25 +468,17 @@ class _NewColorRequestSheetState extends State<_NewColorRequestSheet> {
                     Expanded(child: TextFormField(controller: _colorNameCtrl, decoration: const InputDecoration(labelText: 'НАЗВАНИЕ ЦВЕТА'))),
                   ],
                 ),
-                if (widget.initialRequest == null) ...[
-                  const SizedBox(height: 24),
-                  _sectionTitle('2. ФОТО ЛЮЧКА'),
-                  const SizedBox(height: 12),
-                  GestureDetector(
-                    onTap: _pickImage,
-                    child: Container(
-                      height: 100,
-                      decoration: BoxDecoration(color: AppColors.canvas, border: Border.all(color: AppColors.border)),
-                      child: _photo == null 
-                        ? const Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.add_a_photo, color: AppColors.brandRed), Text('ДОБАВИТЬ ФОТО', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold))])
-                        : kIsWeb
-                          ? Image.memory(_webBytes!, fit: BoxFit.cover)
-                          : Image.file(File(_photo!.path), fit: BoxFit.cover),
-                    ),
-                  ),
-                ],
-                const SizedBox(height: 24),
-                _sectionTitle(widget.initialRequest == null ? '3. ПЕРЕДАЧА ЛЮЧКА' : '2. ПЕРЕДАЧА ЛЮЧКА'),
+                const SizedBox(height: 12),
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  activeColor: AppColors.brandRed,
+                  value: _urgent,
+                  onChanged: (v) => setState(() => _urgent = v),
+                  title: const Text('СРОЧНО', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 0.5)),
+                  subtitle: const Text('Сокращённый срок выполнения (SLA 4 часа)', style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+                ),
+                const SizedBox(height: 12),
+                _sectionTitle('2. ПЕРЕДАЧА ЛЮЧКА'),
                 const SizedBox(height: 12),
                 Row(
                   children: [
