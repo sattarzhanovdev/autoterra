@@ -4,6 +4,7 @@ import '../../models/models.dart';
 import '../../services/data_repository.dart';
 import '../../widgets/common/premium_icon_badge.dart';
 import '../../widgets/common/status_badge.dart';
+import '../../widgets/delivery/assign_courier_sheet.dart';
 
 class DistributorDeliveriesScreen extends StatefulWidget {
   const DistributorDeliveriesScreen({super.key});
@@ -282,52 +283,8 @@ class _DeliveryDetailSheet extends StatelessWidget {
   }
 
   Future<void> _handleAssign(BuildContext context) async {
-    String? selectedCourierId;
-    bool loadingCouriers = true;
-    List<Map<String, dynamic>> couriers = [];
-
-    final result = await showDialog<Map<String, dynamic>>(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setS) {
-          if (loadingCouriers) {
-            DataRepository().distributorCouriers().then((data) {
-              if (ctx.mounted) setS(() { couriers = data; loadingCouriers = false; });
-            }).catchError((_) { if (ctx.mounted) setS(() => loadingCouriers = false); });
-          }
-          return AlertDialog(
-            title: const Text('Назначить курьера', style: TextStyle(fontWeight: FontWeight.w900)),
-            content: loadingCouriers
-                ? const SizedBox(height: 60, child: Center(child: CircularProgressIndicator()))
-                : DropdownButtonFormField<String>(
-                    value: selectedCourierId,
-                    decoration: const InputDecoration(contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8)),
-                    items: [
-                      const DropdownMenuItem(value: null, child: Text('Не назначен')),
-                      ...couriers.map((c) => DropdownMenuItem(value: c['id'].toString(), child: Text(c['name']))),
-                    ],
-                    onChanged: (v) => setS(() => selectedCourierId = v),
-                  ),
-            actions: [
-              TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('ОТМЕНА')),
-              ElevatedButton(
-                onPressed: selectedCourierId == null ? null : () => Navigator.pop(ctx, {'courierId': selectedCourierId}),
-                style: ElevatedButton.styleFrom(backgroundColor: AppColors.brandBlack),
-                child: const Text('НАЗНАЧИТЬ', style: TextStyle(fontWeight: FontWeight.w900)),
-              ),
-            ],
-          );
-        },
-      ),
-    );
-
-    if (result == null) return;
-    try {
-      await DataRepository().updateDeliveryStatus(task.id, status: 'assigned', courierId: result['courierId'] as String?);
-      onUpdate();
-    } catch (e) {
-      if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Ошибка: $e')));
-    }
+    final assigned = await showAssignCourierSheet(context, task);
+    if (assigned == true) onUpdate();
   }
 }
 

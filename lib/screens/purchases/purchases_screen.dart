@@ -9,6 +9,8 @@ import '../../services/data_repository.dart';
 import '../../widgets/common/status_badge.dart';
 import '../../widgets/common/section_header.dart';
 import '../../widgets/common/premium_icon_badge.dart';
+import '../../widgets/delivery/assign_courier_sheet.dart';
+import '../../widgets/delivery/assign_order_courier_sheet.dart';
 import '../../services/auth_service.dart';
 
 class PurchasesScreen extends StatefulWidget {
@@ -136,7 +138,7 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
                           );
                         }
                         if (i <= orders.length) {
-                          return _OrderCard(
+                          return OrderCard(
                             order: orders[i - 1],
                             fmt: fmt,
                             isDistributor: isDistributor,
@@ -160,7 +162,7 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
                           if (i == purchaseIdx) {
                             return const SectionHeader(title: 'ПРОВЕРКА ПОКУПОК');
                           }
-                          return _PurchaseCard(
+                          return PurchaseCard(
                             purchase: purchases[i - purchaseIdx - 1],
                             fmt: fmt,
                             isDistributor: isDistributor,
@@ -170,7 +172,7 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
                           if (i == orders.length + 1) {
                             return const SectionHeader(title: 'Подтвержденные покупки');
                           }
-                          return _PurchaseCard(
+                          return PurchaseCard(
                             purchase: purchases[i - orders.length - 2],
                             fmt: fmt,
                             isDistributor: isDistributor,
@@ -266,13 +268,14 @@ class _PurchasesPageData {
   });
 }
 
-class _OrderCard extends StatelessWidget {
+class OrderCard extends StatelessWidget {
   final Order order;
   final NumberFormat fmt;
   final bool isDistributor;
   final VoidCallback? onUpdate;
 
-  const _OrderCard({
+  const OrderCard({
+    super.key,
     required this.order,
     required this.fmt,
     this.isDistributor = false,
@@ -380,70 +383,33 @@ class _OrderCard extends StatelessWidget {
   }
 
   Future<void> _handleUpdate(BuildContext context, String status) async {
-    if (status == 'rejected') {
-      final confirmed = await showDialog<bool>(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('Отклонить заказ?'),
-          content: const Text('Заказ будет отменен.'),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('ОТМЕНА')),
-            ElevatedButton(
-              onPressed: () => Navigator.pop(context, true),
-              style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
-              child: const Text('ПОДТВЕРДИТЬ'),
-            ),
-          ],
-        ),
-      );
-      if (confirmed != true) return;
-    }
-
-    String? selectedCourierId;
-    bool loadingCouriers = true;
-    List<Map<String, dynamic>> couriers = [];
-
     if (status == 'accepted') {
-      final result = await showDialog<Map<String, dynamic>>(
-        context: context,
-        builder: (context) => StatefulBuilder(
-          builder: (ctx, setS) {
-            if (loadingCouriers) {
-              DataRepository().distributorCouriers().then((data) {
-                if (ctx.mounted) {
-                  setS(() { couriers = data; loadingCouriers = false; });
-                }
-              });
-            }
-            return AlertDialog(
-              title: const Text('Принять в работу'),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (loadingCouriers) const CircularProgressIndicator()
-                    else DropdownButtonFormField<String>(
-                      decoration: const InputDecoration(labelText: 'Курьер'),
-                      items: couriers.map((c) => DropdownMenuItem(value: c['id'].toString(), child: Text(c['name']))).toList(),
-                      onChanged: (v) => selectedCourierId = v,
-                    ),
-                  ],
-                ),
-              ),
-              actions: [
-                TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('ОТМЕНА')),
-                ElevatedButton(onPressed: () => Navigator.pop(ctx, {'courierId': selectedCourierId}), child: const Text('ОК')),
-              ],
-            );
-          },
-        ),
-      );
-      if (result == null) return;
-      selectedCourierId = result['courierId'];
+      // Styled bottom sheet handles courier + date (or direct self-pickup
+      // accept) and performs the status update itself.
+      final ok = await showAssignOrderCourierSheet(context, order, fmt);
+      if (ok == true) onUpdate?.call();
+      return;
     }
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Отклонить заказ?'),
+        content: const Text('Заказ будет отменен.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('ОТМЕНА')),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+            child: const Text('ПОДТВЕРДИТЬ'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
 
     try {
-      await DataRepository().updateOrderStatus(order.id, status: status, courierId: selectedCourierId);
+      await DataRepository().updateOrderStatus(order.id, status: status);
       onUpdate?.call();
     } catch (e) {
       if (context.mounted) {
@@ -637,55 +603,10 @@ class _DeliveryDetailsSheet extends StatelessWidget {
   }
 
   Future<void> _handleAssign(BuildContext context) async {
-    String? selectedCourierId;
-    bool loadingCouriers = true;
-    List<Map<String, dynamic>> couriers = [];
-
-    final result = await showDialog<Map<String, dynamic>>(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (c, setS) {
-          if (loadingCouriers) {
-            DataRepository().distributorCouriers().then((data) {
-              if (c.mounted) {
-                setS(() {
-                  couriers = data;
-                  loadingCouriers = false;
-                });
-              }
-            });
-          }
-          return AlertDialog(
-            title: const Text('Назначить курьера'),
-            content: loadingCouriers 
-              ? const SizedBox(height: 100, child: Center(child: CircularProgressIndicator()))
-              : DropdownButtonFormField<String>(
-                  decoration: const InputDecoration(labelText: 'Выберите курьера'),
-                  items: couriers.map((c) => DropdownMenuItem(value: c['id'].toString(), child: Text(c['name']))).toList(),
-                  onChanged: (v) => selectedCourierId = v,
-                ),
-            actions: [
-              TextButton(onPressed: () => Navigator.pop(c), child: const Text('ОТМЕНА')),
-              ElevatedButton(
-                onPressed: () => Navigator.pop(c, {'courierId': selectedCourierId}),
-                child: const Text('ОК'),
-              ),
-            ],
-          );
-        },
-      ),
-    );
-
-    if (result == null || result['courierId'] == null) return;
-
-    try {
-      await DataRepository().updateDeliveryStatus(task.id, status: 'assigned', courierId: result['courierId']);
+    final assigned = await showAssignCourierSheet(context, task);
+    if (assigned == true) {
       if (context.mounted) Navigator.pop(context);
       onUpdate?.call();
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Ошибка: $e')));
-      }
     }
   }
 }
@@ -807,66 +728,33 @@ class _OrderDetailsSheet extends StatelessWidget {
   }
 
   Future<void> _handleUpdate(BuildContext context, String status) async {
-    if (status == 'rejected') {
-      final confirmed = await showDialog<bool>(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('Отклонить заказ?'),
-          content: const Text('Заказ будет отменен.'),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('ОТМЕНА')),
-            ElevatedButton(onPressed: () => Navigator.pop(context, true), style: ElevatedButton.styleFrom(backgroundColor: AppColors.error), child: const Text('ПОДТВЕРДИТЬ')),
-          ],
-        ),
-      );
-      if (confirmed != true) return;
-    }
-
-    String? selectedCourierId;
-    bool loadingCouriers = true;
-    List<Map<String, dynamic>> couriers = [];
-
     if (status == 'accepted') {
-      final result = await showDialog<Map<String, dynamic>>(
-        context: context,
-        builder: (context) => StatefulBuilder(
-          builder: (ctx, setS) {
-            if (loadingCouriers) {
-              DataRepository().distributorCouriers().then((data) {
-                if (ctx.mounted) {
-                  setS(() { couriers = data; loadingCouriers = false; });
-                }
-              });
-            }
-            return AlertDialog(
-              title: const Text('Принять в работу'),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (loadingCouriers) const CircularProgressIndicator()
-                    else DropdownButtonFormField<String>(
-                      decoration: const InputDecoration(labelText: 'Курьер'),
-                      items: couriers.map((c) => DropdownMenuItem(value: c['id'].toString(), child: Text(c['name']))).toList(),
-                      onChanged: (v) => selectedCourierId = v,
-                    ),
-                  ],
-                ),
-              ),
-              actions: [
-                TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('ОТМЕНА')),
-                ElevatedButton(onPressed: () => Navigator.pop(ctx, {'courierId': selectedCourierId}), child: const Text('ОК')),
-              ],
-            );
-          },
-        ),
-      );
-      if (result == null) return;
-      selectedCourierId = result['courierId'];
+      // Styled bottom sheet handles courier + date (or direct self-pickup
+      // accept) and performs the status update itself.
+      final ok = await showAssignOrderCourierSheet(context, order, fmt);
+      if (ok == true) {
+        if (context.mounted) Navigator.pop(context);
+        onUpdate?.call();
+      }
+      return;
     }
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Отклонить заказ?'),
+        content: const Text('Заказ будет отменен.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('ОТМЕНА')),
+          ElevatedButton(onPressed: () => Navigator.pop(context, true), style: ElevatedButton.styleFrom(backgroundColor: AppColors.error), child: const Text('ПОДТВЕРДИТЬ')),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
 
     try {
-      await DataRepository().updateOrderStatus(order.id, status: status, courierId: selectedCourierId);
+      await DataRepository().updateOrderStatus(order.id, status: status);
+      if (context.mounted) Navigator.pop(context);
       onUpdate?.call();
     } catch (e) {
       if (context.mounted) {
@@ -892,13 +780,13 @@ _OrderStatusView _orderStatusView(OrderStatus status) {
   }
 }
 
-class _PurchaseCard extends StatelessWidget {
+class PurchaseCard extends StatelessWidget {
   final Purchase purchase;
   final NumberFormat fmt;
   final bool isDistributor;
   final VoidCallback? onUpdate;
 
-  const _PurchaseCard({required this.purchase, required this.fmt, this.isDistributor = false, this.onUpdate});
+  const PurchaseCard({super.key, required this.purchase, required this.fmt, this.isDistributor = false, this.onUpdate});
 
   @override
   Widget build(BuildContext context) {
@@ -1077,11 +965,9 @@ class PurchaseDetailsSheet extends StatelessWidget {
 
     if (imageUrl == null || imageUrl.isEmpty) return const SizedBox.shrink();
 
-    // Ensure absolute URL if relative
-    if (imageUrl.startsWith('/')) {
-      final baseUrl = ApiClient.baseUrl.replaceAll('/api', '');
-      imageUrl = '$baseUrl$imageUrl';
-    }
+    // Backend media URLs come back relative (MEDIA_URL has no leading slash),
+    // so resolve to an absolute URL before loading.
+    imageUrl = ApiClient.mediaUrl(imageUrl);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

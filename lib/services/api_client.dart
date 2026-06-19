@@ -17,6 +17,18 @@ class ApiClient {
   static bool get isAuthorized => _token != null;
   static String? get role => _role;
 
+  /// Resolves a (possibly relative) media path returned by the backend into an
+  /// absolute URL. Handles already-absolute URLs, root-relative ("/media/..")
+  /// and bare-relative ("media/..") forms — the backend's MEDIA_URL has no
+  /// leading slash, so attachment URLs come back relative.
+  static String mediaUrl(String url) {
+    if (url.isEmpty) return url;
+    if (url.startsWith('http://') || url.startsWith('https://')) return url;
+    final host = baseUrl.replaceAll('/api', '').replaceAll(RegExp(r'/+$'), '');
+    final path = url.startsWith('/') ? url : '/$url';
+    return '$host$path';
+  }
+
   static Future<void> loadSavedToken() async {
     final prefs = await SharedPreferences.getInstance();
     _token = prefs.getString(_tokenKey);

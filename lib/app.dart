@@ -37,6 +37,8 @@ import 'screens/distributor/distributor_stock_screen.dart';
 import 'screens/distributor/distributor_integration_screen.dart';
 import 'screens/distributor/distributor_color_lab_screen.dart';
 import 'screens/distributor/distributor_deliveries_screen.dart';
+import 'screens/distributor/distributor_orders_screen.dart';
+import 'screens/distributor/distributor_purchases_screen.dart';
 import 'screens/manager/manager_client_detail_screen.dart';
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -92,7 +94,9 @@ final GoRouter _router = GoRouter(
         GoRoute(path: AppRoutes.distributorIntegration, builder: (ctx, _) => const DistributorIntegrationScreen()),
         GoRoute(path: AppRoutes.distributorColorLab, builder: (ctx, _) => const DistributorColorLabScreen()),
         GoRoute(path: AppRoutes.distributorDeliveries, builder: (ctx, _) => const DistributorDeliveriesScreen()),
-        
+        GoRoute(path: AppRoutes.distributorOrders, builder: (ctx, _) => const DistributorOrdersScreen()),
+        GoRoute(path: AppRoutes.distributorPurchasesVerification, builder: (ctx, _) => const DistributorPurchasesScreen()),
+
         GoRoute(path: '/distributor-cabinet', builder: (ctx, _) => const DistributorCabinetScreen()),
         GoRoute(path: '/courier-cabinet', builder: (ctx, _) => const CourierScreen()),
         GoRoute(path: AppRoutes.admin, builder: (ctx, _) => AdminLayout()),
@@ -152,8 +156,10 @@ class _MainShellState extends State<_MainShell> {
   int get _currentIndex {
     final role = authService.currentRole;
     if (role == UserRole.distributor) {
-      if (widget.location.startsWith(AppRoutes.purchases)) return 1;
-      if (widget.location.startsWith(AppRoutes.profile)) return 2;
+      if (widget.location.startsWith(AppRoutes.distributorOrders)) return 1;
+      if (widget.location.startsWith(AppRoutes.distributorDeliveries)) return 2;
+      if (widget.location.startsWith(AppRoutes.distributorPurchasesVerification)) return 3;
+      if (widget.location.startsWith(AppRoutes.profile)) return 4;
       return 0;
     }
     if (widget.location.startsWith(AppRoutes.purchases)) return 1;
@@ -201,8 +207,12 @@ class _MainShellState extends State<_MainShell> {
                     case 0:
                       context.go(AppRoutes.home);
                     case 1:
-                      context.go(AppRoutes.purchases);
+                      context.go(AppRoutes.distributorOrders);
                     case 2:
+                      context.go(AppRoutes.distributorDeliveries);
+                    case 3:
+                      context.go(AppRoutes.distributorPurchasesVerification);
+                    case 4:
                       context.go(AppRoutes.profile);
                   }
                 } else {
@@ -228,9 +238,19 @@ class _MainShellState extends State<_MainShell> {
                         label: 'Панель',
                       ),
                       BottomNavigationBarItem(
-                        icon: Icon(Icons.inventory_2_outlined),
-                        activeIcon: Icon(Icons.inventory_2),
+                        icon: Icon(Icons.shopping_bag_outlined),
+                        activeIcon: Icon(Icons.shopping_bag),
                         label: 'Заказы',
+                      ),
+                      BottomNavigationBarItem(
+                        icon: Icon(Icons.local_shipping_outlined),
+                        activeIcon: Icon(Icons.local_shipping),
+                        label: 'Доставки',
+                      ),
+                      BottomNavigationBarItem(
+                        icon: Icon(Icons.verified_outlined),
+                        activeIcon: Icon(Icons.verified),
+                        label: 'Проверка',
                       ),
                       BottomNavigationBarItem(
                         icon: Icon(Icons.person_outline),

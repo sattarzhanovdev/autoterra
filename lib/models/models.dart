@@ -339,6 +339,7 @@ class ColorRequest {
   final bool isOverdue;
   final String? recipe;
   final String? comment;
+  final List<CourierTask> courierTasks;
   final DateTime createdAt;
 
   const ColorRequest({
@@ -361,6 +362,7 @@ class ColorRequest {
     this.isOverdue = false,
     this.recipe,
     this.comment,
+    this.courierTasks = const [],
     required this.createdAt,
   });
 
@@ -385,6 +387,11 @@ class ColorRequest {
       isOverdue: json['isOverdue'] ?? false,
       recipe: json['recipe'],
       comment: json['comment'],
+      courierTasks: json['courierTasks'] != null
+          ? (json['courierTasks'] as List)
+              .map((item) => CourierTask.fromJson(item as Map<String, dynamic>))
+              .toList()
+          : const [],
       createdAt: json['createdAt'] != null ? DateTime.parse(json['createdAt']) : DateTime.now(),
     );
   }

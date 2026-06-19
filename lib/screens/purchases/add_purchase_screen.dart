@@ -49,6 +49,7 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['jpg', 'jpeg', 'png', 'pdf'],
+      withData: true,
     );
     if (result != null) {
       setState(() => _pickedFile = result.files.first);

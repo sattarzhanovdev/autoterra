@@ -4,6 +4,7 @@ import '../../models/models.dart';
 import '../../services/data_repository.dart';
 import '../../widgets/common/premium_icon_badge.dart';
 import '../../widgets/common/status_badge.dart';
+import '../../widgets/delivery/assign_courier_sheet.dart';
 
 class DistributorColorLabScreen extends StatefulWidget {
   const DistributorColorLabScreen({super.key});
@@ -129,6 +130,17 @@ class _ColorLabCard extends StatelessWidget {
     final needsCourier = status == ColorRequestStatus.ready &&
         request.transferMethod == 'courier';
 
+    // "Назначить курьера за лючком" — pickup leg: client asked for courier
+    // pickup but nobody has been assigned yet to collect the sample.
+    CourierTask? pickupTask;
+    for (final t in request.courierTasks) {
+      if (t.taskType == 'color_lab_pickup') {
+        pickupTask = t;
+        break;
+      }
+    }
+    final needsPickupCourier = pickupTask != null && pickupTask.status == CourierTaskStatus.created;
+
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -242,6 +254,27 @@ class _ColorLabCard extends StatelessWidget {
             ),
           ],
 
+          // ── Action: assign courier to pick up the sample from the client ────
+          if (needsPickupCourier) ...[
+            const Divider(height: 24, thickness: 0.5),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () => _showAssignPickupCourierSheet(context, pickupTask!),
+                icon: const Icon(Icons.delivery_dining_outlined, size: 16),
+                label: const Text(
+                  'НАЗНАЧИТЬ КУРЬЕРА ЗА ЛЮЧКОМ',
+                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.brandRed,
+                  minimumSize: const Size(0, 34),
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                ),
+              ),
+            ),
+          ],
+
           // ── Action: complete colour matching ───────────────────────────────
           if (canProcess) ...[
             const Divider(height: 24, thickness: 0.5),
@@ -285,6 +318,11 @@ class _ColorLabCard extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  Future<void> _showAssignPickupCourierSheet(BuildContext context, CourierTask task) async {
+    final assigned = await showAssignCourierSheet(context, task);
+    if (assigned == true) onUpdate();
   }
 
   void _showCompleteSheet(BuildContext context) {
