@@ -126,10 +126,18 @@ class _ColorLabCard extends StatelessWidget {
         status == ColorRequestStatus.pickedUp ||
         status == ColorRequestStatus.inProgress;
 
-    // "Назначить курьера" — matching is done AND delivery is by courier.
-    // Bug fix: was missing entirely; condition was never evaluated.
-    final needsCourier = status == ColorRequestStatus.ready &&
-        request.transferMethod == 'courier';
+    // "Назначить курьера" — the delivery (return лючка) task created when matching
+    // completes for a courier transfer. Drive the button off THIS task's state, not
+    // ColorRequest.status, so it stays in sync with the Deliveries screen — both assign
+    // the exact same CourierTask, so assigning in one place clears the button in the other.
+    CourierTask? deliveryTask;
+    for (final t in request.courierTasks) {
+      if (t.taskType == 'return') {
+        deliveryTask = t;
+        break;
+      }
+    }
+    final needsCourier = deliveryTask != null && deliveryTask.status == CourierTaskStatus.created;
 
     // "Назначить курьера за лючком" — pickup leg: client asked for courier
     // pickup but nobody has been assigned yet to collect the sample.
@@ -264,7 +272,7 @@ class _ColorLabCard extends StatelessWidget {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
-                onPressed: () => _showAssignPickupCourierSheet(context, pickupTask!),
+                onPressed: () => _assignCourierToTask(context, pickupTask!),
                 icon: const Icon(Icons.delivery_dining_outlined, size: 16),
                 label: const Text(
                   'НАЗНАЧИТЬ КУРЬЕРА ЗА ЛЮЧКОМ',
@@ -305,7 +313,7 @@ class _ColorLabCard extends StatelessWidget {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
-                onPressed: () => _showAssignCourierSheet(context),
+                onPressed: () => _assignCourierToTask(context, deliveryTask!),
                 icon: const Icon(Icons.delivery_dining_outlined, size: 16),
                 label: const Text(
                   'НАЗНАЧИТЬ КУРЬЕРА',
@@ -324,7 +332,9 @@ class _ColorLabCard extends StatelessWidget {
     );
   }
 
-  Future<void> _showAssignPickupCourierSheet(BuildContext context, CourierTask task) async {
+  // Both the pickup and the delivery legs assign a real CourierTask through the shared
+  // sheet (→ updateDeliveryStatus), so the Deliveries screen and Color Lab never diverge.
+  Future<void> _assignCourierToTask(BuildContext context, CourierTask task) async {
     final assigned = await showAssignCourierSheet(context, task);
     if (assigned == true) onUpdate();
   }
@@ -336,16 +346,6 @@ class _ColorLabCard extends StatelessWidget {
       useSafeArea: true,
       backgroundColor: Colors.transparent,
       builder: (_) => _CompleteSheet(request: request, onUpdate: onUpdate),
-    );
-  }
-
-  void _showAssignCourierSheet(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      useSafeArea: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => _AssignCourierSheet(request: request, onUpdate: onUpdate),
     );
   }
 }
@@ -474,221 +474,6 @@ class _CompleteSheetState extends State<_CompleteSheet> {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Assign courier sheet (new — Task 1 + Task 3)
-// ─────────────────────────────────────────────────────────────────────────────
-
-class _AssignCourierSheet extends StatefulWidget {
-  final ColorRequest request;
-  final VoidCallback onUpdate;
-  const _AssignCourierSheet({required this.request, required this.onUpdate});
-
-  @override
-  State<_AssignCourierSheet> createState() => _AssignCourierSheetState();
-}
-
-class _AssignCourierSheetState extends State<_AssignCourierSheet> {
-  String? _selectedCourierId;
-  bool _loadingCouriers = true;
-  bool _saving = false;
-  List<Map<String, dynamic>> _couriers = [];
-
-  @override
-  void initState() {
-    super.initState();
-    _loadCouriers();
-  }
-
-  Future<void> _loadCouriers() async {
-    try {
-      final data = await DataRepository().distributorCouriers();
-      if (mounted) {
-        setState(() {
-          _couriers = data;
-          _loadingCouriers = false;
-        });
-      }
-    } catch (_) {
-      if (mounted) setState(() => _loadingCouriers = false);
-    }
-  }
-
-  Future<void> _confirm() async {
-    if (_selectedCourierId == null) return;
-    setState(() => _saving = true);
-    try {
-      await DataRepository().distributorUpdateColorRequest(
-        widget.request.id,
-        {'status': 'delivered', 'courier_id': _selectedCourierId},
-      );
-      if (mounted) {
-        widget.onUpdate();
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Курьер назначен — заявка завершена'),
-            backgroundColor: AppColors.success,
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() => _saving = false);
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Ошибка: $e')));
-      }
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final r = widget.request;
-
-    return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // Drag handle
-          Center(
-            child: Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: AppColors.border,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-
-          // Header
-          Row(
-            children: [
-              const PremiumIconBadge(
-                icon: Icons.delivery_dining_outlined,
-                size: 40,
-                iconSize: 20,
-                iconColor: AppColors.brandRed,
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'НАЗНАЧИТЬ КУРЬЕРА',
-                      style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 0.5),
-                    ),
-                    Text(
-                      '${r.carBrand} ${r.carModel} · ${r.colorCode}'.toUpperCase(),
-                      style: const TextStyle(
-                          fontSize: 11,
-                          color: AppColors.textSecondary,
-                          fontWeight: FontWeight.bold),
-                    ),
-                  ],
-                ),
-              ),
-              IconButton(
-                  onPressed: () => Navigator.pop(context),
-                  icon: const Icon(Icons.close)),
-            ],
-          ),
-          const Divider(height: 24),
-
-          // Request summary
-          if (r.clientName != null)
-            _SheetRow(icon: Icons.person_outline, label: 'Клиент', value: r.clientName!),
-          if (r.pickupAddress != null)
-            _SheetRow(icon: Icons.location_on_outlined, label: 'Адрес', value: r.pickupAddress!),
-          if (r.contactPerson != null)
-            _SheetRow(icon: Icons.badge_outlined, label: 'Контакт', value: r.contactPerson!),
-          if (r.contactPhone != null)
-            _SheetRow(icon: Icons.phone_outlined, label: 'Телефон', value: r.contactPhone!),
-
-          // Urgent badge
-          if (r.urgent) ...[
-            const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              color: AppColors.brandRed,
-              child: const Text(
-                '⚡ СРОЧНАЯ ЗАЯВКА',
-                style: TextStyle(
-                    color: Colors.white, fontSize: 10, fontWeight: FontWeight.w900),
-              ),
-            ),
-          ],
-
-          const SizedBox(height: 16),
-          const Text(
-            'ВЫБЕРИТЕ КУРЬЕРА',
-            style: TextStyle(
-                fontWeight: FontWeight.w900,
-                fontSize: 10,
-                color: AppColors.brandRed,
-                letterSpacing: 1),
-          ),
-          const SizedBox(height: 8),
-
-          if (_loadingCouriers)
-            const LinearProgressIndicator()
-          else if (_couriers.isEmpty)
-            const Text(
-              'Нет доступных курьеров',
-              style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
-            )
-          else
-            DropdownButtonFormField<String>(
-              value: _selectedCourierId,
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                contentPadding:
-                    EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-              ),
-              hint: const Text('Курьер'),
-              items: _couriers
-                  .map((c) => DropdownMenuItem(
-                      value: c['id'].toString(), child: Text(c['name'])))
-                  .toList(),
-              onChanged: (v) => setState(() => _selectedCourierId = v),
-            ),
-
-          const SizedBox(height: 24),
-          SizedBox(
-            height: 54,
-            child: ElevatedButton(
-              onPressed: (_saving || _selectedCourierId == null) ? null : _confirm,
-              style: ElevatedButton.styleFrom(backgroundColor: AppColors.brandBlack),
-              child: _saving
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(
-                          color: Colors.white, strokeWidth: 2),
-                    )
-                  : const Text(
-                      'НАЗНАЧИТЬ КУРЬЕРА',
-                      style:
-                          TextStyle(fontWeight: FontWeight.w900, letterSpacing: 0.5),
-                    ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 // ── Card detail row (client-filled fields) ────────────────────────────────────
 
 class _DetailRow extends StatelessWidget {
@@ -729,41 +514,3 @@ class _DetailRow extends StatelessWidget {
   }
 }
 
-// ── Local detail row ──────────────────────────────────────────────────────────
-
-class _SheetRow extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final String value;
-  const _SheetRow({required this.icon, required this.label, required this.value});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, size: 15, color: AppColors.textSecondary),
-          const SizedBox(width: 8),
-          SizedBox(
-            width: 70,
-            child: Text(
-              label,
-              style: const TextStyle(
-                  fontSize: 11,
-                  color: AppColors.textSecondary,
-                  fontWeight: FontWeight.w600),
-            ),
-          ),
-          Expanded(
-            child: Text(
-              value,
-              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
