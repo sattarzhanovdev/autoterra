@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:autoterra/models/models.dart';
+import 'package:autoterra/models/paginated.dart';
+import 'package:autoterra/services/pagination_controller.dart';
 import 'package:autoterra/widgets/layouts/courier_layout.dart';
 import 'package:autoterra/widgets/layouts/distributor_layout.dart';
 import 'package:autoterra/core/theme.dart';
@@ -13,12 +16,19 @@ void main() {
     );
   }
 
+  /// Контроллер, отдающий пустую страницу без обращения к сети.
+  PaginationController<CourierTask> emptyTasksController() {
+    return PaginationController<CourierTask>(
+      fetchPage: (_) async => const Paginated<CourierTask>.empty(),
+    );
+  }
+
   group('CourierLayout Tests', () {
     testWidgets('Should display correct navigation and tabs', (WidgetTester tester) async {
       await tester.pumpWidget(createTestWidget(
         CourierLayout(child: CourierTasksScreen(
-          tasks: [],
-          isLoading: false,
+          assignedController: emptyTasksController(),
+          inProgressController: emptyTasksController(),
           onRefresh: () {},
         )),
       ));

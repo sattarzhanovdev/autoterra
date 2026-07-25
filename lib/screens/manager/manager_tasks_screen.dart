@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../models/models.dart';
 import '../../services/data_repository.dart';
+import '../../services/pagination_controller.dart';
+import '../../widgets/common/paginated_list_view.dart';
 
 class ManagerTasksScreen extends StatefulWidget {
   const ManagerTasksScreen({super.key});
@@ -12,42 +14,52 @@ class ManagerTasksScreen extends StatefulWidget {
 
 class _ManagerTasksScreenState extends State<ManagerTasksScreen> {
   final _repo = DataRepository();
-  List<ManagerTask> _pending = [];
-  List<ManagerTask> _completed = [];
-  bool _isLoading = true;
+
+  /// У каждой вкладки своя лента со своей позицией подгрузки.
+  late final PaginationController<ManagerTask> _pendingController;
+  late final PaginationController<ManagerTask> _completedController;
   int _tab = 0;
 
   @override
   void initState() {
     super.initState();
-    _load();
+    _pendingController = PaginationController<ManagerTask>(
+      fetchPage: (page) => _repo.managerTasks(page: page, status: 'pending'),
+    );
+    _completedController = PaginationController<ManagerTask>(
+      fetchPage: (page) => _repo.managerTasks(page: page, status: 'completed'),
+    );
+    // Счётчики во вкладках берутся из метаданных пагинации, поэтому обе ленты
+    // должны быть загружены, даже если открыта только одна.
+    _pendingController.addListener(_onCountsChanged);
+    _completedController.addListener(_onCountsChanged);
+    _completedController.loadInitial();
+  }
+
+  @override
+  void dispose() {
+    _pendingController.removeListener(_onCountsChanged);
+    _completedController.removeListener(_onCountsChanged);
+    _pendingController.dispose();
+    _completedController.dispose();
+    super.dispose();
+  }
+
+  void _onCountsChanged() {
+    if (mounted) setState(() {});
   }
 
   Future<void> _load() async {
-    setState(() => _isLoading = true);
-    try {
-      final results = await Future.wait([
-        _repo.managerTasks(status: 'pending'),
-        _repo.managerTasks(status: 'completed'),
-      ]);
-      setState(() {
-        _pending = results[0];
-        _completed = results[1];
-        _isLoading = false;
-      });
-    } catch (e) {
-      setState(() => _isLoading = false);
-      if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Ошибка: $e')));
-      }
-    }
+    await Future.wait([
+      _pendingController.refresh(),
+      _completedController.refresh(),
+    ]);
   }
 
   Future<void> _markDone(ManagerTask task) async {
     try {
       await _repo.managerUpdateTask(task.id, {'status': 'completed'});
-      _load();
+      await _load();
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)
@@ -79,12 +91,12 @@ class _ManagerTasksScreenState extends State<ManagerTasksScreen> {
             child: Row(
               children: [
                 _TabBtn(
-                  label: 'АКТИВНЫЕ (${_pending.length})',
+                  label: 'АКТИВНЫЕ (${_pendingController.totalCount})',
                   selected: _tab == 0,
                   onTap: () => setState(() => _tab = 0),
                 ),
                 _TabBtn(
-                  label: 'ВЫПОЛНЕННЫЕ (${_completed.length})',
+                  label: 'ВЫПОЛНЕННЫЕ (${_completedController.totalCount})',
                   selected: _tab == 1,
                   onTap: () => setState(() => _tab = 1),
                 ),
@@ -93,31 +105,26 @@ class _ManagerTasksScreenState extends State<ManagerTasksScreen> {
           ),
         ),
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: Color(0xFFF01D2C)))
-          : _buildList(_tab == 0 ? _pending : _completed),
+      body: IndexedStack(
+        index: _tab,
+        children: [
+          _buildList(_pendingController, isPending: true),
+          _buildList(_completedController, isPending: false),
+        ],
+      ),
     );
   }
 
-  Widget _buildList(List<ManagerTask> tasks) {
-    if (tasks.isEmpty) {
-      return Center(
-        child: Text(
-          _tab == 0 ? 'НЕТ АКТИВНЫХ ЗАДАЧ' : 'НЕТ ВЫПОЛНЕННЫХ ЗАДАЧ',
-          style: const TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF171717), letterSpacing: 1),
-        ),
-      );
-    }
-    return RefreshIndicator(
-      onRefresh: _load,
-      color: const Color(0xFFF01D2C),
-      child: ListView.builder(
-        padding: const EdgeInsets.all(16),
-        itemCount: tasks.length,
-        itemBuilder: (_, i) => _TaskCard(
-          task: tasks[i],
-          onMarkDone: _tab == 0 ? () => _markDone(tasks[i]) : null,
-        ),
+  Widget _buildList(
+    PaginationController<ManagerTask> controller, {
+    required bool isPending,
+  }) {
+    return PaginatedListView<ManagerTask>(
+      controller: controller,
+      emptyMessage: isPending ? 'НЕТ АКТИВНЫХ ЗАДАЧ' : 'НЕТ ВЫПОЛНЕННЫХ ЗАДАЧ',
+      itemBuilder: (_, task, __) => _TaskCard(
+        task: task,
+        onMarkDone: isPending ? () => _markDone(task) : null,
       ),
     );
   }

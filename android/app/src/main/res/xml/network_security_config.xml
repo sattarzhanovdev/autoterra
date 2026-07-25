@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!-- Разрешаем незашифрованный HTTP только для API-сервера (пока без TLS).
+         Весь остальной трафик остаётся строго HTTPS. Убрать после перевода
+         сервера на HTTPS. -->
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">5.188.20.31</domain>
+    </domain-config>
+</network-security-config>

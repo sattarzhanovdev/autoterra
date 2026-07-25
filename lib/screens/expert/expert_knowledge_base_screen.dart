@@ -3,6 +3,8 @@ import '../../core/theme.dart';
 import '../../models/models.dart';
 import '../../services/data_repository.dart';
 import '../../services/auth_service.dart';
+import '../../services/pagination_controller.dart';
+import '../../widgets/common/paginated_list_view.dart';
 
 class KnowledgeBaseScreen extends StatefulWidget {
   const KnowledgeBaseScreen({super.key});
@@ -13,20 +15,25 @@ class KnowledgeBaseScreen extends StatefulWidget {
 
 class _KnowledgeBaseScreenState extends State<KnowledgeBaseScreen> {
   final DataRepository _repo = DataRepository();
-  late Future<List<KnowledgeCard>> _future;
+  late final PaginationController<KnowledgeCard> _controller;
 
   @override
   void initState() {
     super.initState();
-    _future = _repo.knowledgeCards();
+    // Отбор по роли и порядок (неодобренные — первыми у эксперта) задаёт
+    // сервер: на клиенте это работало бы только внутри текущей страницы.
+    _controller = PaginationController<KnowledgeCard>(
+      fetchPage: (page) => _repo.knowledgeCards(page: page),
+    );
   }
 
-  Future<void> _refresh() async {
-    setState(() {
-      _future = _repo.knowledgeCards();
-    });
-    await _future;
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
   }
+
+  Future<void> _refresh() => _controller.refresh();
 
   @override
   Widget build(BuildContext context) {
@@ -47,42 +54,14 @@ class _KnowledgeBaseScreenState extends State<KnowledgeBaseScreen> {
           ),
         ],
       ),
-      body: FutureBuilder<List<KnowledgeCard>>(
-        future: _future,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState != ConnectionState.done) {
-            return const Center(child: CircularProgressIndicator(color: AppColors.brandRed));
-          }
-          if (snapshot.hasError) {
-            return Center(child: Text('Ошибка: ${snapshot.error}'));
-          }
-          
-          var cards = snapshot.data!;
-          if (!isExpert) {
-            cards = cards.where((c) => c.isApproved).toList();
-          } else {
-            cards.sort((a, b) {
-              if (a.isApproved == b.isApproved) return 0;
-              return a.isApproved ? 1 : -1;
-            });
-          }
-
-          if (cards.isEmpty) {
-            return const Center(child: Text('БАЗА ЗНАНИЙ ПУСТА'));
-          }
-          return RefreshIndicator(
-            onRefresh: _refresh,
-            child: ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: cards.length,
-              itemBuilder: (context, index) => _KnowledgeCardTile(
-                card: cards[index],
-                onUpdate: _refresh,
-                isExpert: isExpert,
-              ),
-            ),
-          );
-        },
+      body: PaginatedListView<KnowledgeCard>(
+        controller: _controller,
+        emptyMessage: 'БАЗА ЗНАНИЙ ПУСТА',
+        itemBuilder: (context, card, _) => _KnowledgeCardTile(
+          card: card,
+          onUpdate: _refresh,
+          isExpert: isExpert,
+        ),
       ),
       floatingActionButton: isExpert 
         ? FloatingActionButton(

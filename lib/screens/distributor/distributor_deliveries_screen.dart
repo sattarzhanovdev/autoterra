@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../../core/theme.dart';
 import '../../models/models.dart';
 import '../../services/data_repository.dart';
+import '../../services/pagination_controller.dart';
+import '../../widgets/common/paginated_list_view.dart';
 import '../../widgets/common/premium_icon_badge.dart';
 import '../../widgets/common/status_badge.dart';
 import '../../widgets/delivery/assign_courier_sheet.dart';
@@ -14,96 +16,47 @@ class DistributorDeliveriesScreen extends StatefulWidget {
 }
 
 class _DistributorDeliveriesScreenState extends State<DistributorDeliveriesScreen> {
-  List<CourierTask> _tasks = [];
-  bool _loading = true;
-  String? _error;
+  late final PaginationController<CourierTask> _controller;
 
   @override
   void initState() {
     super.initState();
-    _load();
+    _controller = PaginationController<CourierTask>(
+      fetchPage: (page) => DataRepository().distributorDeliveryTasks(page: page),
+    );
   }
 
-  Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-    try {
-      final tasks = await DataRepository().distributorDeliveryTasks();
-      if (mounted) {
-        setState(() {
-          _tasks = tasks;
-          _loading = false;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _error = e.toString();
-          _loading = false;
-        });
-      }
-    }
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
   }
+
+  Future<void> _load() => _controller.refresh();
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('ДОСТАВКИ')),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : _error != null
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(_error!),
-                      const SizedBox(height: 16),
-                      ElevatedButton(onPressed: _load, child: const Text('ПОВТОРИТЬ')),
-                    ],
-                  ),
-                )
-              : _buildList(),
-    );
-  }
-
-  Widget _buildList() {
-    if (_tasks.isEmpty) {
-      return RefreshIndicator(
-        onRefresh: _load,
-        child: ListView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          children: [
-            const SizedBox(height: 180),
-            Center(
-              child: Column(
-                children: [
-                  const PremiumIconBadge(
-                    icon: Icons.local_shipping_outlined,
-                    size: 56,
-                    iconSize: 28,
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Нет заявок на доставку',
-                    style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
-                  ),
-                ],
-              ),
+      body: PaginatedListView<CourierTask>(
+        controller: _controller,
+        separator: const SizedBox(height: 8),
+        emptyBuilder: Column(
+          children: const [
+            PremiumIconBadge(
+              icon: Icons.local_shipping_outlined,
+              size: 56,
+              iconSize: 28,
+            ),
+            SizedBox(height: 16),
+            Text(
+              'Нет заявок на доставку',
+              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
             ),
           ],
         ),
-      );
-    }
-    return RefreshIndicator(
-      onRefresh: _load,
-      child: ListView.separated(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.all(16),
-        itemCount: _tasks.length,
-        separatorBuilder: (_, _) => const SizedBox(height: 8),
-        itemBuilder: (context, i) => _DeliveryCard(task: _tasks[i], onUpdate: _load),
+        itemBuilder: (context, task, _) =>
+            _DeliveryCard(task: task, onUpdate: _load),
       ),
     );
   }

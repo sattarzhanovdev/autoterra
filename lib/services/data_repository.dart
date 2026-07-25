@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import '../models/models.dart';
+import '../models/paginated.dart';
 import 'api_client.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -7,10 +8,23 @@ class ProductData {
   final String id;
   final String distributorId;
   final String sku;
+  final String? wbArticle;
+  final String? groupName;
   final String name;
   final String category;
   final String brand;
+  final String? description;
+  final String? color;
+  final String? barcode;
+  final List<String> images;
+  final String? videoUrl;
   final double volume;
+  final double weight;
+  final double packageHeight;
+  final double packageLength;
+  final double packageWidth;
+  final String? tnved;
+  final String? vatRate;
   final double price;
   final int quantity;
   final StockStatus status;
@@ -20,10 +34,23 @@ class ProductData {
     required this.id,
     required this.distributorId,
     required this.sku,
+    this.wbArticle,
+    this.groupName,
     required this.name,
     required this.category,
     required this.brand,
+    this.description,
+    this.color,
+    this.barcode,
+    this.images = const [],
+    this.videoUrl,
     required this.volume,
+    this.weight = 0,
+    this.packageHeight = 0,
+    this.packageLength = 0,
+    this.packageWidth = 0,
+    this.tnved,
+    this.vatRate,
     required this.price,
     required this.quantity,
     required this.status,
@@ -128,19 +155,22 @@ class DataRepository {
 
   Future<DistributorDashboardData> distributorDashboard() async {
     final data = await _api.distributorDashboard();
-    final orders = await _api.distributorOrders();
-    final purchases = await _api.distributorPurchases(toVerify: true);
-    final deliveryTasks = await _api.distributorDeliveryTasks();
-    final colorRequests = await _api.distributorColorRequests();
+    // На дашборде показываются только свежие записи — берём первую
+    // короткую страницу вместо полного списка.
+    const previewSize = 10;
+    final orders = await _api.distributorOrders(pageSize: previewSize);
+    final purchases = await _api.distributorPurchases(toVerify: true, pageSize: previewSize);
+    final deliveryTasks = await _api.distributorDeliveryTasks(pageSize: previewSize);
+    final colorRequests = await _api.distributorColorRequests(pageSize: previewSize);
 
     return DistributorDashboardData(
       metrics: _distributorMetricsFromJson(
         data['metrics'] ?? data,
       ),
-      recentOrders: orders.map((item) => _orderFromJson(item)).toList(),
-      pendingPurchases: purchases.map((item) => _purchaseFromJson(item)).toList(),
-      recentDeliveryTasks: deliveryTasks.map((item) => _courierTaskFromJson(item)).toList(),
-      pendingColorRequests: _list(colorRequests['results']).map((item) => _colorRequestFromJson(item)).toList(),
+      recentOrders: orders.items.map((item) => _orderFromJson(item)).toList(),
+      pendingPurchases: purchases.items.map((item) => _purchaseFromJson(item)).toList(),
+      recentDeliveryTasks: deliveryTasks.items.map((item) => _courierTaskFromJson(item)).toList(),
+      pendingColorRequests: colorRequests.items.map((item) => _colorRequestFromJson(item)).toList(),
     );
   }
 
@@ -168,9 +198,12 @@ class DataRepository {
     );
   }
 
-  Future<List<Store>> clientStores() async {
-    final items = await _api.stores();
-    return items.map(Store.fromJson).toList();
+  /// Магазины клиента целиком — список короткий и нужен в выпадающих списках.
+  Future<List<Store>> clientStores() {
+    return fetchAllPages((page) async {
+      final result = await _api.stores(page: page);
+      return result.map(Store.fromJson);
+    });
   }
 
   Future<Store> createStore(String name, String address) async {
@@ -185,41 +218,81 @@ class DataRepository {
 
   Future<void> deleteStore(String storeId) => _api.deleteStore(storeId);
 
-  Future<List<Purchase>> purchases() async {
-    final items = (ApiClient.role == 'distributor')
-        ? await _api.distributorPurchases()
-        : await _api.purchases();
-    return compute(_parsePurchaseList, items);
+  /// Покупки вместе со сводкой по всей выборке. У дистрибьютора сводки нет —
+  /// он видит чужие покупки на проверке, итоги там не показываются.
+  Future<(Paginated<Purchase>, Map<String, dynamic>)> purchases({
+    int page = 1,
+    int pageSize = ApiClient.defaultPageSize,
+  }) async {
+    Paginated<Map<String, dynamic>> result;
+    Map<String, dynamic> stats = const {};
+    if (ApiClient.role == 'distributor') {
+      result = await _api.distributorPurchases(page: page, pageSize: pageSize);
+    } else {
+      (result, stats) = await _api.purchases(page: page, pageSize: pageSize);
+    }
+    final parsed = await compute(_parsePurchaseList, result.items);
+    return (Paginated(items: parsed, pageInfo: result.pageInfo), stats);
   }
 
   static List<Purchase> _parsePurchaseList(List<dynamic> items) {
     return items.map((i) => _purchaseFromJson(i as Map<String, dynamic>)).toList();
   }
 
-  Future<List<Order>> orders() async {
-    final items = (ApiClient.role == 'distributor')
-        ? await _api.distributorOrders()
-        : await _api.orders();
-    return compute(_parseOrderList, items);
+  Future<Paginated<Order>> orders({
+    int page = 1,
+    int pageSize = ApiClient.defaultPageSize,
+  }) async {
+    final result = (ApiClient.role == 'distributor')
+        ? await _api.distributorOrders(page: page, pageSize: pageSize)
+        : await _api.orders(page: page, pageSize: pageSize);
+    final parsed = await compute(_parseOrderList, result.items);
+    return Paginated(items: parsed, pageInfo: result.pageInfo);
   }
 
   static List<Order> _parseOrderList(List<dynamic> items) {
     return items.map((i) => _orderFromJson(i as Map<String, dynamic>)).toList();
   }
 
-  Future<List<ColorRequest>> colorRequests() async {
-    final items = await _api.colorRequests();
-    return items.map(_colorRequestFromJson).toList();
+  Future<Paginated<ColorRequest>> colorRequests({
+    int page = 1,
+    int pageSize = ApiClient.defaultPageSize,
+    bool activeOnly = false,
+  }) async {
+    final result = await _api.colorRequests(
+      page: page,
+      pageSize: pageSize,
+      activeOnly: activeOnly,
+    );
+    return result.map(_colorRequestFromJson);
   }
 
-  Future<List<Purchase>> distributorPurchases({String? status, bool? toVerify}) async {
-    final items = await _api.distributorPurchases(status: status, toVerify: toVerify);
-    return items.map(_purchaseFromJson).toList();
+  Future<Paginated<Purchase>> distributorPurchases({
+    int page = 1,
+    int pageSize = ApiClient.defaultPageSize,
+    String? status,
+    bool? toVerify,
+  }) async {
+    final result = await _api.distributorPurchases(
+      page: page,
+      pageSize: pageSize,
+      status: status,
+      toVerify: toVerify,
+    );
+    return result.map(_purchaseFromJson);
   }
 
-  Future<List<Client>> distributorClients() async {
-    final items = await _api.distributorClients();
-    return items.map(_clientFromJson).toList();
+  Future<Paginated<Client>> distributorClients({
+    int page = 1,
+    int pageSize = ApiClient.defaultPageSize,
+    String? search,
+  }) async {
+    final result = await _api.distributorClients(
+      page: page,
+      pageSize: pageSize,
+      search: search,
+    );
+    return result.map(_clientFromJson);
   }
 
   Future<Purchase> verifyPurchase(String id, {required bool verify, String? reason}) async {
@@ -239,45 +312,92 @@ class DataRepository {
     await _api.generateIntegrationToken();
   }
 
-  Future<List<Order>> distributorOrders() async {
-    final items = await _api.distributorOrders();
-    return items.map(_orderFromJson).toList();
+  Future<Paginated<Order>> distributorOrders({
+    int page = 1,
+    int pageSize = ApiClient.defaultPageSize,
+    String? status,
+  }) async {
+    final result = await _api.distributorOrders(
+      page: page,
+      pageSize: pageSize,
+      status: status,
+    );
+    return result.map(_orderFromJson);
   }
 
-  Future<List<CourierTask>> distributorDeliveryTasks() async {
-    final items = await _api.distributorDeliveryTasks();
-    return items.map(_courierTaskFromJson).toList();
+  Future<Paginated<CourierTask>> distributorDeliveryTasks({
+    int page = 1,
+    int pageSize = ApiClient.defaultPageSize,
+    String? status,
+  }) async {
+    final result = await _api.distributorDeliveryTasks(
+      page: page,
+      pageSize: pageSize,
+      status: status,
+    );
+    return result.map(_courierTaskFromJson);
   }
 
   Future<void> updateDeliveryStatus(String taskId, {String? status, String? courierId, String? reason}) async {
     await _api.updateDeliveryStatus(taskId, status: status, courierId: courierId, reason: reason);
   }
 
-  Future<List<ProductData>> distributorStock() async {
-    final items = await _api.distributorStock();
+  Future<Paginated<ProductData>> distributorStock({
+    int page = 1,
+    int pageSize = ApiClient.defaultPageSize,
+    String? search,
+    String? category,
+  }) async {
+    final result = await _api.distributorStock(
+      page: page,
+      pageSize: pageSize,
+      search: search,
+      category: category,
+    );
     // Use compute for large lists to keep UI responsive
-    return compute(_parseProductList, items);
+    final parsed = await compute(_parseProductList, result.items);
+    return Paginated(items: parsed, pageInfo: result.pageInfo);
   }
 
   static List<ProductData> _parseProductList(List<dynamic> items) {
     return items.map((i) => _productFromJson(i as Map<String, dynamic>)).toList();
   }
 
-  Future<List<Map<String, dynamic>>> distributorCouriers() async {
-    return _api.distributorCouriers();
+  /// Курьеры целиком — используются в выпадающем списке назначения.
+  Future<List<Map<String, dynamic>>> distributorCouriers() {
+    return fetchAllPages((page) => _api.distributorCouriers(page: page));
   }
 
   Future<void> distributorStockUpload(List<Map<String, dynamic>> items) async {
     await _api.distributorStockUpload(items);
   }
 
+  /// Загружает Excel-файл ассортимента на сервер (парсинг на бэкенде).
+  /// Возвращает {created, updated, processed, errors}.
+  Future<Map<String, dynamic>> distributorStockUploadFile(
+    List<int> fileBytes,
+    String fileName,
+  ) async {
+    return _api.distributorStockUploadFile(fileBytes, fileName);
+  }
+
   Future<void> addProduct(Map<String, dynamic> data) async {
     await _api.addProduct(data);
   }
 
-  Future<List<ColorRequest>> distributorColorRequests({String? status}) async {
-    final result = await _api.distributorColorRequests(status: status);
-    return _list(result['results']).map((item) => _colorRequestFromJson(item)).toList();
+  Future<Paginated<ColorRequest>> distributorColorRequests({
+    int page = 1,
+    int pageSize = ApiClient.defaultPageSize,
+    String? status,
+    bool activeOnly = false,
+  }) async {
+    final result = await _api.distributorColorRequests(
+      page: page,
+      pageSize: pageSize,
+      status: status,
+      activeOnly: activeOnly,
+    );
+    return result.map(_colorRequestFromJson);
   }
 
   Future<ColorRequest> distributorUpdateColorRequest(String id, Map<String, dynamic> body) async {
@@ -296,16 +416,22 @@ class DataRepository {
     return _orderFromJson(result['order'] as Map<String, dynamic>);
   }
 
-  Future<Map<String, dynamic>> adminIntegrationTokens() {
-    return _api.adminIntegrationTokens();
+  Future<Paginated<Map<String, dynamic>>> adminIntegrationTokens({
+    int page = 1,
+    int pageSize = ApiClient.defaultPageSize,
+  }) {
+    return _api.adminIntegrationTokens(page: page, pageSize: pageSize);
   }
 
   Future<Map<String, dynamic>> adminIntegrationGenerate(String distributorId) {
     return _api.adminIntegrationGenerate(distributorId);
   }
 
-  Future<Map<String, dynamic>> adminIntegrationLogs() {
-    return _api.adminIntegrationLogs();
+  Future<Paginated<Map<String, dynamic>>> adminIntegrationLogs({
+    int page = 1,
+    int pageSize = ApiClient.defaultPageSize,
+  }) {
+    return _api.adminIntegrationLogs(page: page, pageSize: pageSize);
   }
 
   Future<Map<String, dynamic>> adminAnalytics({String? regionId, String? distributorId}) {
@@ -324,16 +450,38 @@ class DataRepository {
     await _api.updateCourierTask(id, data);
   }
 
-  Future<List<CourierTask>> courierTasks() async {
-    final items = (ApiClient.role == 'distributor')
-        ? await _api.distributorDeliveryTasks()
-        : await _api.courierTasks();
-    return items.map(_courierTaskFromJson).toList();
+  Future<Paginated<CourierTask>> courierTasks({
+    int page = 1,
+    int pageSize = ApiClient.defaultPageSize,
+    String? status,
+    bool activeOnly = false,
+  }) async {
+    final result = (ApiClient.role == 'distributor')
+        ? await _api.distributorDeliveryTasks(
+            page: page,
+            pageSize: pageSize,
+            status: status,
+            activeOnly: activeOnly,
+          )
+        : await _api.courierTasks(
+            page: page,
+            pageSize: pageSize,
+            activeOnly: activeOnly,
+          );
+    return result.map(_courierTaskFromJson);
   }
 
-  Future<List<CourierTask>> courierMyTasks() async {
-    final items = await _api.courierMyTasks();
-    return items.map(_courierTaskFromJson).toList();
+  Future<Paginated<CourierTask>> courierMyTasks({
+    int page = 1,
+    int pageSize = ApiClient.defaultPageSize,
+    String? status,
+  }) async {
+    final result = await _api.courierMyTasks(
+      page: page,
+      pageSize: pageSize,
+      status: status,
+    );
+    return result.map(_courierTaskFromJson);
   }
 
   Future<CourierTask> updateCourierTaskStatus(
@@ -377,19 +525,29 @@ class DataRepository {
     return _referralFromJson(result['referral'] as Map<String, dynamic>);
   }
 
-  Future<List<Referral>> referrals() async {
-    final items = await _api.referrals();
-    return items.map(_referralFromJson).toList();
+  /// Рефералы вместе со сводной статистикой, которая приходит тем же ответом.
+  Future<(Paginated<Referral>, Map<String, dynamic>)> referrals({
+    int page = 1,
+    int pageSize = ApiClient.defaultPageSize,
+  }) async {
+    final (result, stats) = await _api.referrals(page: page, pageSize: pageSize);
+    return (result.map(_referralFromJson), stats);
   }
 
-  Future<List<ExpertTicket>> tickets() async {
-    final items = await _api.tickets();
-    return items.map(_ticketFromJson).toList();
+  Future<Paginated<ExpertTicket>> tickets({
+    int page = 1,
+    int pageSize = ApiClient.defaultPageSize,
+  }) async {
+    final result = await _api.tickets(page: page, pageSize: pageSize);
+    return result.map(_ticketFromJson);
   }
 
-  Future<List<Notification>> notifications() async {
-    final items = await _api.notifications();
-    return items.map(_notificationFromJson).toList();
+  Future<Paginated<Notification>> notifications({
+    int page = 1,
+    int pageSize = ApiClient.defaultPageSize,
+  }) async {
+    final result = await _api.notifications(page: page, pageSize: pageSize);
+    return result.map(_notificationFromJson);
   }
 
   Future<void> markNotificationsRead() async {
@@ -412,28 +570,37 @@ class DataRepository {
     );
   }
 
-  Future<List<Client>> managerClients() async {
-    final items = await _api.managerClients();
-    return items.map(_clientFromJson).toList();
+  Future<Paginated<Client>> managerClients({
+    int page = 1,
+    int pageSize = ApiClient.defaultPageSize,
+  }) async {
+    final result = await _api.managerClients(page: page, pageSize: pageSize);
+    return result.map(_clientFromJson);
   }
 
   Future<Map<String, dynamic>> managerClientUnified(String clientId) {
     return _api.managerClientUnified(clientId);
   }
 
-  Future<List<Client>> managerClientsFiltered({
+  Future<Paginated<Client>> managerClientsFiltered({
+    int page = 1,
+    int pageSize = ApiClient.defaultPageSize,
     String? status,
     String? category,
     String? regionId,
     String? distributorId,
+    String? search,
   }) async {
-    final items = await _api.managerClientsFiltered(
+    final result = await _api.managerClientsFiltered(
+      page: page,
+      pageSize: pageSize,
       status: status,
       category: category,
       regionId: regionId,
       distributorId: distributorId,
+      search: search,
     );
-    return items.map(_clientFromJson).toList();
+    return result.map(_clientFromJson);
   }
 
   Future<Client> managerCreateClient(Map<String, dynamic> data) async {
@@ -445,9 +612,17 @@ class DataRepository {
     await _api.managerUpdateClientStatus(clientId, status);
   }
 
-  Future<List<ContactHistoryEntry>> managerClientHistory(String clientId) async {
-    final items = await _api.managerClientHistory(clientId);
-    return items.map(ContactHistoryEntry.fromJson).toList();
+  Future<Paginated<ContactHistoryEntry>> managerClientHistory(
+    String clientId, {
+    int page = 1,
+    int pageSize = ApiClient.defaultPageSize,
+  }) async {
+    final result = await _api.managerClientHistory(
+      clientId,
+      page: page,
+      pageSize: pageSize,
+    );
+    return result.map(ContactHistoryEntry.fromJson);
   }
 
   Future<ContactHistoryEntry> managerAddContactHistory(String clientId, Map<String, dynamic> data) async {
@@ -455,9 +630,17 @@ class DataRepository {
     return ContactHistoryEntry.fromJson(result['entry'] as Map<String, dynamic>);
   }
 
-  Future<List<ManagerTask>> managerTasks({String? status}) async {
-    final items = await _api.managerTasks(status: status);
-    return items.map(ManagerTask.fromJson).toList();
+  Future<Paginated<ManagerTask>> managerTasks({
+    int page = 1,
+    int pageSize = ApiClient.defaultPageSize,
+    String? status,
+  }) async {
+    final result = await _api.managerTasks(
+      page: page,
+      pageSize: pageSize,
+      status: status,
+    );
+    return result.map(ManagerTask.fromJson);
   }
 
   Future<ManagerTask> managerCreateTask(Map<String, dynamic> data) async {
@@ -470,11 +653,24 @@ class DataRepository {
     return ManagerTask.fromJson(result['task'] as Map<String, dynamic>);
   }
 
-  Future<List<Map<String, dynamic>>> adminManagers() => _api.adminManagers();
+  /// Менеджеры целиком — список используется в выпадающих фильтрах.
+  Future<List<Map<String, dynamic>>> adminManagers() {
+    return fetchAllPages((page) => _api.adminManagers(page: page));
+  }
 
-  Future<List<ManagerTask>> adminManagerTasks({String? managerId, String? status}) async {
-    final items = await _api.adminManagerTasks(managerId: managerId, status: status);
-    return items.map(ManagerTask.fromJson).toList();
+  Future<Paginated<ManagerTask>> adminManagerTasks({
+    int page = 1,
+    int pageSize = ApiClient.defaultPageSize,
+    String? managerId,
+    String? status,
+  }) async {
+    final result = await _api.adminManagerTasks(
+      page: page,
+      pageSize: pageSize,
+      managerId: managerId,
+      status: status,
+    );
+    return result.map(ManagerTask.fromJson);
   }
 
   Future<ManagerTask> adminCreateManagerTask(Map<String, dynamic> data) async {
@@ -484,15 +680,27 @@ class DataRepository {
 
   Future<void> adminDeleteManagerTask(String taskId) => _api.adminDeleteManagerTask(taskId);
 
-  Future<List<Map<String, dynamic>>> adminManagerClients(String managerId) => _api.adminManagerClients(managerId);
+  /// Клиенты менеджера целиком — используются в выпадающем списке при
+  /// назначении задачи.
+  Future<List<Map<String, dynamic>>> adminManagerClients(String managerId) {
+    return fetchAllPages((page) => _api.adminManagerClients(managerId, page: page));
+  }
 
   Future<Map<String, dynamic>> me() {
     return _api.me();
   }
 
-  Future<List<KnowledgeCard>> knowledgeCards() async {
-    final items = await _api.knowledgeCards();
-    return items.map(_knowledgeCardFromJson).toList();
+  Future<Paginated<KnowledgeCard>> knowledgeCards({
+    int page = 1,
+    int pageSize = ApiClient.defaultPageSize,
+    String? search,
+  }) async {
+    final result = await _api.knowledgeCards(
+      page: page,
+      pageSize: pageSize,
+      search: search,
+    );
+    return result.map(_knowledgeCardFromJson);
   }
 
   Future<KnowledgeCard> createKnowledgeCard(Map<String, dynamic> data) async {
@@ -528,16 +736,76 @@ class DataRepository {
     await _api.cancelOrder(orderId);
   }
 
+  Future<Order> orderDetail(String orderId) async {
+    final res = await _api.orderDetail(orderId);
+    return _orderFromJson(Map<String, dynamic>.from(res['order'] as Map));
+  }
+
+  // ── Безопасный поток заказа ──────────────────────────────────────────────────
+
+  /// Подтверждение заказа оператором.
+  ///
+  /// Если по позициям не хватает остатков, сервер отвечает 409 и списком
+  /// дефицитов. Разворачиваем это в [OrderShortageException], чтобы экран мог
+  /// предложить корректировку вместо показа сырой ошибки. [force] пропускает
+  /// проверку — оператор подтверждает под свою ответственность.
+  Future<Order> confirmOrder(String orderId, {bool force = false}) async {
+    try {
+      final res = await _api.confirmOrder(orderId, force: force);
+      return _orderFromJson(Map<String, dynamic>.from(res['order'] as Map));
+    } on ApiException catch (e) {
+      final shortages = OrderShortage.parseList(e.details);
+      if (shortages.isEmpty) rethrow;
+      throw OrderShortageException(e.message, shortages);
+    }
+  }
+
+  Future<Order> adjustOrder(
+    String orderId, {
+    required List<Map<String, dynamic>> items,
+    String reason = '',
+  }) async {
+    final res = await _api.adjustOrder(orderId, items: items, reason: reason);
+    return _orderFromJson(Map<String, dynamic>.from(res['order'] as Map));
+  }
+
+  Future<Order> rejectOrder(String orderId, {String reason = ''}) async {
+    final res = await _api.rejectOrder(orderId, reason: reason);
+    return _orderFromJson(Map<String, dynamic>.from(res['order'] as Map));
+  }
+
+  Future<Order> shipOrder(String orderId) async {
+    final res = await _api.shipOrder(orderId);
+    return _orderFromJson(Map<String, dynamic>.from(res['order'] as Map));
+  }
+
+  Future<Order> acceptAdjustment(String orderId) async {
+    final res = await _api.acceptAdjustment(orderId);
+    return _orderFromJson(Map<String, dynamic>.from(res['order'] as Map));
+  }
+
+  /// Инициирует оплату. Возвращает confirmationUrl (ссылку YooKassa) либо null.
+  Future<String?> payOrder(String orderId) async {
+    final res = await _api.payOrder(orderId);
+    final payment = res['payment'];
+    if (payment is Map && payment['confirmationUrl'] != null) {
+      return payment['confirmationUrl'].toString();
+    }
+    return null;
+  }
+
   Future<Map<String, dynamic>> register(Map<String, dynamic> data) {
     return _api.register(data);
   }
 
+  /// Справочники регионов и дистрибьюторов целиком — идут в выпадающие списки
+  /// форм регистрации и фильтров.
   Future<List<Map<String, dynamic>>> getRegions() {
-    return _api.getRegions();
+    return fetchAllPages((page) => _api.getRegions(page: page));
   }
 
   Future<List<Map<String, dynamic>>> getDistributors() {
-    return _api.getDistributors();
+    return fetchAllPages((page) => _api.getDistributors(page: page));
   }
 
   Future<Map<String, dynamic>> createPurchase(Map<String, dynamic> data, {List<int>? fileBytes, String? fileName}) {
@@ -638,10 +906,25 @@ class DataRepository {
       id: json['id'].toString(),
       distributorId: json['distributorId']?.toString() ?? '',
       sku: json['sku']?.toString() ?? '',
+      wbArticle: _toString(json['wbArticle']),
+      groupName: _toString(json['groupName']),
       name: json['name']?.toString() ?? '',
       category: json['category']?.toString() ?? '',
       brand: json['brand']?.toString() ?? '',
+      description: _toString(json['description']),
+      color: _toString(json['color']),
+      barcode: _toString(json['barcode']),
+      images: (json['images'] is List)
+          ? (json['images'] as List).map((e) => e.toString()).toList()
+          : <String>[],
+      videoUrl: _toString(json['videoUrl']),
       volume: _toDouble(json['volume']),
+      weight: _toDouble(json['weight']),
+      packageHeight: _toDouble(json['packageHeight']),
+      packageLength: _toDouble(json['packageLength']),
+      packageWidth: _toDouble(json['packageWidth']),
+      tnved: _toString(json['tnved']),
+      vatRate: _toString(json['vatRate']),
       price: _toDouble(json['price']),
       quantity: _toInt(json['quantity']),
       status: _stockStatus(json['status']?.toString() ?? 'inStock'),
@@ -670,6 +953,24 @@ class DataRepository {
       courierName: _toString(json['courierName']),
       estimatedDeliveryDate: json['estimatedDeliveryDate'] != null ? DateTime.tryParse(json['estimatedDeliveryDate'].toString()) : null,
       createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? '') ?? DateTime.now(),
+      confirmedAt: json['confirmedAt'] != null ? DateTime.tryParse(json['confirmedAt'].toString()) : null,
+      paidAt: json['paidAt'] != null ? DateTime.tryParse(json['paidAt'].toString()) : null,
+      shippedAt: json['shippedAt'] != null ? DateTime.tryParse(json['shippedAt'].toString()) : null,
+      isPayable: json['isPayable'] == true,
+      adjustments: _list(json['adjustments']).map((a) => _orderAdjustmentFromJson(a)).toList(),
+      pendingPaymentUrl: json['pendingPayment'] is Map
+          ? _toString((json['pendingPayment'] as Map)['confirmationUrl'])
+          : null,
+    );
+  }
+
+  static OrderAdjustment _orderAdjustmentFromJson(Map<String, dynamic> json) {
+    return OrderAdjustment(
+      id: json['id'].toString(),
+      originalItems: _list(json['originalItems']).map((i) => _purchaseItemFromJson(i)).toList(),
+      adjustedItems: _list(json['adjustedItems']).map((i) => _purchaseItemFromJson(i)).toList(),
+      reason: _toString(json['reason']),
+      createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? '') ?? DateTime.now(),
     );
   }
 
@@ -693,7 +994,11 @@ class DataRepository {
   }
 
   static PurchaseItem _purchaseItemFromJson(Map<String, dynamic> json) {
+    final available = json['availableQuantity'];
     return PurchaseItem(
+      id: json['id']?.toString(),
+      productId: json['productId']?.toString(),
+      availableQuantity: available == null ? null : _toInt(available),
       sku: json['sku']?.toString() ?? '',
       name: json['name']?.toString() ?? '',
       category: json['category']?.toString() ?? '',
@@ -811,12 +1116,22 @@ class DataRepository {
     switch (value) {
       case 'new':
         return OrderStatus.newOrder;
+      case 'confirmed':
+        return OrderStatus.confirmed;
+      case 'adjusted':
+        return OrderStatus.adjusted;
       case 'accepted':
         return OrderStatus.accepted;
       case 'rejected':
         return OrderStatus.rejected;
+      case 'paid':
+        return OrderStatus.paid;
+      case 'shipped':
+        return OrderStatus.shipped;
       case 'fulfilled':
         return OrderStatus.fulfilled;
+      case 'cancelled':
+        return OrderStatus.cancelled;
       default:
         return OrderStatus.newOrder;
     }

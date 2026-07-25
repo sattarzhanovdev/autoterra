@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../../core/theme.dart';
 import '../../models/models.dart';
 import '../../services/data_repository.dart';
+import '../../services/pagination_controller.dart';
+import '../../widgets/common/paginated_list_view.dart';
 import '../../widgets/common/section_header.dart';
 
 class CourierScreen extends StatefulWidget {
@@ -13,20 +15,23 @@ class CourierScreen extends StatefulWidget {
 
 class _CourierScreenState extends State<CourierScreen> {
   final DataRepository _repo = DataRepository();
-  late Future<List<CourierTask>> _future;
+  late final PaginationController<CourierTask> _controller;
 
   @override
   void initState() {
     super.initState();
-    _future = _repo.courierMyTasks();
+    _controller = PaginationController<CourierTask>(
+      fetchPage: (page) => _repo.courierMyTasks(page: page),
+    );
   }
 
-  Future<void> _refresh() async {
-    setState(() {
-      _future = _repo.courierMyTasks();
-    });
-    await _future;
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
   }
+
+  Future<void> _refresh() => _controller.refresh();
 
   @override
   Widget build(BuildContext context) {
@@ -41,39 +46,13 @@ class _CourierScreenState extends State<CourierScreen> {
           ),
         ],
       ),
-      body: FutureBuilder<List<CourierTask>>(
-        future: _future,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState != ConnectionState.done) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (snapshot.hasError) {
-            return Center(child: Text('Ошибка: ${snapshot.error}'));
-          }
-          final tasks = snapshot.data!;
-          if (tasks.isEmpty) {
-            return RefreshIndicator(
-              onRefresh: _refresh,
-              child: ListView(
-                children: const [
-                  SizedBox(height: 100),
-                  Center(child: Text('Задач пока нет')),
-                ],
-              ),
-            );
-          }
-          return RefreshIndicator(
-            onRefresh: _refresh,
-            child: ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: tasks.length,
-              itemBuilder: (context, index) => _CourierTaskTile(
-                task: tasks[index],
-                onUpdate: _refresh,
-              ),
-            ),
-          );
-        },
+      body: PaginatedListView<CourierTask>(
+        controller: _controller,
+        emptyMessage: 'ЗАДАЧ ПОКА НЕТ',
+        itemBuilder: (context, task, _) => _CourierTaskTile(
+          task: task,
+          onUpdate: _refresh,
+        ),
       ),
     );
   }

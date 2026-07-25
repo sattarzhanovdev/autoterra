@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/theme.dart';
 import '../../core/constants.dart';
+import '../../models/paginated.dart';
 import '../../services/api_client.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -46,7 +47,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
   Future<void> _fetchRegions() async {
     if (mounted) setState(() => _loadingRegions = true);
     try {
-      final regions = await _api.getRegions();
+      // Справочник целиком: он нужен выпадающему списку, а не ленте.
+      final regions = await fetchAllPages((page) => _api.getRegions(page: page));
       if (mounted) {
         setState(() {
           _regions = regions;

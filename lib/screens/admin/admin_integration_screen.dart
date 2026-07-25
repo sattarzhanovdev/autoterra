@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import '../../core/theme.dart';
+import '../../models/paginated.dart';
 import '../../services/data_repository.dart';
 import '../../services/auth_service.dart';
 import '../../models/models.dart';
@@ -19,6 +20,13 @@ class _AdminIntegrationScreenState extends State<AdminIntegrationScreen> {
   List<dynamic> _logs = [];
   bool _loading = true;
 
+  // Логи синхронизации растут постоянно, поэтому подгружаются постранично.
+  // Токены — по одному на дистрибьютора, их берём целиком.
+  bool _logsLoadingMore = false;
+  bool _logsHasMore = false;
+  int _logsPage = 1;
+  int _logsTotal = 0;
+
   @override
   void initState() {
     super.initState();
@@ -28,13 +36,16 @@ class _AdminIntegrationScreenState extends State<AdminIntegrationScreen> {
   Future<void> _fetch() async {
     setState(() => _loading = true);
     try {
-      final res = await Future.wait([
-        _repo.adminIntegrationTokens(),
-        _repo.adminIntegrationLogs(),
-      ]);
+      final tokens = await fetchAllPages(
+        (page) => _repo.adminIntegrationTokens(page: page),
+      );
+      final logs = await _repo.adminIntegrationLogs();
       setState(() {
-        _tokens = List<dynamic>.from(res[0]['results'] as List);
-        _logs = List<dynamic>.from(res[1]['results'] as List);
+        _tokens = List<dynamic>.from(tokens);
+        _logs = List<dynamic>.from(logs.items);
+        _logsHasMore = logs.hasNext;
+        _logsTotal = logs.count;
+        _logsPage = 1;
         _loading = false;
       });
     } catch (e) {
@@ -114,6 +125,7 @@ class _AdminIntegrationScreenState extends State<AdminIntegrationScreen> {
                   const Text('ЖУРНАЛ СИНХРОНИЗАЦИИ', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14)),
                   const SizedBox(height: 16),
                   _buildLogsTable(),
+                  _buildLogsFooter(),
                   const SizedBox(height: 80),
                 ],
               ),
@@ -178,6 +190,23 @@ class _AdminIntegrationScreenState extends State<AdminIntegrationScreen> {
     );
   }
 
+  Future<void> _loadMoreLogs() async {
+    if (_logsLoadingMore || !_logsHasMore) return;
+    setState(() => _logsLoadingMore = true);
+    try {
+      final logs = await _repo.adminIntegrationLogs(page: _logsPage + 1);
+      setState(() {
+        _logs = [..._logs, ...logs.items];
+        _logsHasMore = logs.hasNext;
+        _logsTotal = logs.count;
+        _logsPage += 1;
+        _logsLoadingMore = false;
+      });
+    } catch (_) {
+      setState(() => _logsLoadingMore = false);
+    }
+  }
+
   Widget _buildLogsTable() {
     if (_logs.isEmpty) {
       return const Text('ЛОГОВ ПОКА НЕТ', style: TextStyle(color: AppColors.textSecondary, fontWeight: FontWeight.bold));
@@ -220,6 +249,36 @@ class _AdminIntegrationScreenState extends State<AdminIntegrationScreen> {
             );
           }).toList(),
         ),
+      ),
+    );
+  }
+
+  Widget _buildLogsFooter() {
+    if (!_logsHasMore) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(top: 12),
+      child: Center(
+        child: _logsLoadingMore
+            ? const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  color: AppColors.brandRed,
+                  strokeWidth: 2,
+                ),
+              )
+            : TextButton(
+                onPressed: _loadMoreLogs,
+                child: Text(
+                  'ПОКАЗАТЬ ЕЩЁ (${_logs.length} ИЗ $_logsTotal)',
+                  style: const TextStyle(
+                    color: AppColors.brandRed,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 11,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ),
       ),
     );
   }

@@ -3,9 +3,13 @@ import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import '../models/paginated.dart';
 
 class ApiClient {
   static String get baseUrl => dotenv.env['API_BASE_URL'] ?? 'http://127.0.0.1:8000/api';
+
+  /// Размер страницы по умолчанию — совпадает с бэкендом (`DEFAULT_PAGE_SIZE`).
+  static const int defaultPageSize = 20;
 
   final http.Client _httpClient;
 
@@ -93,14 +97,26 @@ class ApiClient {
 
   Future<Map<String, dynamic>> orderConfig() => _get('/order-config/');
 
-  Future<List<Map<String, dynamic>>> products() async {
-    final result = await _get('/products/');
-    return (result['results'] as List).map((e) => Map<String, dynamic>.from(e as Map)).toList();
+  Future<(Paginated<Map<String, dynamic>>, List<String>)> products({
+    int page = 1,
+    int pageSize = defaultPageSize,
+    String? search,
+    String? category,
+  }) async {
+    final (items, raw) = await _getPageWithMeta(
+      '/products/',
+      page: page,
+      pageSize: pageSize,
+      filters: {'search': search, 'category': category},
+    );
+    final categories = ((raw['categories'] as List?) ?? const [])
+        .map((e) => e.toString())
+        .toList();
+    return (items, categories);
   }
 
-  Future<List<Map<String, dynamic>>> stores() async {
-    final result = await _get('/stores/');
-    return (result['results'] as List).map((e) => Map<String, dynamic>.from(e as Map)).toList();
+  Future<Paginated<Map<String, dynamic>>> stores({int page = 1, int pageSize = defaultPageSize}) {
+    return _getPage('/stores/', page: page, pageSize: pageSize);
   }
 
   Future<Map<String, dynamic>> createStore(String name, String address) =>
@@ -113,9 +129,8 @@ class ApiClient {
     await _delete('/stores/$storeId/');
   }
 
-  Future<List<Map<String, dynamic>>> orders() async {
-    final result = await _get('/orders/');
-    return (result['results'] as List).map((e) => Map<String, dynamic>.from(e as Map)).toList();
+  Future<Paginated<Map<String, dynamic>>> orders({int page = 1, int pageSize = defaultPageSize}) {
+    return _getPage('/orders/', page: page, pageSize: pageSize);
   }
 
   Future<Map<String, dynamic>> createOrder({
@@ -136,19 +151,82 @@ class ApiClient {
     await _post('/orders/$orderId/cancel/', {});
   }
 
-  Future<List<Map<String, dynamic>>> purchases() async {
-    final result = await _get('/purchases/');
-    return (result['results'] as List).map((e) => Map<String, dynamic>.from(e as Map)).toList();
+  /// Один заказ — для перехода по ссылке из письма/пуша и обновления экрана.
+  Future<Map<String, dynamic>> orderDetail(String orderId) {
+    return _get('/orders/$orderId/');
   }
 
-  Future<List<Map<String, dynamic>>> colorRequests() async {
-    final result = await _get('/color-requests/');
-    return (result['results'] as List).map((e) => Map<String, dynamic>.from(e as Map)).toList();
+  // ── Безопасный поток заказа ──────────────────────────────────────────────────
+
+  /// Оператор подтверждает заказ как есть. [force] обходит проверку остатков.
+  Future<Map<String, dynamic>> confirmOrder(String orderId, {bool force = false}) {
+    final suffix = force ? '?force=1' : '';
+    return _post('/orders/$orderId/confirm/$suffix', {});
   }
 
-  Future<List<Map<String, dynamic>>> courierTasks() async {
-    final result = await _get('/courier-tasks/');
-    return (result['results'] as List).map((e) => Map<String, dynamic>.from(e as Map)).toList();
+  /// Оператор корректирует состав заказа.
+  /// [items] — список {itemId, quantity}; позиции с quantity=0 удаляются.
+  Future<Map<String, dynamic>> adjustOrder(
+    String orderId, {
+    required List<Map<String, dynamic>> items,
+    String reason = '',
+  }) {
+    return _post('/orders/$orderId/adjust/', {'items': items, 'reason': reason});
+  }
+
+  /// Оператор отклоняет заказ с причиной.
+  Future<Map<String, dynamic>> rejectOrder(String orderId, {String reason = ''}) {
+    return _post('/orders/$orderId/reject/', {'reason': reason});
+  }
+
+  /// Оператор отмечает отправку заказа.
+  Future<Map<String, dynamic>> shipOrder(String orderId) {
+    return _post('/orders/$orderId/ship/', {});
+  }
+
+  /// Клиент соглашается со скорректированным заказом.
+  Future<Map<String, dynamic>> acceptAdjustment(String orderId) {
+    return _post('/orders/$orderId/accept-adjustment/', {});
+  }
+
+  /// Клиент инициирует оплату. Возвращает payload с confirmationUrl (YooKassa).
+  Future<Map<String, dynamic>> payOrder(String orderId) {
+    return _post('/orders/$orderId/pay/', {});
+  }
+
+  Future<(Paginated<Map<String, dynamic>>, Map<String, dynamic>)> purchases({
+    int page = 1,
+    int pageSize = defaultPageSize,
+  }) async {
+    final (items, raw) = await _getPageWithMeta('/purchases/', page: page, pageSize: pageSize);
+    final stats = (raw['stats'] as Map?) ?? const {};
+    return (items, Map<String, dynamic>.from(stats));
+  }
+
+  Future<Paginated<Map<String, dynamic>>> colorRequests({
+    int page = 1,
+    int pageSize = defaultPageSize,
+    bool activeOnly = false,
+  }) {
+    return _getPage(
+      '/color-requests/',
+      page: page,
+      pageSize: pageSize,
+      filters: {'active': activeOnly ? 'true' : null},
+    );
+  }
+
+  Future<Paginated<Map<String, dynamic>>> courierTasks({
+    int page = 1,
+    int pageSize = defaultPageSize,
+    bool activeOnly = false,
+  }) {
+    return _getPage(
+      '/courier-tasks/',
+      page: page,
+      pageSize: pageSize,
+      filters: {'active': activeOnly ? 'true' : null},
+    );
   }
 
   Future<Map<String, dynamic>> createCourierTask(Map<String, dynamic> body) {
@@ -180,19 +258,18 @@ class ApiClient {
     return _post('/referrals/create/', body);
   }
 
-  Future<List<Map<String, dynamic>>> referrals() async {
-    final result = await _get('/referrals/');
-    return (result['results'] as List).map((e) => Map<String, dynamic>.from(e as Map)).toList();
+  Future<(Paginated<Map<String, dynamic>>, Map<String, dynamic>)> referrals({int page = 1, int pageSize = defaultPageSize}) async {
+    final (items, raw) = await _getPageWithMeta('/referrals/', page: page, pageSize: pageSize);
+    final stats = (raw['stats'] as Map?) ?? const {};
+    return (items, Map<String, dynamic>.from(stats));
   }
 
-  Future<List<Map<String, dynamic>>> tickets() async {
-    final result = await _get('/tickets/');
-    return (result['results'] as List).map((e) => Map<String, dynamic>.from(e as Map)).toList();
+  Future<Paginated<Map<String, dynamic>>> tickets({int page = 1, int pageSize = defaultPageSize}) {
+    return _getPage('/tickets/', page: page, pageSize: pageSize);
   }
 
-  Future<List<Map<String, dynamic>>> notifications() async {
-    final result = await _get('/notifications/');
-    return (result['results'] as List).map((e) => Map<String, dynamic>.from(e as Map)).toList();
+  Future<Paginated<Map<String, dynamic>>> notifications({int page = 1, int pageSize = defaultPageSize}) {
+    return _getPage('/notifications/', page: page, pageSize: pageSize);
   }
 
   Future<void> markNotificationsRead() async {
@@ -225,28 +302,38 @@ class ApiClient {
     });
   }
 
-  Future<List<Map<String, dynamic>>> managerClients() async {
-    final result = await _get('/manager/clients/');
-    return (result['results'] as List).map((e) => Map<String, dynamic>.from(e as Map)).toList();
+  Future<Paginated<Map<String, dynamic>>> managerClients({
+    int page = 1,
+    int pageSize = defaultPageSize,
+  }) {
+    return _getPage('/manager/clients/', page: page, pageSize: pageSize);
   }
 
   Future<Map<String, dynamic>> managerClientUnified(String clientId) async {
     return _get('/manager/clients/$clientId/unified/');
   }
 
-  Future<List<Map<String, dynamic>>> managerClientsFiltered({
+  Future<Paginated<Map<String, dynamic>>> managerClientsFiltered({
+    int page = 1,
+    int pageSize = defaultPageSize,
     String? status,
     String? category,
     String? regionId,
     String? distributorId,
-  }) async {
-    final params = <String, String>{};
-    if (status != null) params['status'] = status;
-    if (category != null) params['category'] = category;
-    if (regionId != null) params['region'] = regionId;
-    if (distributorId != null) params['distributor'] = distributorId;
-    final result = await _get('/manager/clients/', params: params.isEmpty ? null : params);
-    return (result['results'] as List).map((e) => Map<String, dynamic>.from(e as Map)).toList();
+    String? search,
+  }) {
+    return _getPage(
+      '/manager/clients/',
+      page: page,
+      pageSize: pageSize,
+      filters: {
+        'status': status,
+        'category': category,
+        'region': regionId,
+        'distributor': distributorId,
+        'search': search,
+      },
+    );
   }
 
   Future<Map<String, dynamic>> managerCreateClient(Map<String, dynamic> body) {
@@ -257,19 +344,33 @@ class ApiClient {
     return _post('/manager/clients/$clientId/status/', {'status': status});
   }
 
-  Future<List<Map<String, dynamic>>> managerClientHistory(String clientId) async {
-    final result = await _get('/manager/clients/$clientId/history/');
-    return (result['results'] as List).map((e) => Map<String, dynamic>.from(e as Map)).toList();
+  Future<Paginated<Map<String, dynamic>>> managerClientHistory(
+    String clientId, {
+    int page = 1,
+    int pageSize = defaultPageSize,
+  }) {
+    return _getPage(
+      '/manager/clients/$clientId/history/',
+      page: page,
+      pageSize: pageSize,
+    );
   }
 
   Future<Map<String, dynamic>> managerAddContactHistory(String clientId, Map<String, dynamic> body) {
     return _post('/manager/clients/$clientId/history/', body);
   }
 
-  Future<List<Map<String, dynamic>>> managerTasks({String? status}) async {
-    final params = status != null ? {'status': status} : null;
-    final result = await _get('/manager/tasks/', params: params);
-    return (result['results'] as List).map((e) => Map<String, dynamic>.from(e as Map)).toList();
+  Future<Paginated<Map<String, dynamic>>> managerTasks({
+    int page = 1,
+    int pageSize = defaultPageSize,
+    String? status,
+  }) {
+    return _getPage(
+      '/manager/tasks/',
+      page: page,
+      pageSize: pageSize,
+      filters: {'status': status},
+    );
   }
 
   Future<Map<String, dynamic>> managerCreateTask(Map<String, dynamic> body) {
@@ -280,17 +381,25 @@ class ApiClient {
     return _post('/manager/tasks/$taskId/', body);
   }
 
-  Future<List<Map<String, dynamic>>> adminManagers() async {
-    final result = await _get('/admin/managers/');
-    return (result['results'] as List).map((e) => Map<String, dynamic>.from(e as Map)).toList();
+  Future<Paginated<Map<String, dynamic>>> adminManagers({
+    int page = 1,
+    int pageSize = defaultPageSize,
+  }) {
+    return _getPage('/admin/managers/', page: page, pageSize: pageSize);
   }
 
-  Future<List<Map<String, dynamic>>> adminManagerTasks({String? managerId, String? status}) async {
-    final params = <String, String>{};
-    if (managerId != null) params['managerId'] = managerId;
-    if (status != null) params['status'] = status;
-    final result = await _get('/admin/manager-tasks/', params: params.isEmpty ? null : params);
-    return (result['results'] as List).map((e) => Map<String, dynamic>.from(e as Map)).toList();
+  Future<Paginated<Map<String, dynamic>>> adminManagerTasks({
+    int page = 1,
+    int pageSize = defaultPageSize,
+    String? managerId,
+    String? status,
+  }) {
+    return _getPage(
+      '/admin/manager-tasks/',
+      page: page,
+      pageSize: pageSize,
+      filters: {'managerId': managerId, 'status': status},
+    );
   }
 
   Future<Map<String, dynamic>> adminCreateManagerTask(Map<String, dynamic> body) {
@@ -301,9 +410,16 @@ class ApiClient {
     await _delete('/admin/manager-tasks/$taskId/');
   }
 
-  Future<List<Map<String, dynamic>>> adminManagerClients(String managerId) async {
-    final result = await _get('/admin/managers/$managerId/clients/');
-    return (result['results'] as List).map((e) => Map<String, dynamic>.from(e as Map)).toList();
+  Future<Paginated<Map<String, dynamic>>> adminManagerClients(
+    String managerId, {
+    int page = 1,
+    int pageSize = defaultPageSize,
+  }) {
+    return _getPage(
+      '/admin/managers/$managerId/clients/',
+      page: page,
+      pageSize: pageSize,
+    );
   }
 
   Future<Map<String, dynamic>> createExpertTicket(Map<String, dynamic> body, {List<int>? fileBytes, String? fileName}) {
@@ -313,9 +429,17 @@ class ApiClient {
     return _post('/tickets/create/', body);
   }
 
-  Future<List<Map<String, dynamic>>> knowledgeCards() async {
-    final result = await _get('/knowledge-cards/');
-    return (result['results'] as List).map((e) => Map<String, dynamic>.from(e as Map)).toList();
+  Future<Paginated<Map<String, dynamic>>> knowledgeCards({
+    int page = 1,
+    int pageSize = defaultPageSize,
+    String? search,
+  }) {
+    return _getPage(
+      '/knowledge-cards/',
+      page: page,
+      pageSize: pageSize,
+      filters: {'search': search},
+    );
   }
 
   Future<Map<String, dynamic>> createKnowledgeCard(Map<String, dynamic> body) {
@@ -352,14 +476,12 @@ class ApiClient {
     return _post('/auth/register/', body);
   }
 
-  Future<List<Map<String, dynamic>>> getRegions() async {
-    final result = await _get('/regions/');
-    return (result['results'] as List).map((e) => Map<String, dynamic>.from(e as Map)).toList();
+  Future<Paginated<Map<String, dynamic>>> getRegions({int page = 1, int pageSize = defaultPageSize}) {
+    return _getPage('/regions/', page: page, pageSize: pageSize);
   }
 
-  Future<List<Map<String, dynamic>>> getDistributors() async {
-    final result = await _get('/distributors/');
-    return (result['results'] as List).map((e) => Map<String, dynamic>.from(e as Map)).toList();
+  Future<Paginated<Map<String, dynamic>>> getDistributors({int page = 1, int pageSize = defaultPageSize}) {
+    return _getPage('/distributors/', page: page, pageSize: pageSize);
   }
 
   Future<Map<String, dynamic>> createPurchase(Map<String, dynamic> body, {List<int>? fileBytes, String? fileName}) {
@@ -442,14 +564,26 @@ class ApiClient {
         return MediaType('video', 'mp4');
       case 'mov':
         return MediaType('video', 'quicktime');
+      case 'xlsx':
+        return MediaType('application', 'vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      case 'xls':
+        return MediaType('application', 'vnd.ms-excel');
       default:
         return null;
     }
   }
 
-  Future<List<Map<String, dynamic>>> courierMyTasks() async {
-    final result = await _get('/courier/tasks/');
-    return (result['results'] as List).map((e) => Map<String, dynamic>.from(e as Map)).toList();
+  Future<Paginated<Map<String, dynamic>>> courierMyTasks({
+    int page = 1,
+    int pageSize = defaultPageSize,
+    String? status,
+  }) {
+    return _getPage(
+      '/courier/tasks/',
+      page: page,
+      pageSize: pageSize,
+      filters: {'status': status},
+    );
   }
 
   Future<Map<String, dynamic>> updateCourierTaskStatus(
@@ -492,9 +626,17 @@ class ApiClient {
     }
   }
 
-  Future<List<Map<String, dynamic>>> distributorClients() async {
-    final result = await _get('/distributor/clients/');
-    return (result['results'] as List).map((e) => Map<String, dynamic>.from(e as Map)).toList();
+  Future<Paginated<Map<String, dynamic>>> distributorClients({
+    int page = 1,
+    int pageSize = defaultPageSize,
+    String? search,
+  }) {
+    return _getPage(
+      '/distributor/clients/',
+      page: page,
+      pageSize: pageSize,
+      filters: {'search': search},
+    );
   }
 
   Future<Map<String, dynamic>> verifyPurchase(String id, {required String status, String? reason}) {
@@ -504,16 +646,34 @@ class ApiClient {
     });
   }
 
-  Future<List<Map<String, dynamic>>> distributorOrders({String? status}) async {
-    final params = status != null ? {'status': status} : null;
-    final result = await _get('/distributor/orders/', params: params);
-    return (result['results'] as List).map((e) => Map<String, dynamic>.from(e as Map)).toList();
+  Future<Paginated<Map<String, dynamic>>> distributorOrders({
+    int page = 1,
+    int pageSize = defaultPageSize,
+    String? status,
+  }) {
+    return _getPage(
+      '/distributor/orders/',
+      page: page,
+      pageSize: pageSize,
+      filters: {'status': status},
+    );
   }
 
-  Future<List<Map<String, dynamic>>> distributorDeliveryTasks({String? status}) async {
-    final params = status != null ? {'status': status} : null;
-    final result = await _get('/distributor/delivery-tasks/', params: params);
-    return (result['results'] as List).map((e) => Map<String, dynamic>.from(e as Map)).toList();
+  Future<Paginated<Map<String, dynamic>>> distributorDeliveryTasks({
+    int page = 1,
+    int pageSize = defaultPageSize,
+    String? status,
+    bool activeOnly = false,
+  }) {
+    return _getPage(
+      '/distributor/delivery-tasks/',
+      page: page,
+      pageSize: pageSize,
+      filters: {
+        'status': status,
+        'active': activeOnly ? 'true' : null,
+      },
+    );
   }
 
   Future<Map<String, dynamic>> updateDeliveryStatus(String taskId, {String? status, String? courierId, String? reason}) async {
@@ -524,19 +684,28 @@ class ApiClient {
     });
   }
 
-  Future<List<Map<String, dynamic>>> distributorPurchases({String? status, bool? toVerify}) async {
-    final Map<String, String> params = {};
-    if (status != null) params['status'] = status;
-    if (toVerify == true) params['to_verify'] = 'true';
-    
-    final queryString = params.isEmpty ? '' : '?${params.entries.map((e) => "${e.key}=${e.value}").join('&')}';
-    final result = await _get('/distributor/purchases/$queryString');
-    return (result['results'] as List).map((e) => Map<String, dynamic>.from(e as Map)).toList();
+  Future<Paginated<Map<String, dynamic>>> distributorPurchases({
+    int page = 1,
+    int pageSize = defaultPageSize,
+    String? status,
+    bool? toVerify,
+  }) {
+    return _getPage(
+      '/distributor/purchases/',
+      page: page,
+      pageSize: pageSize,
+      filters: {
+        'status': status,
+        'to_verify': toVerify == true ? 'true' : null,
+      },
+    );
   }
 
-  Future<List<Map<String, dynamic>>> distributorCouriers() async {
-    final result = await _get('/distributor/couriers/');
-    return List<Map<String, dynamic>>.from(result['results']);
+  Future<Paginated<Map<String, dynamic>>> distributorCouriers({
+    int page = 1,
+    int pageSize = defaultPageSize,
+  }) {
+    return _getPage('/distributor/couriers/', page: page, pageSize: pageSize);
   }
 
   Future<Map<String, dynamic>> distributorIntegration() => _get('/distributor/integration/');
@@ -551,21 +720,36 @@ class ApiClient {
     });
   }
 
-  Future<List<Map<String, dynamic>>> distributorStock() async {
-    final result = await _get('/distributor/stock/');
-    return (result['results'] as List).map((e) => Map<String, dynamic>.from(e as Map)).toList();
+  Future<Paginated<Map<String, dynamic>>> distributorStock({
+    int page = 1,
+    int pageSize = defaultPageSize,
+    String? search,
+    String? category,
+  }) {
+    return _getPage(
+      '/distributor/stock/',
+      page: page,
+      pageSize: pageSize,
+      filters: {'search': search, 'category': category},
+    );
   }
 
-  Future<Map<String, dynamic>> adminIntegrationTokens() async {
-    return _get('/admin/integration/tokens/');
+  Future<Paginated<Map<String, dynamic>>> adminIntegrationTokens({
+    int page = 1,
+    int pageSize = defaultPageSize,
+  }) {
+    return _getPage('/admin/integration/tokens/', page: page, pageSize: pageSize);
   }
 
   Future<Map<String, dynamic>> adminIntegrationGenerate(String distributorId) async {
     return _post('/admin/integration/generate/$distributorId/', {});
   }
 
-  Future<Map<String, dynamic>> adminIntegrationLogs() async {
-    return _get('/admin/integration/logs/');
+  Future<Paginated<Map<String, dynamic>>> adminIntegrationLogs({
+    int page = 1,
+    int pageSize = defaultPageSize,
+  }) {
+    return _getPage('/admin/integration/logs/', page: page, pageSize: pageSize);
   }
 
   Future<Map<String, dynamic>> adminAnalytics({String? regionId, String? distributorId}) async {
@@ -600,14 +784,34 @@ class ApiClient {
     await _post('/distributor/stock/upload/', {'items': items}, timeout: const Duration(seconds: 60));
   }
 
+  /// Загрузка ассортимента сырым Excel-файлом (шаблон WB «Общие характеристики»).
+  /// Парсинг выполняется на сервере — поддерживает многострочную шапку и все поля.
+  Future<Map<String, dynamic>> distributorStockUploadFile(
+    List<int> fileBytes,
+    String fileName,
+  ) {
+    return _multipartPost('/distributor/stock/upload-file/', {}, fileBytes, fileName, fileField: 'file');
+  }
+
   Future<Map<String, dynamic>> addProduct(Map<String, dynamic> body) async {
     return _post('/distributor/stock/add/', body);
   }
 
-  Future<Map<String, dynamic>> distributorColorRequests({String? status}) async {
-    String path = '/distributor/color-requests/';
-    if (status != null) path += '?status=$status';
-    return _get(path);
+  Future<Paginated<Map<String, dynamic>>> distributorColorRequests({
+    int page = 1,
+    int pageSize = defaultPageSize,
+    String? status,
+    bool activeOnly = false,
+  }) {
+    return _getPage(
+      '/distributor/color-requests/',
+      page: page,
+      pageSize: pageSize,
+      filters: {
+        'status': status,
+        'active': activeOnly ? 'true' : null,
+      },
+    );
   }
 
   Future<Map<String, dynamic>> distributorUpdateColorRequest(String id, Map<String, dynamic> body) async {
@@ -645,6 +849,45 @@ class ApiClient {
       _handleError(e);
       rethrow;
     }
+  }
+
+  /// GET списочного эндпоинта: подставляет параметры пагинации и разбирает
+  /// ответ в [Paginated]. Пустые значения фильтров отбрасываются, чтобы не
+  /// слать в запрос лишние ключи.
+  Future<Paginated<Map<String, dynamic>>> _getPage(
+    String path, {
+    int page = 1,
+    int pageSize = defaultPageSize,
+    Map<String, String?>? filters,
+  }) async {
+    final params = <String, String>{
+      'page': '$page',
+      'page_size': '$pageSize',
+    };
+    filters?.forEach((key, value) {
+      if (value != null && value.isNotEmpty) params[key] = value;
+    });
+    final result = await _get(path, params: params);
+    return Paginated.fromResponse(result);
+  }
+
+  /// Как [_getPage], но дополнительно отдаёт сырой ответ — нужно там, где
+  /// рядом со списком приходят агрегаты (`stats`, `categories`, `unreadCount`).
+  Future<(Paginated<Map<String, dynamic>>, Map<String, dynamic>)> _getPageWithMeta(
+    String path, {
+    int page = 1,
+    int pageSize = defaultPageSize,
+    Map<String, String?>? filters,
+  }) async {
+    final params = <String, String>{
+      'page': '$page',
+      'page_size': '$pageSize',
+    };
+    filters?.forEach((key, value) {
+      if (value != null && value.isNotEmpty) params[key] = value;
+    });
+    final result = await _get(path, params: params);
+    return (Paginated.fromResponse(result), result);
   }
 
   Future<Map<String, dynamic>> _post(

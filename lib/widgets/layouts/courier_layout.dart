@@ -4,6 +4,8 @@ import 'package:image_picker/image_picker.dart';
 import '../../core/theme.dart';
 import '../../models/models.dart';
 import '../../services/data_repository.dart';
+import '../../services/pagination_controller.dart';
+import '../common/paginated_list_view.dart';
 
 import '../../screens/profile/profile_screen.dart';
 
@@ -18,46 +20,50 @@ class CourierLayout extends StatefulWidget {
 class _CourierLayoutState extends State<CourierLayout> {
   int _currentIndex = 0;
   final DataRepository _repository = DataRepository();
-  List<CourierTask> _tasks = [];
-  bool _isLoading = true;
+
+  /// Разбивка по статусам делается запросами к серверу, а не фильтрацией
+  /// загруженного списка: иначе вкладка показывала бы только те задачи,
+  /// что попали в первую страницу общего списка.
+  late final PaginationController<CourierTask> _assignedController;
+  late final PaginationController<CourierTask> _inProgressController;
 
   @override
   void initState() {
     super.initState();
-    _fetchTasks();
+    _assignedController = PaginationController<CourierTask>(
+      fetchPage: (page) =>
+          _repository.courierMyTasks(page: page, status: 'assigned'),
+    );
+    _inProgressController = PaginationController<CourierTask>(
+      fetchPage: (page) =>
+          _repository.courierMyTasks(page: page, status: 'in_progress'),
+    );
+  }
+
+  @override
+  void dispose() {
+    _assignedController.dispose();
+    _inProgressController.dispose();
+    super.dispose();
   }
 
   Future<void> _fetchTasks() async {
-    setState(() => _isLoading = true);
-    try {
-      final tasks = await _repository.courierMyTasks();
-      setState(() {
-        _tasks = tasks;
-        _isLoading = false;
-      });
-    } catch (e) {
-      setState(() => _isLoading = false);
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Ошибка загрузки задач: $e')));
-      }
-    }
+    await Future.wait([
+      _assignedController.refresh(),
+      _inProgressController.refresh(),
+    ]);
   }
 
   @override
   Widget build(BuildContext context) {
     final List<Widget> screens = [
       CourierTasksScreen(
-        tasks: _tasks,
-        isLoading: _isLoading,
+        assignedController: _assignedController,
+        inProgressController: _inProgressController,
         onRefresh: _fetchTasks,
       ),
       _CourierRouteScreen(
-        tasks: _tasks
-            .where((t) => t.status == CourierTaskStatus.inProgress)
-            .toList(),
-        isLoading: _isLoading,
+        controller: _inProgressController,
         onRefresh: _fetchTasks,
       ),
       const ProfileScreen(),
@@ -103,14 +109,14 @@ class _CourierLayoutState extends State<CourierLayout> {
 }
 
 class CourierTasksScreen extends StatelessWidget {
-  final List<CourierTask> tasks;
-  final bool isLoading;
+  final PaginationController<CourierTask> assignedController;
+  final PaginationController<CourierTask> inProgressController;
   final VoidCallback onRefresh;
 
   const CourierTasksScreen({
     super.key,
-    required this.tasks,
-    required this.isLoading,
+    required this.assignedController,
+    required this.inProgressController,
     required this.onRefresh,
   });
 
@@ -144,46 +150,23 @@ class CourierTasksScreen extends StatelessWidget {
             ],
           ),
         ),
-        body: isLoading
-            ? const Center(
-                child: CircularProgressIndicator(color: Color(0xFFF01D2C)),
-              )
-            : TabBarView(
-                children: [
-                  _buildTaskList(
-                    tasks
-                        .where((t) => t.status == CourierTaskStatus.assigned)
-                        .toList(),
-                  ),
-                  _buildTaskList(
-                    tasks
-                        .where((t) => t.status == CourierTaskStatus.inProgress)
-                        .toList(),
-                  ),
-                ],
-              ),
+        body: TabBarView(
+          children: [
+            _buildTaskList(assignedController),
+            _buildTaskList(inProgressController),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildTaskList(List<CourierTask> taskList) {
-    if (taskList.isEmpty) {
-      return const Center(
-        child: Text(
-          'НЕТ ЗАДАЧ В ЭТОМ РАЗДЕЛЕ',
-          style: TextStyle(
-            color: Color(0xFF171717),
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      );
-    }
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: taskList.length,
-      itemBuilder: (context, index) => Padding(
+  Widget _buildTaskList(PaginationController<CourierTask> controller) {
+    return PaginatedListView<CourierTask>(
+      controller: controller,
+      emptyMessage: 'НЕТ ЗАДАЧ В ЭТОМ РАЗДЕЛЕ',
+      itemBuilder: (context, task, _) => Padding(
         padding: const EdgeInsets.only(bottom: 16),
-        child: CourierTaskCard(task: taskList[index], onUpdated: onRefresh),
+        child: CourierTaskCard(task: task, onUpdated: onRefresh),
       ),
     );
   }
@@ -435,13 +418,11 @@ class _CourierTaskCardState extends State<CourierTaskCard> {
 }
 
 class _CourierRouteScreen extends StatelessWidget {
-  final List<CourierTask> tasks;
-  final bool isLoading;
+  final PaginationController<CourierTask> controller;
   final VoidCallback onRefresh;
 
   const _CourierRouteScreen({
-    required this.tasks,
-    required this.isLoading,
+    required this.controller,
     required this.onRefresh,
   });
 
@@ -459,67 +440,36 @@ class _CourierRouteScreen extends StatelessWidget {
           ),
         ],
       ),
-      body: isLoading
-          ? const Center(
-              child: CircularProgressIndicator(color: Color(0xFFF01D2C)),
-            )
-          : Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: tasks.isEmpty
-                      ? const Center(
-                          child: Text(
-                            'НЕТ АКТИВНЫХ ЗАДАЧ В ПУТИ',
-                            style: TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                        )
-                      : ListView.builder(
-                          padding: const EdgeInsets.all(16),
-                          itemCount: tasks.length,
-                          itemBuilder: (context, index) {
-                            final task = tasks[index];
-                            return Container(
-                              margin: const EdgeInsets.only(bottom: 12),
-                              decoration: const BoxDecoration(
-                                color: Colors.white,
-                                border: Border(
-                                  left: BorderSide(
-                                    color: Color(0xFFF01D2C),
-                                    width: 5,
-                                  ),
-                                ),
-                              ),
-                              child: ListTile(
-                                contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                  vertical: 8,
-                                ),
-                                title: Text(
-                                  task.address.toUpperCase(),
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.w900,
-                                    fontSize: 13,
-                                  ),
-                                ),
-                                subtitle: Text(
-                                  '${task.timeSlot} · ${task.clientName}',
-                                  style: const TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              
-                                onTap: () {
-                                  // Could navigate to detail or show on map
-                                },
-                              ),
-                            );
-                          },
-                        ),
-                ),
-              ],
+      body: PaginatedListView<CourierTask>(
+        controller: controller,
+        emptyMessage: 'НЕТ АКТИВНЫХ ЗАДАЧ В ПУТИ',
+        itemBuilder: (context, task, _) => Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            border: Border(
+              left: BorderSide(color: Color(0xFFF01D2C), width: 5),
             ),
+          ),
+          child: ListTile(
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 8,
+            ),
+            title: Text(
+              task.address.toUpperCase(),
+              style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13),
+            ),
+            subtitle: Text(
+              '${task.timeSlot} · ${task.clientName}',
+              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+            ),
+            onTap: () {
+              // Could navigate to detail or show on map
+            },
+          ),
+        ),
+      ),
     );
   }
 }

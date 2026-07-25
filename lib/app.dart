@@ -20,6 +20,8 @@ import 'screens/notifications/notifications_screen.dart';
 import 'screens/distributor/distributor_screen.dart';
 import 'screens/distributor/distributor_cabinet_screen.dart';
 import 'screens/orders/order_screen.dart';
+import 'screens/orders/order_detail_screen.dart';
+import 'screens/orders/order_review_screen.dart';
 import 'screens/delivery/delivery_screen.dart';
 import 'screens/courier/courier_screen.dart';
 import 'screens/admin/unified_client_card_screen.dart';
@@ -114,6 +116,22 @@ final GoRouter _router = GoRouter(
     GoRoute(path: AppRoutes.notifications, builder: (ctx, _) => const NotificationsScreen()),
     GoRoute(path: AppRoutes.distributor, builder: (ctx, _) => const DistributorScreen()),
     GoRoute(path: AppRoutes.order, builder: (ctx, state) => OrderScreen(initialOrder: state.extra as Order?)),
+    // Разбор заказа оператором. Открывается из списка (заказ приходит в extra)
+    // и по ссылке из письма — тогда extra пуст и заказ грузится по id.
+    GoRoute(
+      path: '${AppRoutes.orders}/:orderId/review',
+      builder: (ctx, state) => OrderReviewScreen(
+        orderId: state.pathParameters['orderId']!,
+        initialOrder: state.extra as Order?,
+      ),
+    ),
+    GoRoute(
+      path: '${AppRoutes.orders}/:orderId',
+      builder: (ctx, state) => OrderDetailScreen(
+        orderId: state.pathParameters['orderId']!,
+        initialOrder: state.extra as Order?,
+      ),
+    ),
     GoRoute(path: AppRoutes.delivery, builder: (ctx, _) => const DeliveryScreen()),
   ],
 );

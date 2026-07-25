@@ -5,6 +5,8 @@ import 'package:share_plus/share_plus.dart';
 import '../../core/theme.dart';
 import '../../models/models.dart';
 import '../../services/data_repository.dart';
+import '../../services/pagination_controller.dart';
+import '../../widgets/common/paginated_list_view.dart';
 
 class ReferralScreen extends StatefulWidget {
   const ReferralScreen({super.key});
@@ -14,22 +16,32 @@ class ReferralScreen extends StatefulWidget {
 }
 
 class _ReferralScreenState extends State<ReferralScreen> {
-  late Future<List<Referral>> _future;
+  late final PaginationController<Referral> _controller;
+
+  /// Сводка приходит тем же ответом и считается по всей базе, а не по
+  /// загруженной странице — поэтому храним её отдельно от списка.
+  Map<String, dynamic> _stats = const {};
 
   @override
   void initState() {
     super.initState();
-    _future = DataRepository().referrals();
+    _controller = PaginationController<Referral>(
+      fetchPage: (page) async {
+        final (result, stats) = await DataRepository().referrals(page: page);
+        if (mounted) setState(() => _stats = stats);
+        return result;
+      },
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
   }
 
   void _reload() {
-    setState(() { _future = DataRepository().referrals(); });
-  }
-
-  Future<void> _refresh() async {
-    final next = DataRepository().referrals();
-    setState(() => _future = next);
-    await next;
+    _controller.refresh();
   }
 
   void _share(String code) {
@@ -90,48 +102,33 @@ class _ReferralScreenState extends State<ReferralScreen> {
 
     return Scaffold(
       appBar: AppBar(title: const Text('РЕФЕРАЛЬНАЯ ПРОГРАММА')),
-      body: FutureBuilder<List<Referral>>(
-        future: _future,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState != ConnectionState.done) {
-            return const Center(child: CircularProgressIndicator(color: AppColors.brandRed));
-          }
-          if (snapshot.hasError) {
-            return Center(child: Text(snapshot.error.toString()));
-          }
-          final referrals = snapshot.data!;
-          return RefreshIndicator(
-            onRefresh: _refresh,
-            child: SingleChildScrollView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildHowItWorks(),
-                  const SizedBox(height: 16),
-                  _buildRefCode(context, refCode),
-                  const SizedBox(height: 20),
-                  _buildStats(referrals, fmt),
-                  const SizedBox(height: 24),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text('МОИ ПРИГЛАШЕНИЯ', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13)),
-                      TextButton(onPressed: _showAddDialog, child: const Text('ДОБАВИТЬ +', style: TextStyle(color: AppColors.brandRed, fontWeight: FontWeight.bold))),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  if (referrals.isEmpty)
-                    const Center(child: Text('ПРИГЛАШЕНИЙ ПОКА НЕТ', style: TextStyle(color: AppColors.textSecondary, fontSize: 12, fontWeight: FontWeight.bold)))
-                  else
-                    ...referrals.map((r) => _ReferralCard(referral: r, fmt: fmt)),
-                  const SizedBox(height: 80),
-                ],
-              ),
+      body: PaginatedListView<Referral>(
+        controller: _controller,
+        emptyMessage: 'ПРИГЛАШЕНИЙ ПОКА НЕТ',
+        header: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildHowItWorks(),
+            const SizedBox(height: 16),
+            _buildRefCode(context, refCode),
+            const SizedBox(height: 20),
+            _buildStats(fmt),
+            const SizedBox(height: 24),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('МОИ ПРИГЛАШЕНИЯ', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13)),
+                TextButton(
+                  onPressed: _showAddDialog,
+                  child: const Text('ДОБАВИТЬ +', style: TextStyle(color: AppColors.brandRed, fontWeight: FontWeight.bold)),
+                ),
+              ],
             ),
-          );
-        },
+            const SizedBox(height: 12),
+          ],
+        ),
+        itemBuilder: (context, referral, _) =>
+            _ReferralCard(referral: referral, fmt: fmt),
       ),
     );
   }
@@ -195,18 +192,16 @@ class _ReferralScreenState extends State<ReferralScreen> {
     );
   }
 
-  Widget _buildStats(List<Referral> referrals, NumberFormat fmt) {
-    final met = referrals.where((r) => r.conditionMet).length;
-    final buyers = referrals.where((r) => r.hasPurchase).length;
-    final total = referrals.fold<double>(0, (sum, it) => sum + it.purchaseAmount);
+  Widget _buildStats(NumberFormat fmt) {
+    int stat(String key) => (_stats[key] as num? ?? 0).toInt();
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(color: Colors.white, border: Border.all(color: AppColors.border)),
       child: Row(
         children: [
-          _stat('СТО', '${referrals.length}'),
-          _stat('АКТИВНЫЕ', '$buyers'),
-          _stat('БОНУСЫ', '$met'),
+          _stat('СТО', '${stat('invitedCount')}'),
+          _stat('АКТИВНЫЕ', '${stat('buyersCount')}'),
+          _stat('БОНУСЫ', '${stat('giftCount')}'),
         ],
       ),
     );

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../models/models.dart';
 import '../../services/data_repository.dart';
+import '../../services/pagination_controller.dart';
+import '../../widgets/common/paginated_list_view.dart';
 import '../../core/constants.dart';
 
 class ManagerClientsScreen extends StatefulWidget {
@@ -13,8 +15,7 @@ class ManagerClientsScreen extends StatefulWidget {
 
 class _ManagerClientsScreenState extends State<ManagerClientsScreen> {
   final _repo = DataRepository();
-  List<Client> _clients = [];
-  bool _isLoading = true;
+  late final PaginationController<Client> _controller;
 
   String? _filterStatus;
   String? _filterCategory;
@@ -22,30 +23,24 @@ class _ManagerClientsScreenState extends State<ManagerClientsScreen> {
   @override
   void initState() {
     super.initState();
-    _load();
-  }
-
-  Future<void> _load() async {
-    setState(() => _isLoading = true);
-    try {
-      final items = await _repo.managerClientsFiltered(
+    // Фильтры уходят на сервер — отбирать записи внутри загруженной страницы
+    // нельзя, подходящие клиенты остались бы на других страницах.
+    _controller = PaginationController<Client>(
+      fetchPage: (page) => _repo.managerClientsFiltered(
+        page: page,
         status: _filterStatus,
         category: _filterCategory,
-      );
-      setState(() {
-        _clients = items;
-        _isLoading = false;
-      });
-    } catch (e) {
-      setState(() => _isLoading = false);
-      if (mounted) _showError(e.toString());
-    }
+      ),
+    );
   }
 
-  void _showError(String msg) {
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text('Ошибка: $msg')));
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
   }
+
+  Future<void> _load() => _controller.refresh();
 
   void _openRegistration() {
     showModalBottomSheet(
@@ -83,33 +78,16 @@ class _ManagerClientsScreenState extends State<ManagerClientsScreen> {
         children: [
           _buildFilters(),
           Expanded(
-            child: _isLoading
-                ? const Center(child: CircularProgressIndicator(color: Color(0xFFF01D2C)))
-                : _clients.isEmpty
-                    ? const Center(
-                        child: Text(
-                          'НЕТ КЛИЕНТОВ',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w900,
-                            color: Color(0xFF171717),
-                            letterSpacing: 1,
-                          ),
-                        ),
-                      )
-                    : RefreshIndicator(
-                        onRefresh: _load,
-                        color: const Color(0xFFF01D2C),
-                        child: ListView.builder(
-                          padding: const EdgeInsets.all(16),
-                          itemCount: _clients.length,
-                          itemBuilder: (_, i) => _ClientCard(
-                            client: _clients[i],
-                            onTap: () => context.push(
-                              '${AppRoutes.managerClients}/${_clients[i].id}',
-                            ),
-                          ),
-                        ),
-                      ),
+            child: PaginatedListView<Client>(
+              controller: _controller,
+              emptyMessage: 'НЕТ КЛИЕНТОВ',
+              itemBuilder: (_, client, __) => _ClientCard(
+                client: client,
+                onTap: () => context.push(
+                  '${AppRoutes.managerClients}/${client.id}',
+                ),
+              ),
+            ),
           ),
         ],
       ),

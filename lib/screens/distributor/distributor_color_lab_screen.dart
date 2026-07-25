@@ -3,6 +3,8 @@ import 'package:intl/intl.dart';
 import '../../core/theme.dart';
 import '../../models/models.dart';
 import '../../services/data_repository.dart';
+import '../../services/pagination_controller.dart';
+import '../../widgets/common/paginated_list_view.dart';
 import '../../widgets/common/premium_icon_badge.dart';
 import '../../widgets/common/status_badge.dart';
 import '../../widgets/delivery/assign_courier_sheet.dart';
@@ -16,93 +18,37 @@ class DistributorColorLabScreen extends StatefulWidget {
 
 // No SingleTickerProviderStateMixin — Historia tab removed entirely.
 class _DistributorColorLabScreenState extends State<DistributorColorLabScreen> {
-  List<ColorRequest> _requests = [];
-  bool _loading = true;
-  String? _error;
+  late final PaginationController<ColorRequest> _controller;
 
   @override
   void initState() {
     super.initState();
-    _load();
-  }
-
-  Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-    try {
-      final requests = await DataRepository().distributorColorRequests();
-      if (mounted) {
-        setState(() {
-          _requests = requests;
-          _loading = false;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _error = e.toString();
-          _loading = false;
-        });
-      }
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    // Only active requests — История removed.
-    final active = _requests
-        .where((r) =>
-            r.status != ColorRequestStatus.delivered &&
-            r.status != ColorRequestStatus.cancelled)
-        .toList();
-
-    return Scaffold(
-      appBar: AppBar(title: const Text('COLOR LAB (ПОДБОР)')),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : _error != null
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(_error!),
-                      const SizedBox(height: 16),
-                      ElevatedButton(onPressed: _load, child: const Text('ПОВТОРИТЬ')),
-                    ],
-                  ),
-                )
-              : _buildList(active),
+    // Завершённые и отменённые заявки отсекает сервер — на клиенте фильтровать
+    // страницу нельзя, она может целиком состоять из завершённых.
+    _controller = PaginationController<ColorRequest>(
+      fetchPage: (page) =>
+          DataRepository().distributorColorRequests(page: page, activeOnly: true),
     );
   }
 
-  Widget _buildList(List<ColorRequest> items) {
-    if (items.isEmpty) {
-      return RefreshIndicator(
-        onRefresh: _load,
-        child: ListView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          children: const [
-            SizedBox(height: 220),
-            Center(
-              child: Text(
-                'НЕТ АКТИВНЫХ ЗАЯВОК',
-                style: TextStyle(color: AppColors.textSecondary, fontWeight: FontWeight.bold),
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-    return RefreshIndicator(
-      onRefresh: _load,
-      child: ListView.separated(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.all(16),
-        itemCount: items.length,
-        separatorBuilder: (_, _) => const SizedBox(height: 12),
-        itemBuilder: (context, i) => _ColorLabCard(request: items[i], onUpdate: _load),
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Future<void> _load() => _controller.refresh();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('COLOR LAB (ПОДБОР)')),
+      body: PaginatedListView<ColorRequest>(
+        controller: _controller,
+        separator: const SizedBox(height: 12),
+        emptyMessage: 'НЕТ АКТИВНЫХ ЗАЯВОК',
+        itemBuilder: (context, request, _) =>
+            _ColorLabCard(request: request, onUpdate: _load),
       ),
     );
   }

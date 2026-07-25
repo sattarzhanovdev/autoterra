@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:excel/excel.dart' hide Border;
 import '../../services/data_repository.dart';
+import '../../services/pagination_controller.dart';
+import '../../widgets/common/paginated_list_view.dart';
 import '../../core/theme.dart';
 
 class DistributorStockScreen extends StatefulWidget {
@@ -13,35 +14,34 @@ class DistributorStockScreen extends StatefulWidget {
 
 class _DistributorStockScreenState extends State<DistributorStockScreen> {
   final DataRepository _repo = DataRepository();
-  List<ProductData> _products = [];
-  bool _isLoading = true;
+  late final PaginationController<ProductData> _controller;
   bool _isUploading = false;
   String _searchQuery = '';
 
   @override
   void initState() {
     super.initState();
-    _fetch();
+    // Поиск выполняется на сервере: при пагинации фильтровать загруженную
+    // страницу на клиенте нельзя — совпадения с других страниц потерялись бы.
+    _controller = PaginationController<ProductData>(
+      fetchPage: (page) => _repo.distributorStock(
+        page: page,
+        search: _searchQuery.isEmpty ? null : _searchQuery,
+      ),
+    );
   }
 
-  Future<void> _fetch() async {
-    setState(() => _isLoading = true);
-    try {
-      final data = await _repo.distributorStock();
-      if (mounted) {
-        setState(() {
-          _products = data;
-          _isLoading = false;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() => _isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Ошибка: $e'), backgroundColor: AppColors.error),
-        );
-      }
-    }
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Future<void> _fetch() => _controller.refresh();
+
+  void _onSearchChanged(String value) {
+    _searchQuery = value;
+    _controller.refreshDebounced();
   }
 
   Future<void> _pickAndUploadExcel() async {
@@ -59,39 +59,22 @@ class _DistributorStockScreenState extends State<DistributorStockScreen> {
       final bytes = file.bytes;
       if (bytes == null) throw 'Не удалось прочитать файл';
 
-      final excel = Excel.decodeBytes(bytes);
-      final List<Map<String, dynamic>> items = [];
+      // Парсинг выполняется на сервере: поддерживается шаблон WB
+      // «Общие характеристики» (многострочная шапка, колонки по названию,
+      // фото/габариты/баркод и т.д.). Отправляем сырой файл.
+      final res = await _repo.distributorStockUploadFile(bytes, file.name);
 
-      for (var table in excel.tables.keys) {
-        final sheet = excel.tables[table]!;
-        for (int i = 1; i < sheet.maxRows; i++) {
-          final row = sheet.rows[i];
-          if (row.isEmpty) continue;
+      final created = res['created'] ?? 0;
+      final updated = res['updated'] ?? 0;
+      final errors = (res['errors'] as List?) ?? const [];
 
-          final sku = row[0]?.value?.toString();
-          if (sku == null || sku.isEmpty) continue;
-
-          items.add({
-            'sku': sku,
-            'name': row[1]?.value?.toString() ?? 'Без названия',
-            'category': row[2]?.value?.toString() ?? 'Общее',
-            'brand': row[3]?.value?.toString() ?? 'AutoTerra',
-            'price': double.tryParse(row[4]?.value?.toString() ?? '0') ?? 0.0,
-            'quantity': int.tryParse(row[5]?.value?.toString() ?? '0') ?? 0,
-            'status': (int.tryParse(row[5]?.value?.toString() ?? '0') ?? 0) > 0 ? 'inStock' : 'outOfStock',
-          });
-        }
-      }
-
-      if (items.isEmpty) throw 'Файл пуст или имеет неверный формат';
-
-      await _repo.distributorStockUpload(items);
-      
       if (mounted) {
+        final summary = 'Загружено: +$created новых, $updated обновлено'
+            '${errors.isNotEmpty ? ' · предупреждений: ${errors.length}' : ''}';
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Успешно загружено: ${items.length} поз.'),
-            backgroundColor: AppColors.success,
+            content: Text(summary),
+            backgroundColor: errors.isEmpty ? AppColors.success : AppColors.warning,
           ),
         );
         _fetch();
@@ -115,16 +98,6 @@ class _DistributorStockScreenState extends State<DistributorStockScreen> {
       backgroundColor: Colors.transparent,
       builder: (_) => AddProductSheet(onAdded: _fetch),
     );
-  }
-
-  List<ProductData> get _filteredProducts {
-    if (_searchQuery.isEmpty) return _products;
-    return _products.where((p) {
-      final q = _searchQuery.toLowerCase();
-      return p.name.toLowerCase().contains(q) ||
-             p.sku.toLowerCase().contains(q) ||
-             p.brand.toLowerCase().contains(q);
-    }).toList();
   }
 
   @override
@@ -164,7 +137,7 @@ class _DistributorStockScreenState extends State<DistributorStockScreen> {
             padding: const EdgeInsets.all(16),
             color: Colors.white,
             child: TextField(
-              onChanged: (v) => setState(() => _searchQuery = v),
+              onChanged: _onSearchChanged,
               decoration: InputDecoration(
                 hintText: 'ПОИСК ПО SKU ИЛИ НАЗВАНИЮ',
                 prefixIcon: const Icon(Icons.search, color: Color(0xFF171717)),
@@ -180,17 +153,12 @@ class _DistributorStockScreenState extends State<DistributorStockScreen> {
             ),
           ),
           Expanded(
-            child: _isLoading
-                ? const Center(child: CircularProgressIndicator(color: AppColors.brandRed))
-                : _filteredProducts.isEmpty
-                    ? const Center(child: Text('ТОВАРЫ НЕ НАЙДЕНЫ'))
-                    : ListView.builder(
-                        padding: const EdgeInsets.all(16),
-                        itemCount: _filteredProducts.length,
-                        itemBuilder: (context, index) => _ProductStockCard(
-                          product: _filteredProducts[index],
-                        ),
-                      ),
+            child: PaginatedListView<ProductData>(
+              controller: _controller,
+              emptyMessage: 'ТОВАРЫ НЕ НАЙДЕНЫ',
+              itemBuilder: (context, product, _) =>
+                  _ProductStockCard(product: product),
+            ),
           ),
         ],
       ),

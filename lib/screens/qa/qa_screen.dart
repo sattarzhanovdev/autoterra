@@ -7,6 +7,8 @@ import '../../core/theme.dart';
 import '../../models/models.dart';
 import '../../services/data_repository.dart';
 import '../../services/auth_service.dart';
+import '../../services/pagination_controller.dart';
+import '../../widgets/common/paginated_list_view.dart';
 import '../../widgets/common/status_badge.dart';
 
 class QaScreen extends StatefulWidget {
@@ -17,26 +19,26 @@ class QaScreen extends StatefulWidget {
 }
 
 class _QaScreenState extends State<QaScreen> {
-  late Future<List<ExpertTicket>> _future;
+  late final PaginationController<ExpertTicket> _controller;
 
   @override
   void initState() {
     super.initState();
-    _future = DataRepository().tickets();
+    _controller = PaginationController<ExpertTicket>(
+      fetchPage: (page) => DataRepository().tickets(page: page),
+    );
   }
 
-  Future<void> _refresh() async {
-    final next = DataRepository().tickets();
-    setState(() {
-      _future = next;
-    });
-    await next;
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
   }
+
+  Future<void> _refresh() => _controller.refresh();
 
   void _reload() {
-    setState(() {
-      _future = DataRepository().tickets();
-    });
+    _controller.refresh();
   }
 
   @override
@@ -66,42 +68,14 @@ class _QaScreenState extends State<QaScreen> {
   }
 
   Widget _buildTickets() {
-    return FutureBuilder<List<ExpertTicket>>(
-      future: _future,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState != ConnectionState.done) {
-          return const Center(child: CircularProgressIndicator(color: AppColors.brandRed));
-        }
-        if (snapshot.hasError) {
-          return Center(child: Text(snapshot.error.toString()));
-        }
-        final tickets = snapshot.data!;
-        if (tickets.isEmpty) {
-          return RefreshIndicator(
-            onRefresh: _refresh,
-            child: ListView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              children: const [
-                SizedBox(height: 220),
-                Center(child: Text('НЕТ АКТИВНЫХ ОБРАЩЕНИЙ')),
-              ],
-            ),
-          );
-        }
-        return RefreshIndicator(
-          onRefresh: _refresh,
-          child: ListView.separated(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.all(16),
-            itemCount: tickets.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 12),
-            itemBuilder: (context, i) => _TicketCard(
-              ticket: tickets[i],
-              onTap: () => _showTicketDetail(tickets[i]),
-            ),
-          ),
-        );
-      },
+    return PaginatedListView<ExpertTicket>(
+      controller: _controller,
+      separator: const SizedBox(height: 12),
+      emptyMessage: 'НЕТ АКТИВНЫХ ОБРАЩЕНИЙ',
+      itemBuilder: (context, ticket, _) => _TicketCard(
+        ticket: ticket,
+        onTap: () => _showTicketDetail(ticket),
+      ),
     );
   }
 

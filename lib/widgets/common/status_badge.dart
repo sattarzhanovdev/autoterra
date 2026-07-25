@@ -140,12 +140,22 @@ class StatusBadge extends StatelessWidget {
     switch (status) {
       case OrderStatus.newOrder:
         return const StatusBadge(label: 'НОВЫЙ', color: AppColors.info);
+      case OrderStatus.confirmed:
+        return const StatusBadge(label: 'ПОДТВЕРЖДЁН', color: AppColors.success);
+      case OrderStatus.adjusted:
+        return const StatusBadge(label: 'СКОРРЕКТИРОВАН', color: AppColors.warning);
       case OrderStatus.accepted:
         return const StatusBadge(label: 'В РАБОТЕ', color: AppColors.warning);
+      case OrderStatus.paid:
+        return const StatusBadge(label: 'ОПЛАЧЕН', color: AppColors.info);
+      case OrderStatus.shipped:
+        return const StatusBadge(label: 'ОТПРАВЛЕН', color: AppColors.info);
       case OrderStatus.rejected:
-        return const StatusBadge(label: 'ОТМЕНЁН', color: AppColors.error);
+        return const StatusBadge(label: 'ОТКЛОНЁН', color: AppColors.error);
       case OrderStatus.fulfilled:
         return const StatusBadge(label: 'ВЫПОЛНЕН', color: AppColors.success);
+      case OrderStatus.cancelled:
+        return const StatusBadge(label: 'ОТМЕНЁН', color: AppColors.error);
     }
   }
 

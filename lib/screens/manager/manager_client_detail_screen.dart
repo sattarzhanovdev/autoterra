@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../models/models.dart';
+import '../../models/paginated.dart';
 import '../../services/data_repository.dart';
 
 const _kStatusLabels = {
@@ -26,6 +27,10 @@ class _ManagerClientDetailScreenState extends State<ManagerClientDetailScreen> {
   List<ContactHistoryEntry> _history = [];
   bool _loading = true;
   bool _historyLoading = false;
+  bool _historyLoadingMore = false;
+  bool _historyHasMore = false;
+  int _historyPage = 1;
+  int _historyTotal = 0;
 
   @override
   void initState() {
@@ -42,7 +47,11 @@ class _ManagerClientDetailScreenState extends State<ManagerClientDetailScreen> {
       ]);
       setState(() {
         _unified = results[0] as Map<String, dynamic>;
-        _history = results[1] as List<ContactHistoryEntry>;
+        final historyPage = results[1] as Paginated<ContactHistoryEntry>;
+        _history = historyPage.items;
+        _historyHasMore = historyPage.hasNext;
+        _historyTotal = historyPage.count;
+        _historyPage = 1;
         _loading = false;
       });
     } catch (e) {
@@ -54,13 +63,38 @@ class _ManagerClientDetailScreenState extends State<ManagerClientDetailScreen> {
   Future<void> _loadHistory() async {
     setState(() => _historyLoading = true);
     try {
-      final items = await _repo.managerClientHistory(widget.clientId);
+      final result = await _repo.managerClientHistory(widget.clientId);
       setState(() {
-        _history = items;
+        _history = result.items;
+        _historyHasMore = result.hasNext;
+        _historyTotal = result.count;
+        _historyPage = 1;
         _historyLoading = false;
       });
     } catch (_) {
       setState(() => _historyLoading = false);
+    }
+  }
+
+  /// История контактов — вложенная секция карточки, поэтому вместо
+  /// бесконечной прокрутки догружаем её кнопкой «показать ещё».
+  Future<void> _loadMoreHistory() async {
+    if (_historyLoadingMore || !_historyHasMore) return;
+    setState(() => _historyLoadingMore = true);
+    try {
+      final result = await _repo.managerClientHistory(
+        widget.clientId,
+        page: _historyPage + 1,
+      );
+      setState(() {
+        _history = [..._history, ...result.items];
+        _historyHasMore = result.hasNext;
+        _historyTotal = result.count;
+        _historyPage += 1;
+        _historyLoadingMore = false;
+      });
+    } catch (_) {
+      setState(() => _historyLoadingMore = false);
     }
   }
 
@@ -265,8 +299,36 @@ class _ManagerClientDetailScreenState extends State<ManagerClientDetailScreen> {
               ),
             ),
           )
-        else
-          ..._history.map((entry) => _HistoryEntry(entry: entry)).toList(),
+        else ...[
+          ..._history.map((entry) => _HistoryEntry(entry: entry)),
+          if (_historyHasMore)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Center(
+                child: _historyLoadingMore
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          color: Color(0xFFF01D2C),
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : TextButton(
+                        onPressed: _loadMoreHistory,
+                        child: Text(
+                          'ПОКАЗАТЬ ЕЩЁ (${_history.length} ИЗ $_historyTotal)',
+                          style: const TextStyle(
+                            color: Color(0xFFF01D2C),
+                            fontWeight: FontWeight.w900,
+                            fontSize: 11,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ),
+              ),
+            ),
+        ],
       ],
     );
   }

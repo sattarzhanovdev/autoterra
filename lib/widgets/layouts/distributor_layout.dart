@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../../core/theme.dart';
+import '../../core/constants.dart';
 import '../../models/models.dart';
 import '../../services/data_repository.dart';
+import '../../services/pagination_controller.dart';
+import '../common/paginated_list_view.dart';
 import '../../widgets/common/app_logo.dart';
 import '../../screens/distributor/distributor_clients_screen.dart';
 import '../../screens/distributor/distributor_stock_screen.dart';
@@ -93,36 +97,32 @@ class DistributorPurchasesList extends StatefulWidget {
 
 class _DistributorPurchasesListState extends State<DistributorPurchasesList> {
   final DataRepository _repo = DataRepository();
-  List<Purchase> _items = [];
-  bool _loading = true;
+  late final PaginationController<Purchase> _controller;
 
   @override
   void initState() {
     super.initState();
-    _fetch();
-  }
-
-  Future<void> _fetch() async {
-    setState(() => _loading = true);
-    try {
-      final data = await _repo.distributorPurchases();
-      setState(() { _items = data; _loading = false; });
-    } catch (e) {
-      setState(() => _loading = false);
-    }
+    _controller = PaginationController<Purchase>(
+      fetchPage: (page) => _repo.distributorPurchases(page: page),
+    );
   }
 
   @override
-  Widget build(BuildContext context) {
-    if (_loading) return const Center(child: CircularProgressIndicator(color: Color(0xFFF01D2C)));
-    if (_items.isEmpty) return const Center(child: Text('НЕТ НОВЫХ ПОКУПОК'));
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: _items.length,
-      itemBuilder: (context, index) => Padding(
+  Future<void> _fetch() => _controller.refresh();
+
+  @override
+  Widget build(BuildContext context) {
+    return PaginatedListView<Purchase>(
+      controller: _controller,
+      emptyMessage: 'НЕТ НОВЫХ ПОКУПОК',
+      itemBuilder: (context, purchase, _) => Padding(
         padding: const EdgeInsets.only(bottom: 12),
-        child: PurchaseVerificationCard(purchase: _items[index], onUpdate: _fetch),
+        child: PurchaseVerificationCard(purchase: purchase, onUpdate: _fetch),
       ),
     );
   }
@@ -231,36 +231,32 @@ class DistributorOrdersList extends StatefulWidget {
 
 class _DistributorOrdersListState extends State<DistributorOrdersList> {
   final DataRepository _repo = DataRepository();
-  List<Order> _items = [];
-  bool _loading = true;
+  late final PaginationController<Order> _controller;
 
   @override
   void initState() {
     super.initState();
-    _fetch();
-  }
-
-  Future<void> _fetch() async {
-    setState(() => _loading = true);
-    try {
-      final data = await _repo.distributorOrders();
-      setState(() { _items = data; _loading = false; });
-    } catch (e) {
-      setState(() => _loading = false);
-    }
+    _controller = PaginationController<Order>(
+      fetchPage: (page) => _repo.distributorOrders(page: page),
+    );
   }
 
   @override
-  Widget build(BuildContext context) {
-    if (_loading) return const Center(child: CircularProgressIndicator(color: Color(0xFFF01D2C)));
-    if (_items.isEmpty) return const Center(child: Text('НЕТ НОВЫХ ЗАКАЗОВ'));
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: _items.length,
-      itemBuilder: (context, index) => Padding(
+  Future<void> _fetch() => _controller.refresh();
+
+  @override
+  Widget build(BuildContext context) {
+    return PaginatedListView<Order>(
+      controller: _controller,
+      emptyMessage: 'НЕТ НОВЫХ ЗАКАЗОВ',
+      itemBuilder: (context, order, _) => Padding(
         padding: const EdgeInsets.only(bottom: 12),
-        child: OrderProcessCard(order: _items[index], onUpdate: _fetch),
+        child: OrderProcessCard(order: order, onUpdate: _fetch),
       ),
     );
   }
@@ -300,57 +296,43 @@ class OrderProcessCard extends StatelessWidget {
           const Divider(),
           ...order.items.map((it) => Text('• ${it.name} x ${it.quantity}', style: const TextStyle(fontSize: 12))),
           const SizedBox(height: 16),
-          Row(
-            children: [
-              if (order.status == OrderStatus.newOrder) ...[
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: () => _updateStatus(context, 'accepted'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.black,
-                      shape: const BeveledRectangleBorder(),
-                    ),
-                    child: const Text('ПРИНЯТЬ'),
-                  ),
+          // Принять заказ одной кнопкой нельзя: сначала надо сверить позиции
+          // с остатками на экране разбора, иначе клиент оплатит то, чего нет.
+          if (order.status == OrderStatus.newOrder)
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () => _openReview(context),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFF01D2C),
+                  shape: const BeveledRectangleBorder(),
                 ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () => _updateStatus(context, 'rejected'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: const Color(0xFFF01D2C),
-                      side: const BorderSide(color: Color(0xFFF01D2C)),
-                      shape: const BeveledRectangleBorder(),
-                    ),
-                    child: const Text('ОТКЛОНИТЬ'),
-                  ),
+                child: const Text('РАЗОБРАТЬ ЗАКАЗ'),
+              ),
+            ),
+          if (order.status == OrderStatus.paid)
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () => _openReview(context),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.black,
+                  shape: const BeveledRectangleBorder(),
                 ),
-              ],
-              if (order.status == OrderStatus.accepted)
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: () => _updateStatus(context, 'fulfilled'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFF01D2C),
-                      shape: const BeveledRectangleBorder(),
-                    ),
-                    child: const Text('ВЫПОЛНЕНО'),
-                  ),
-                ),
-            ],
-          )
+                child: const Text('ОТМЕТИТЬ ОТПРАВКУ'),
+              ),
+            ),
         ],
       ),
     );
   }
 
-  Future<void> _updateStatus(BuildContext context, String status) async {
-    try {
-      await DataRepository().updateOrderStatus(order.id, status: status);
-      onUpdate();
-    } catch (e) {
-      if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Ошибка: $e')));
-    }
+  void _openReview(BuildContext context) {
+    context
+        .push('${AppRoutes.orders}/${order.id}/review', extra: order)
+        .then((changed) {
+      if (changed == true) onUpdate();
+    });
   }
 }
 

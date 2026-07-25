@@ -6,11 +6,12 @@ import '../../core/constants.dart';
 import '../../models/models.dart';
 import '../../services/api_client.dart';
 import '../../services/data_repository.dart';
+import '../../services/pagination_controller.dart';
+import '../../widgets/common/paginated_list_view.dart';
 import '../../widgets/common/status_badge.dart';
 import '../../widgets/common/section_header.dart';
 import '../../widgets/common/premium_icon_badge.dart';
 import '../../widgets/delivery/assign_courier_sheet.dart';
-import '../../widgets/delivery/assign_order_courier_sheet.dart';
 import '../../services/auth_service.dart';
 
 class PurchasesScreen extends StatefulWidget {
@@ -21,89 +22,58 @@ class PurchasesScreen extends StatefulWidget {
 }
 
 class _PurchasesScreenState extends State<PurchasesScreen> {
-  _PurchasesPageData? _data;
-  bool _loading = true;
-  String? _error;
+  final DataRepository _repo = DataRepository();
+
+  /// Три независимые ленты: у каждой секции своя пагинация и своя кнопка
+  /// «показать ещё». Склеивать их в один список нельзя — подгрузка одной
+  /// секции сдвигала бы индексы остальных.
+  late final PaginationController<Order> _ordersController;
+  late final PaginationController<Purchase> _purchasesController;
+  late final PaginationController<CourierTask> _deliveriesController;
+
+  /// Итоги приходят с сервера и считаются по всей выборке, а не по
+  /// загруженным страницам.
+  Map<String, dynamic> _stats = const {};
 
   @override
   void initState() {
     super.initState();
-    _load();
+    _ordersController = PaginationController<Order>(
+      fetchPage: (page) => _repo.orders(page: page),
+    );
+    _purchasesController = PaginationController<Purchase>(
+      fetchPage: (page) async {
+        final (result, stats) = await _repo.purchases(page: page);
+        if (mounted && stats.isNotEmpty) setState(() => _stats = stats);
+        return result;
+      },
+    );
+    _deliveriesController = PaginationController<CourierTask>(
+      fetchPage: (page) => _repo.courierTasks(page: page),
+    );
   }
 
-  Future<void> _load() async {
-    try {
-      final repo = DataRepository();
-      final results = await Future.wait([
-        repo.orders(),
-        repo.purchases(),
-        repo.courierTasks(),
-      ]);
-      if (mounted) {
-        setState(() {
-          _data = _PurchasesPageData(
-            orders: results[0] as List<Order>,
-            purchases: results[1] as List<Purchase>,
-            courierTasks: results[2] as List<CourierTask>,
-          );
-          _loading = false;
-          _error = null;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _error = e.toString();
-          _loading = false;
-        });
-      }
-    }
+  @override
+  void dispose() {
+    _ordersController.dispose();
+    _purchasesController.dispose();
+    _deliveriesController.dispose();
+    super.dispose();
   }
 
   Future<void> _refresh() async {
-    await _load();
+    await Future.wait([
+      _ordersController.refresh(),
+      _purchasesController.refresh(),
+      if (authService.currentRole == UserRole.distributor)
+        _deliveriesController.refresh(),
+    ]);
   }
 
   @override
   Widget build(BuildContext context) {
     final fmt = NumberFormat('#,##0', 'ru_RU');
     final isDistributor = authService.currentRole == UserRole.distributor;
-
-    if (_loading && _data == null) {
-      return Scaffold(
-        appBar: AppBar(title: Text(isDistributor ? 'Заказы клиентов' : 'Покупки и заказы')),
-        body: const Center(child: CircularProgressIndicator()),
-      );
-    }
-
-    if (_error != null && _data == null) {
-      return Scaffold(
-        appBar: AppBar(title: Text(isDistributor ? 'Заказы клиентов' : 'Покупки и заказы')),
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(_error!),
-              const SizedBox(height: 16),
-              ElevatedButton(onPressed: _load, child: const Text('ПОВТОРИТЬ')),
-            ],
-          ),
-        ),
-      );
-    }
-
-    final data = _data!;
-    final purchases = data.purchases;
-    final orders = data.orders;
-    final deliveries = data.courierTasks;
-    
-    final total = purchases
-        .where((p) => p.status != PurchaseStatus.rejected)
-        .fold<double>(0, (s, p) => s + p.totalAmount);
-
-    final itemCount = isDistributor 
-        ? (orders.length + purchases.length + deliveries.length + 3)
-        : (orders.length + purchases.length + 2);
 
     return Scaffold(
       appBar: AppBar(
@@ -114,73 +84,46 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
       ),
       body: Column(
         children: [
-          if (!isDistributor) _buildSummary(purchases, total, fmt),
+          if (!isDistributor) _buildSummary(fmt),
           Expanded(
             child: RefreshIndicator(
               onRefresh: _refresh,
-              child: purchases.isEmpty && orders.isEmpty && deliveries.isEmpty
-                  ? ListView(
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      children: const [
-                        SizedBox(height: 220),
-                        Center(child: Text('Покупок и заказов пока нет')),
-                      ],
-                    )
-                  : ListView.separated(
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      padding: const EdgeInsets.all(16),
-                      itemCount: itemCount,
-                      separatorBuilder: (context, index) => const SizedBox(height: 10),
-                      itemBuilder: (context, i) {
-                        if (i == 0) {
-                          return SectionHeader(
-                            title: isDistributor ? 'НОВЫЕ ЗАКАЗЫ' : 'Отправленные заказы',
-                          );
-                        }
-                        if (i <= orders.length) {
-                          return OrderCard(
-                            order: orders[i - 1],
-                            fmt: fmt,
-                            isDistributor: isDistributor,
-                            onUpdate: _refresh,
-                          );
-                        }
-                        
-                        if (isDistributor) {
-                          final deliveryIdx = orders.length + 1;
-                          if (i == deliveryIdx) {
-                            return const SectionHeader(title: 'ЗАЯВКИ НА ДОСТАВКУ');
-                          }
-                          if (i <= orders.length + deliveries.length + 1) {
-                            return _DeliveryCard(
-                              task: deliveries[i - deliveryIdx - 1],
-                              onUpdate: _refresh,
-                            );
-                          }
-                          
-                          final purchaseIdx = orders.length + deliveries.length + 2;
-                          if (i == purchaseIdx) {
-                            return const SectionHeader(title: 'ПРОВЕРКА ПОКУПОК');
-                          }
-                          return PurchaseCard(
-                            purchase: purchases[i - purchaseIdx - 1],
-                            fmt: fmt,
-                            isDistributor: isDistributor,
-                            onUpdate: _refresh,
-                          );
-                        } else {
-                          if (i == orders.length + 1) {
-                            return const SectionHeader(title: 'Подтвержденные покупки');
-                          }
-                          return PurchaseCard(
-                            purchase: purchases[i - orders.length - 2],
-                            fmt: fmt,
-                            isDistributor: isDistributor,
-                            onUpdate: _refresh,
-                          );
-                        }
-                      },
+              child: CustomScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                slivers: [
+                  ...PaginatedSliverSection<Order>(
+                    controller: _ordersController,
+                    title: isDistributor ? 'НОВЫЕ ЗАКАЗЫ' : 'Отправленные заказы',
+                    emptyMessage: 'Заказов пока нет',
+                    itemBuilder: (context, order) => OrderCard(
+                      order: order,
+                      fmt: fmt,
+                      isDistributor: isDistributor,
+                      onUpdate: _refresh,
                     ),
+                  ).build(),
+                  if (isDistributor)
+                    ...PaginatedSliverSection<CourierTask>(
+                      controller: _deliveriesController,
+                      title: 'ЗАЯВКИ НА ДОСТАВКУ',
+                      emptyMessage: 'Заявок на доставку пока нет',
+                      itemBuilder: (context, task) =>
+                          _DeliveryCard(task: task, onUpdate: _refresh),
+                    ).build(),
+                  ...PaginatedSliverSection<Purchase>(
+                    controller: _purchasesController,
+                    title: isDistributor ? 'ПРОВЕРКА ПОКУПОК' : 'Подтвержденные покупки',
+                    emptyMessage: 'Покупок пока нет',
+                    itemBuilder: (context, purchase) => PurchaseCard(
+                      purchase: purchase,
+                      fmt: fmt,
+                      isDistributor: isDistributor,
+                      onUpdate: _refresh,
+                    ),
+                  ).build(),
+                  const SliverToBoxAdapter(child: SizedBox(height: 80)),
+                ],
+              ),
             ),
           ),
         ],
@@ -199,14 +142,10 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
     );
   }
 
-  Widget _buildSummary(List<Purchase> purchases, double total, NumberFormat fmt) {
-    final verified = purchases.where((p) => p.status == PurchaseStatus.verified).length;
-    final pending = purchases.where((p) => 
-        p.status == PurchaseStatus.newPurchase || 
-        p.status == PurchaseStatus.pending || 
-        p.status == PurchaseStatus.pendingVerification || 
-        p.status == PurchaseStatus.underReview || 
-        p.status == PurchaseStatus.duplicateReview).length;
+  Widget _buildSummary(NumberFormat fmt) {
+    final total = (_stats['totalAmount'] as num? ?? 0).toDouble();
+    final verified = (_stats['verifiedCount'] as num? ?? 0).toInt();
+    final pending = (_stats['pendingCount'] as num? ?? 0).toInt();
 
     return Container(
       color: AppColors.brandBlack,
@@ -256,18 +195,6 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
   }
 }
 
-class _PurchasesPageData {
-  final List<Order> orders;
-  final List<Purchase> purchases;
-  final List<CourierTask> courierTasks;
-
-  const _PurchasesPageData({
-    required this.orders,
-    required this.purchases,
-    required this.courierTasks,
-  });
-}
-
 class OrderCard extends StatelessWidget {
   final Order order;
   final NumberFormat fmt;
@@ -285,17 +212,15 @@ class OrderCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final status = _orderStatusView(order.status);
-    final canAction = isDistributor && order.status == OrderStatus.newOrder;
-    final canEdit = !isDistributor && order.status == OrderStatus.newOrder;
+    // Новый заказ оператор не «берёт в работу» одной кнопкой, а разбирает:
+    // сверяет позиции с остатками и решает — подтвердить или скорректировать.
+    final needsReview = isDistributor && order.status == OrderStatus.newOrder;
+    // Клиенту нужно ответить на корректировку или оплатить подтверждённый заказ.
+    final needsClientAction = !isDistributor &&
+        (order.status == OrderStatus.adjusted || order.status.isPayable);
 
     return AppCard(
-      onTap: () {
-        if (canEdit) {
-          context.push(AppRoutes.order, extra: order).then((_) => onUpdate?.call());
-        } else {
-          _showDetails(context);
-        }
-      },
+      onTap: () => _openOrder(context),
       child: Column(
         children: [
           Row(
@@ -342,29 +267,34 @@ class OrderCard extends StatelessWidget {
               const Icon(Icons.chevron_right, color: AppColors.textSecondary),
             ],
           ),
-          if (canAction) ...[
+          if (needsReview) ...[
             const Divider(height: 24),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () => _handleUpdate(context, 'rejected'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.error,
-                      side: const BorderSide(color: AppColors.error),
-                    ),
-                    child: const Text('ОТКЛОНИТЬ', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900)),
-                  ),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () => _openOrder(context),
+                style: ElevatedButton.styleFrom(backgroundColor: AppColors.brandRed),
+                child: const Text(
+                  'РАЗОБРАТЬ ЗАКАЗ',
+                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 0.5),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: () => _handleUpdate(context, 'accepted'),
-                    style: ElevatedButton.styleFrom(backgroundColor: AppColors.brandBlack),
-                    child: const Text('В РАБОТУ', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900)),
-                  ),
+              ),
+            ),
+          ],
+          if (needsClientAction) ...[
+            const Divider(height: 24),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () => _openOrder(context),
+                style: ElevatedButton.styleFrom(backgroundColor: AppColors.brandRed),
+                child: Text(
+                  order.status == OrderStatus.adjusted
+                      ? 'ПОСМОТРЕТЬ ИЗМЕНЕНИЯ'
+                      : 'ОПЛАТИТЬ ЗАКАЗ',
+                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 0.5),
                 ),
-              ],
+              ),
             ),
           ],
         ],
@@ -372,51 +302,16 @@ class OrderCard extends StatelessWidget {
     );
   }
 
-  void _showDetails(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      useSafeArea: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => _OrderDetailsSheet(order: order, fmt: fmt, isDistributor: isDistributor, onUpdate: onUpdate),
-    );
+  /// Оператор идёт на разбор, клиент — на карточку заказа с оплатой.
+  void _openOrder(BuildContext context) {
+    final path = isDistributor
+        ? '${AppRoutes.orders}/${order.id}/review'
+        : '${AppRoutes.orders}/${order.id}';
+    context.push(path, extra: order).then((changed) {
+      if (changed == true) onUpdate?.call();
+    });
   }
 
-  Future<void> _handleUpdate(BuildContext context, String status) async {
-    if (status == 'accepted') {
-      // Styled bottom sheet handles courier + date (or direct self-pickup
-      // accept) and performs the status update itself.
-      final ok = await showAssignOrderCourierSheet(context, order, fmt);
-      if (ok == true) onUpdate?.call();
-      return;
-    }
-
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Отклонить заказ?'),
-        content: const Text('Заказ будет отменен.'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('ОТМЕНА')),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
-            child: const Text('ПОДТВЕРДИТЬ'),
-          ),
-        ],
-      ),
-    );
-    if (confirmed != true) return;
-
-    try {
-      await DataRepository().updateOrderStatus(order.id, status: status);
-      onUpdate?.call();
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Ошибка: $e')));
-      }
-    }
-  }
 }
 
 class _DeliveryCard extends StatelessWidget {
@@ -611,159 +506,6 @@ class _DeliveryDetailsSheet extends StatelessWidget {
   }
 }
 
-class _OrderDetailsSheet extends StatelessWidget {
-  final Order order;
-  final NumberFormat fmt;
-  final bool isDistributor;
-  final VoidCallback? onUpdate;
-
-  const _OrderDetailsSheet({required this.order, required this.fmt, this.isDistributor = false, this.onUpdate});
-
-  @override
-  Widget build(BuildContext context) {
-    final status = _orderStatusView(order.status);
-    final canAction = isDistributor && order.status == OrderStatus.newOrder;
-
-    return SafeArea(
-      child: Container(
-        constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.9),
-        decoration: const BoxDecoration(color: Colors.white, borderRadius: BorderRadius.zero),
-        child: Column(
-          children: [
-            Container(
-              width: 36, height: 4, margin: const EdgeInsets.only(top: 12),
-              decoration: BoxDecoration(color: AppColors.border, borderRadius: BorderRadius.zero),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 10, 8, 10),
-              child: Row(
-                children: [
-                  const PremiumIconBadge(icon: Icons.shopping_bag_outlined, size: 44, iconSize: 22, iconColor: AppColors.brandRed),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(order.documentNumber, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
-                        Text(status.description, style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
-                      ],
-                    ),
-                  ),
-                  IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close, color: AppColors.textHint)),
-                ],
-              ),
-            ),
-            const Divider(height: 1),
-            Expanded(
-              child: ListView(
-                padding: const EdgeInsets.all(20),
-                children: [
-                  InfoRow(label: 'Статус', value: status.label),
-                  InfoRow(label: 'Дата заказа', value: DateFormat('dd.MM.yyyy HH:mm', 'ru_RU').format(order.date)),
-                  if (order.estimatedDeliveryDate != null)
-                    InfoRow(label: 'Ожидаемая дата доставки', value: DateFormat('dd.MM.yyyy', 'ru_RU').format(order.estimatedDeliveryDate!)),
-                  if (order.courierName != null && order.courierName!.isNotEmpty)
-                    InfoRow(label: 'Курьер', value: order.courierName!),
-                  InfoRow(label: 'Позиций', value: '${order.items.length}'),
-                  InfoRow(label: 'Итого', value: '${fmt.format(order.totalAmount)} ₽'),
-                  const SizedBox(height: 16),
-                  const Text('Состав заказа', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
-                  const SizedBox(height: 12),
-                  ...order.items.map((item) => Container(
-                    margin: const EdgeInsets.only(bottom: 10),
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(color: AppColors.brandWhite, border: Border.all(color: AppColors.border), borderRadius: BorderRadius.circular(8)),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(item.name, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
-                              const SizedBox(height: 2),
-                              Text('${item.sku} · ${item.category} · ${item.brand}', style: const TextStyle(color: AppColors.textSecondary, fontSize: 11)),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            Text('${item.quantity} шт.', style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
-                            Text('${fmt.format(item.total)} ₽', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
-                          ],
-                        ),
-                      ],
-                    ),
-                  )),
-                  if (canAction) ...[
-                    const SizedBox(height: 24),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton(
-                            onPressed: () => _handleUpdate(context, 'rejected'),
-                            style: OutlinedButton.styleFrom(foregroundColor: AppColors.error, side: const BorderSide(color: AppColors.error), minimumSize: const Size(0, 50)),
-                            child: const Text('ОТКЛОНИТЬ', style: TextStyle(fontWeight: FontWeight.w900)),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: ElevatedButton(
-                            onPressed: () => _handleUpdate(context, 'accepted'),
-                            style: ElevatedButton.styleFrom(backgroundColor: AppColors.brandBlack, minimumSize: const Size(0, 50)),
-                            child: const Text('В РАБОТУ', style: TextStyle(fontWeight: FontWeight.w900)),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Future<void> _handleUpdate(BuildContext context, String status) async {
-    if (status == 'accepted') {
-      // Styled bottom sheet handles courier + date (or direct self-pickup
-      // accept) and performs the status update itself.
-      final ok = await showAssignOrderCourierSheet(context, order, fmt);
-      if (ok == true) {
-        if (context.mounted) Navigator.pop(context);
-        onUpdate?.call();
-      }
-      return;
-    }
-
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Отклонить заказ?'),
-        content: const Text('Заказ будет отменен.'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('ОТМЕНА')),
-          ElevatedButton(onPressed: () => Navigator.pop(context, true), style: ElevatedButton.styleFrom(backgroundColor: AppColors.error), child: const Text('ПОДТВЕРДИТЬ')),
-        ],
-      ),
-    );
-    if (confirmed != true) return;
-
-    try {
-      await DataRepository().updateOrderStatus(order.id, status: status);
-      if (context.mounted) Navigator.pop(context);
-      onUpdate?.call();
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Ошибка: $e')));
-      }
-    }
-  }
-}
-
 class _OrderStatusView {
   final String label;
   final String description;
@@ -773,10 +515,15 @@ class _OrderStatusView {
 
 _OrderStatusView _orderStatusView(OrderStatus status) {
   switch (status) {
+    case OrderStatus.newOrder: return const _OrderStatusView('Ожидает подтверждения', 'Оператор проверяет наличие', AppColors.warning);
+    case OrderStatus.confirmed: return const _OrderStatusView('Подтверждён', 'Готов к оплате', AppColors.success);
+    case OrderStatus.adjusted: return const _OrderStatusView('Скорректирован', 'Требуется ваше согласие', AppColors.warning);
     case OrderStatus.accepted: return const _OrderStatusView('Принят', 'Принят в работу', AppColors.info);
-    case OrderStatus.fulfilled: return const _OrderStatusView('Выполнен', 'Заказ выполнен', AppColors.success);
-    case OrderStatus.rejected: return const _OrderStatusView('Отклонён', 'Заказ отклонен', AppColors.error);
-    case OrderStatus.newOrder: return const _OrderStatusView('Отправлен', 'Ожидает обработки', AppColors.warning);
+    case OrderStatus.paid: return const _OrderStatusView('Оплачен', 'Ожидает отправки', AppColors.info);
+    case OrderStatus.shipped: return const _OrderStatusView('Отправлен', 'В пути', AppColors.info);
+    case OrderStatus.fulfilled: return const _OrderStatusView('Доставлен', 'Заказ выполнен', AppColors.success);
+    case OrderStatus.rejected: return const _OrderStatusView('Отклонён', 'Заказ отклонён', AppColors.error);
+    case OrderStatus.cancelled: return const _OrderStatusView('Отменён', 'Заказ отменён', AppColors.error);
   }
 }
 

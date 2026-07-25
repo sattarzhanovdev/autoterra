@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../../core/theme.dart';
 import '../../models/models.dart';
 import '../../services/data_repository.dart';
+import '../../services/pagination_controller.dart';
+import '../../widgets/common/paginated_list_view.dart';
 import '../../widgets/common/premium_icon_badge.dart';
 
 class DistributorClientsScreen extends StatefulWidget {
@@ -13,47 +15,27 @@ class DistributorClientsScreen extends StatefulWidget {
 
 class _DistributorClientsScreenState extends State<DistributorClientsScreen> {
   final DataRepository _repo = DataRepository();
-  List<Client> _items = [];
-  List<Client> _filtered = [];
-  bool _loading = true;
+  late final PaginationController<Client> _controller;
   final TextEditingController _searchCtrl = TextEditingController();
 
   @override
   void initState() {
     super.initState();
-    _fetch();
-    _searchCtrl.addListener(_onSearch);
+    // Поиск идёт на сервере — иначе фильтр видел бы только текущую страницу.
+    _controller = PaginationController<Client>(
+      fetchPage: (page) => _repo.distributorClients(
+        page: page,
+        search: _searchCtrl.text.trim().isEmpty ? null : _searchCtrl.text.trim(),
+      ),
+    );
+    _searchCtrl.addListener(_controller.refreshDebounced);
   }
 
   @override
   void dispose() {
     _searchCtrl.dispose();
+    _controller.dispose();
     super.dispose();
-  }
-
-  Future<void> _fetch() async {
-    setState(() => _loading = true);
-    try {
-      final data = await _repo.distributorClients();
-      setState(() {
-        _items = data;
-        _filtered = data;
-        _loading = false;
-      });
-    } catch (e) {
-      setState(() => _loading = false);
-    }
-  }
-
-  void _onSearch() {
-    final query = _searchCtrl.text.toLowerCase();
-    setState(() {
-      _filtered = _items.where((c) => 
-        c.name.toLowerCase().contains(query) || 
-        c.inn.contains(query) ||
-        c.city.toLowerCase().contains(query)
-      ).toList();
-    });
   }
 
   @override
@@ -67,19 +49,11 @@ class _DistributorClientsScreenState extends State<DistributorClientsScreen> {
         children: [
           _buildSearch(),
           Expanded(
-            child: _loading 
-              ? const Center(child: CircularProgressIndicator(color: Color(0xFFF01D2C)))
-              : _filtered.isEmpty 
-                ? const Center(child: Text('КЛИЕНТЫ НЕ НАЙДЕНЫ'))
-                : RefreshIndicator(
-                    onRefresh: _fetch,
-                    color: const Color(0xFFF01D2C),
-                    child: ListView.builder(
-                      padding: const EdgeInsets.all(16),
-                      itemCount: _filtered.length,
-                      itemBuilder: (context, index) => ClientListCard(client: _filtered[index]),
-                    ),
-                  ),
+            child: PaginatedListView<Client>(
+              controller: _controller,
+              emptyMessage: 'КЛИЕНТЫ НЕ НАЙДЕНЫ',
+              itemBuilder: (context, client, _) => ClientListCard(client: client),
+            ),
           ),
         ],
       ),
@@ -94,7 +68,7 @@ class _DistributorClientsScreenState extends State<DistributorClientsScreen> {
         controller: _searchCtrl,
         style: const TextStyle(color: Colors.white),
         decoration: InputDecoration(
-          hintText: 'ПОИСК ПО НАЗВАНИЮ, ИНН ИЛИ ГОРОДУ',
+          hintText: 'ПОИСК ПО НАЗВАНИЮ ИЛИ ИНН',
           hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.3), fontSize: 12, fontWeight: FontWeight.bold),
           prefixIcon: const Icon(Icons.search, color: Color(0xFFF01D2C)),
           filled: true,

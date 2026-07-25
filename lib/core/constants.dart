@@ -34,6 +34,10 @@ class AppRoutes {
   static const purchases = '/purchases';
   static const addPurchase = '/purchases/add';
   static const order = '/order';
+
+  /// Заказ целиком: `/orders/{id}` — клиенту, `/orders/{id}/review` — оператору.
+  /// Тот же путь приходит ссылкой в письмах и пушах по заказу.
+  static const orders = '/orders';
   static const colorCenter = '/color';
   static const aiAssistant = '/ai';
   static const qa = '/qa';

@@ -3,6 +3,8 @@ import 'package:go_router/go_router.dart';
 import '../../core/theme.dart';
 import '../../models/models.dart' as app_models;
 import '../../services/data_repository.dart';
+import '../../services/pagination_controller.dart';
+import '../../widgets/common/paginated_list_view.dart';
 import '../../widgets/common/premium_icon_badge.dart';
 
 class NotificationsScreen extends StatefulWidget {
@@ -13,24 +15,31 @@ class NotificationsScreen extends StatefulWidget {
 }
 
 class _NotificationsScreenState extends State<NotificationsScreen> {
-  late Future<List<app_models.Notification>> _future;
+  late final PaginationController<app_models.Notification> _controller;
 
   @override
   void initState() {
     super.initState();
-    _future = DataRepository().notifications();
+    // Лента идёт сплошным хронологическим списком: делить её на «новые» и
+    // «прочитанные» при постраничной подгрузке нельзя — секции перемешались бы
+    // по мере догрузки. Непрочитанные подсвечены в самой карточке.
+    _controller = PaginationController<app_models.Notification>(
+      fetchPage: (page) => DataRepository().notifications(page: page),
+    );
   }
 
-  Future<void> _refresh() async {
-    final next = DataRepository().notifications();
-    setState(() => _future = next);
-    await next;
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
   }
+
+  Future<void> _refresh() => _controller.refresh();
 
   Future<void> _readAll() async {
     try {
       await DataRepository().markNotificationsRead();
-      _refresh();
+      await _refresh();
     } catch (e) {
       //
     }
@@ -57,66 +66,13 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           ),
         ],
       ),
-      body: FutureBuilder<List<app_models.Notification>>(
-        future: _future,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState != ConnectionState.done) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (snapshot.hasError) {
-            return Center(child: Text(snapshot.error.toString()));
-          }
-          final notifications = snapshot.data!;
-          final unread = notifications.where((n) => !n.isRead).toList();
-          final read = notifications.where((n) => n.isRead).toList();
-          if (notifications.isEmpty) {
-            return RefreshIndicator(
-              onRefresh: _refresh,
-              child: ListView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                children: const [
-                  SizedBox(height: 220),
-                  Center(child: Text('Уведомлений пока нет')),
-                ],
-              ),
-            );
-          }
-          return RefreshIndicator(
-            onRefresh: _refresh,
-            child: ListView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.all(16),
-              children: [
-                if (unread.isNotEmpty) ...[
-                  const Text(
-                    'НОВЫЕ',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w900,
-                      fontSize: 12,
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  ...unread.map((n) => _NotifCard(notification: n, onTap: () => _handleTap(n))),
-                  const SizedBox(height: 24),
-                ],
-                if (read.isNotEmpty) ...[
-                  const Text(
-                    'ПРОЧИТАННЫЕ',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w900,
-                      fontSize: 12,
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  ...read.map((n) => _NotifCard(notification: n, onTap: () => _handleTap(n))),
-                ],
-                const SizedBox(height: 80),
-              ],
-            ),
-          );
-        },
+      body: PaginatedListView<app_models.Notification>(
+        controller: _controller,
+        emptyMessage: 'УВЕДОМЛЕНИЙ ПОКА НЕТ',
+        itemBuilder: (context, notification, _) => _NotifCard(
+          notification: notification,
+          onTap: () => _handleTap(notification),
+        ),
       ),
     );
   }

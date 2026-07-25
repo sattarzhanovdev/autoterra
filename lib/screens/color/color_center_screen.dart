@@ -3,6 +3,8 @@ import 'package:intl/intl.dart';
 import '../../core/theme.dart';
 import '../../models/models.dart';
 import '../../services/data_repository.dart';
+import '../../services/pagination_controller.dart';
+import '../../widgets/common/paginated_list_view.dart';
 import '../../widgets/common/status_badge.dart';
 import '../../widgets/common/section_header.dart';
 import '../../widgets/common/premium_icon_badge.dart';
@@ -15,24 +17,25 @@ class ColorCenterScreen extends StatefulWidget {
 }
 
 class _ColorCenterScreenState extends State<ColorCenterScreen> {
-  late Future<List<ColorRequest>> _future;
+  late final PaginationController<ColorRequest> _controller;
 
   @override
   void initState() {
     super.initState();
-    _future = DataRepository().colorRequests();
+    // Завершённые и отменённые заявки отсекает сервер.
+    _controller = PaginationController<ColorRequest>(
+      fetchPage: (page) => DataRepository().colorRequests(page: page, activeOnly: true),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
   }
 
   void _reload() {
-    setState(() {
-      _future = DataRepository().colorRequests();
-    });
-  }
-
-  Future<void> _refresh() async {
-    final next = DataRepository().colorRequests();
-    setState(() => _future = next);
-    await next;
+    _controller.refresh();
   }
 
   @override
@@ -55,45 +58,15 @@ class _ColorCenterScreenState extends State<ColorCenterScreen> {
   }
 
   Widget _buildRequestsTab() {
-    return FutureBuilder<List<ColorRequest>>(
-      future: _future,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState != ConnectionState.done) {
-          return const Center(child: CircularProgressIndicator(color: AppColors.brandRed));
-        }
-        if (snapshot.hasError) {
-          return Center(child: Text(snapshot.error.toString()));
-        }
-        final requests = snapshot.data!
-            .where((item) => item.status != ColorRequestStatus.delivered && item.status != ColorRequestStatus.cancelled)
-            .toList();
-        if (requests.isEmpty) {
-          return RefreshIndicator(
-            onRefresh: _refresh,
-            child: ListView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              children: const [
-                SizedBox(height: 220),
-                Center(child: Text('НЕТ АКТИВНЫХ ЗАЯВОК')),
-              ],
-            ),
-          );
-        }
-        return RefreshIndicator(
-          onRefresh: _refresh,
-          child: ListView.separated(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.all(16),
-            itemCount: requests.length,
-            separatorBuilder: (_, _) => const SizedBox(height: 12),
-            itemBuilder: (context, i) => _ColorCard(
-              request: requests[i],
-              onTap: () => _showRecipe(requests[i]),
-              onUpdate: _reload,
-            ),
-          ),
-        );
-      },
+    return PaginatedListView<ColorRequest>(
+      controller: _controller,
+      separator: const SizedBox(height: 12),
+      emptyMessage: 'НЕТ АКТИВНЫХ ЗАЯВОК',
+      itemBuilder: (context, request, _) => _ColorCard(
+        request: request,
+        onTap: () => _showRecipe(request),
+        onUpdate: _reload,
+      ),
     );
   }
 

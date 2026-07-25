@@ -6,7 +6,52 @@ enum ClientCategory { a, b, c }
 
 enum PurchaseStatus { newPurchase, pending, pendingVerification, underReview, duplicateReview, verified, rejected }
 
-enum OrderStatus { newOrder, accepted, rejected, fulfilled }
+enum OrderStatus {
+  newOrder,
+  confirmed,
+  adjusted,
+  accepted, // legacy
+  rejected,
+  paid,
+  shipped,
+  fulfilled,
+  cancelled,
+}
+
+extension OrderStatusExtension on OrderStatus {
+  /// Значение статуса на бэкенде (Django).
+  String get apiValue {
+    switch (this) {
+      case OrderStatus.newOrder: return 'new';
+      case OrderStatus.confirmed: return 'confirmed';
+      case OrderStatus.adjusted: return 'adjusted';
+      case OrderStatus.accepted: return 'accepted';
+      case OrderStatus.rejected: return 'rejected';
+      case OrderStatus.paid: return 'paid';
+      case OrderStatus.shipped: return 'shipped';
+      case OrderStatus.fulfilled: return 'fulfilled';
+      case OrderStatus.cancelled: return 'cancelled';
+    }
+  }
+
+  String get label {
+    switch (this) {
+      case OrderStatus.newOrder: return 'Ожидает подтверждения';
+      case OrderStatus.confirmed: return 'Подтверждён';
+      case OrderStatus.adjusted: return 'Скорректирован';
+      case OrderStatus.accepted: return 'Принят';
+      case OrderStatus.rejected: return 'Отклонён';
+      case OrderStatus.paid: return 'Оплачен';
+      case OrderStatus.shipped: return 'Отправлен';
+      case OrderStatus.fulfilled: return 'Доставлен';
+      case OrderStatus.cancelled: return 'Отменён';
+    }
+  }
+
+  /// Клиент может инициировать оплату.
+  bool get isPayable =>
+      this == OrderStatus.confirmed || this == OrderStatus.adjusted;
+}
 
 enum StockStatus { inStock, low, onOrder, outOfStock }
 
@@ -192,6 +237,13 @@ class Order {
   final String? courierName;
   final DateTime? estimatedDeliveryDate;
   final DateTime createdAt;
+  final DateTime? confirmedAt;
+  final DateTime? paidAt;
+  final DateTime? shippedAt;
+  final bool isPayable;
+  final List<OrderAdjustment> adjustments;
+  /// Ссылка на страницу оплаты YooKassa, если платёж уже создан и ждёт оплаты.
+  final String? pendingPaymentUrl;
 
   const Order({
     required this.id,
@@ -212,6 +264,73 @@ class Order {
     this.courierId,
     this.courierName,
     this.estimatedDeliveryDate,
+    required this.createdAt,
+    this.confirmedAt,
+    this.paidAt,
+    this.shippedAt,
+    this.isPayable = false,
+    this.adjustments = const [],
+    this.pendingPaymentUrl,
+  });
+}
+
+/// Позиция, по которой запрошено больше, чем есть на складе.
+class OrderShortage {
+  final String productId;
+  final String name;
+  final String sku;
+  final int requested;
+  final int available;
+
+  const OrderShortage({
+    required this.productId,
+    required this.name,
+    required this.sku,
+    required this.requested,
+    required this.available,
+  });
+
+  /// Достаёт дефициты из тела ответа 409. Возвращает пустой список, если
+  /// ошибка не про остатки.
+  static List<OrderShortage> parseList(Object? details) {
+    if (details is! Map) return const [];
+    final raw = details['shortages'];
+    if (raw is! List) return const [];
+    return raw.whereType<Map>().map((row) {
+      return OrderShortage(
+        productId: row['productId']?.toString() ?? '',
+        name: row['name']?.toString() ?? '',
+        sku: row['sku']?.toString() ?? '',
+        requested: int.tryParse('${row['requested']}') ?? 0,
+        available: int.tryParse('${row['available']}') ?? 0,
+      );
+    }).toList();
+  }
+}
+
+/// Заказ нельзя подтвердить: по части позиций не хватает остатков.
+class OrderShortageException implements Exception {
+  final String message;
+  final List<OrderShortage> shortages;
+
+  const OrderShortageException(this.message, this.shortages);
+
+  @override
+  String toString() => message;
+}
+
+class OrderAdjustment {
+  final String id;
+  final List<PurchaseItem> originalItems;
+  final List<PurchaseItem> adjustedItems;
+  final String? reason;
+  final DateTime createdAt;
+
+  const OrderAdjustment({
+    required this.id,
+    this.originalItems = const [],
+    this.adjustedItems = const [],
+    this.reason,
     required this.createdAt,
   });
 }
@@ -274,6 +393,10 @@ class AppAttachment {
 }
 
 class PurchaseItem {
+  /// Идентификатор позиции заказа. Нужен оператору, чтобы отправить
+  /// корректировку. У позиций покупки и у снимков в истории его нет.
+  final String? id;
+  final String? productId;
   final String sku;
   final String name;
   final String category;
@@ -282,7 +405,12 @@ class PurchaseItem {
   final double price;
   final String brand;
 
+  /// Остаток на складе. `null` — товар под заказ, остаток не ограничивает.
+  final int? availableQuantity;
+
   const PurchaseItem({
+    this.id,
+    this.productId,
     required this.sku,
     required this.name,
     required this.category,
@@ -290,9 +418,29 @@ class PurchaseItem {
     required this.volume,
     required this.price,
     required this.brand,
+    this.availableQuantity,
   });
 
   double get total => price * quantity;
+
+  /// Запрошено больше, чем есть на складе.
+  bool get isShort =>
+      availableQuantity != null && quantity > availableQuantity!;
+
+  PurchaseItem copyWith({int? quantity}) {
+    return PurchaseItem(
+      id: id,
+      productId: productId,
+      sku: sku,
+      name: name,
+      category: category,
+      quantity: quantity ?? this.quantity,
+      volume: volume,
+      price: price,
+      brand: brand,
+      availableQuantity: availableQuantity,
+    );
+  }
 }
 
 class StockItem {

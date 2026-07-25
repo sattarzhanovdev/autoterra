@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../../core/theme.dart';
 import '../../models/models.dart';
 import '../../services/data_repository.dart';
+import '../../services/pagination_controller.dart';
+import '../../widgets/common/paginated_list_view.dart';
 import '../../widgets/common/premium_icon_badge.dart';
 import '../../widgets/common/status_badge.dart';
 
@@ -13,24 +15,26 @@ class DeliveryScreen extends StatefulWidget {
 }
 
 class _DeliveryScreenState extends State<DeliveryScreen> {
-  late Future<List<CourierTask>> _future;
+  late final PaginationController<CourierTask> _controller;
 
   @override
   void initState() {
     super.initState();
-    _future = DataRepository().courierTasks();
+    // Завершённые заявки отсекает сервер: фильтровать уже загруженную страницу
+    // на клиенте нельзя — активные заявки с других страниц потерялись бы.
+    _controller = PaginationController<CourierTask>(
+      fetchPage: (page) => DataRepository().courierTasks(page: page, activeOnly: true),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
   }
 
   void _reload() {
-    setState(() {
-      _future = DataRepository().courierTasks();
-    });
-  }
-
-  Future<void> _refresh() async {
-    final next = DataRepository().courierTasks();
-    setState(() => _future = next);
-    await next;
+    _controller.refresh();
   }
 
   @override
@@ -54,69 +58,33 @@ class _DeliveryScreenState extends State<DeliveryScreen> {
   }
 
   Widget _buildActiveTab() {
-    return FutureBuilder<List<CourierTask>>(
-      future: _future,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState != ConnectionState.done) {
-          return const Center(child: CircularProgressIndicator());
-        }
-        if (snapshot.hasError) {
-          return Center(child: Text(snapshot.error.toString()));
-        }
-        final tasks = snapshot.data!.where((t) => t.status.index < 3).toList();
-        if (tasks.isEmpty) {
-          return RefreshIndicator(
-            onRefresh: _refresh,
-            child: ListView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              children: [
-                const SizedBox(height: 180),
-                Center(
-                  child: Column(
-                    children: [
-                      const PremiumIconBadge(
-                        icon: Icons.local_shipping_outlined,
-                        size: 56,
-                        iconSize: 28,
-                      ),
-                      const SizedBox(height: 16),
-                      const Text(
-                        'Нет активных заявок',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w700,
-                          fontSize: 16,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      const Text(
-                        'Создайте заявку на доставку заказа',
-                        style: TextStyle(
-                          color: AppColors.textSecondary,
-                          fontSize: 13,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          );
-        }
-        return RefreshIndicator(
-          onRefresh: _refresh,
-          child: ListView.builder(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.all(16),
-            itemCount: tasks.length,
-            itemBuilder: (ctx, i) => _CourierTaskCard(
-              task: tasks[i],
-              onStatusChange: (newStatus) {},
-              onTap: () => _showDeliveryEditSheet(context, tasks[i]),
-            ),
+    return PaginatedListView<CourierTask>(
+      controller: _controller,
+      emptyBuilder: Column(
+        children: const [
+          PremiumIconBadge(
+            icon: Icons.local_shipping_outlined,
+            size: 56,
+            iconSize: 28,
           ),
-        );
-      },
+          SizedBox(height: 16),
+          Text(
+            'Нет активных заявок',
+            style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
+          ),
+          SizedBox(height: 8),
+          Text(
+            'Создайте заявку на доставку заказа',
+            style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+      itemBuilder: (ctx, task, _) => _CourierTaskCard(
+        task: task,
+        onStatusChange: (newStatus) {},
+        onTap: () => _showDeliveryEditSheet(context, task),
+      ),
     );
   }
 
