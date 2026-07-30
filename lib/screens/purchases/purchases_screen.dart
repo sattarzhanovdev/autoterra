@@ -212,6 +212,7 @@ class OrderCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final status = _orderStatusView(order.status);
+    final tier = _orderTier(order.status);
     // Новый заказ оператор не «берёт в работу» одной кнопкой, а разбирает:
     // сверяет позиции с остатками и решает — подтвердить или скорректировать.
     final needsReview = isDistributor && order.status == OrderStatus.newOrder;
@@ -219,17 +220,47 @@ class OrderCard extends StatelessWidget {
     final needsClientAction = !isDistributor &&
         (order.status == OrderStatus.adjusted || order.status.isPayable);
 
+    final isNew = tier == _OrderTier.fresh;
+    final isDone = tier == _OrderTier.processed;
+
     return AppCard(
       onTap: () => _openOrder(context),
+      // Новый заказ — единственное, что в списке светится красным: в палитре
+      // приложения это и есть «требует внимания». Обработанный уходит в серый.
+      redAccent: isNew,
+      accentBar: isDone ? AppColors.border : null,
+      background: isDone ? AppColors.canvas : null,
       child: Column(
         children: [
+          if (isNew || isDone) ...[
+            Row(
+              children: [
+                StatusBadge(
+                  label: isNew ? 'Новый' : 'Обработан',
+                  color: isNew ? AppColors.brandRed : AppColors.textHint,
+                  filled: isNew,
+                ),
+                const Spacer(),
+                Text(
+                  DateFormat('dd.MM.yyyy', 'ru_RU').format(order.date),
+                  style: const TextStyle(
+                    fontSize: 9,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 0.5,
+                    color: AppColors.textHint,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+          ],
           Row(
             children: [
-              const PremiumIconBadge(
+              PremiumIconBadge(
                 icon: Icons.shopping_bag_outlined,
                 size: 42,
                 iconSize: 22,
-                iconColor: AppColors.brandRed,
+                iconColor: isDone ? AppColors.textHint : AppColors.brandRed,
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -238,7 +269,11 @@ class OrderCard extends StatelessWidget {
                   children: [
                     Text(
                       isDistributor ? (order.clientName ?? order.documentNumber) : order.documentNumber,
-                      style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
+                      style: TextStyle(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 14,
+                        color: isDone ? AppColors.textSecondary : AppColors.textPrimary,
+                      ),
                     ),
                     Text(
                       isDistributor
@@ -254,7 +289,10 @@ class OrderCard extends StatelessWidget {
                 children: [
                   Text(
                     '${fmt.format(order.totalAmount)} ₽',
-                    style: const TextStyle(fontWeight: FontWeight.w800),
+                    style: TextStyle(
+                      fontWeight: FontWeight.w800,
+                      color: isDone ? AppColors.textSecondary : AppColors.textPrimary,
+                    ),
                   ),
                   const SizedBox(height: 4),
                   Text(
@@ -511,6 +549,28 @@ class _OrderStatusView {
   final String description;
   final Color color;
   const _OrderStatusView(this.label, this.description, this.color);
+}
+
+/// Насколько заказ ещё «живой». В списке важны три состояния, а не девять
+/// статусов: свежий требует реакции, обработанный уже не требует ничего.
+enum _OrderTier { fresh, inProgress, processed }
+
+_OrderTier _orderTier(OrderStatus status) {
+  switch (status) {
+    case OrderStatus.newOrder:
+      return _OrderTier.fresh;
+    // Заказ доехал или закрыт — реагировать больше не на что.
+    case OrderStatus.fulfilled:
+    case OrderStatus.rejected:
+    case OrderStatus.cancelled:
+      return _OrderTier.processed;
+    case OrderStatus.confirmed:
+    case OrderStatus.adjusted:
+    case OrderStatus.accepted:
+    case OrderStatus.paid:
+    case OrderStatus.shipped:
+      return _OrderTier.inProgress;
+  }
 }
 
 _OrderStatusView _orderStatusView(OrderStatus status) {

@@ -96,6 +96,13 @@ class AppCard extends StatelessWidget {
   final Color? borderColor;
   final bool redAccent;
 
+  /// Фон карточки. Отработанные записи им «уходят на второй план», чтобы в
+  /// списке в глаза бросалось только то, что ещё требует внимания.
+  final Color? background;
+
+  /// Полоса-акцент слева — тот же приём, что в карточке статуса на главной.
+  final Color? accentBar;
+
   const AppCard({
     super.key,
     required this.child,
@@ -103,20 +110,31 @@ class AppCard extends StatelessWidget {
     this.onTap,
     this.borderColor,
     this.redAccent = false,
+    this.background,
+    this.accentBar,
   });
 
   @override
   Widget build(BuildContext context) {
+    final side = BorderSide(
+      color: redAccent ? AppColors.brandRed : (borderColor ?? AppColors.border),
+      width: redAccent ? 2 : 1.0,
+    );
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
         margin: const EdgeInsets.only(bottom: 8),
         decoration: BoxDecoration(
-          color: Colors.white,
-          border: Border.all(
-            color: redAccent ? AppColors.brandRed : (borderColor ?? AppColors.border),
-            width: redAccent ? 2 : 1.0,
-          ),
+          color: background ?? Colors.white,
+          border: accentBar == null
+              ? Border.fromBorderSide(side)
+              : Border(
+                  top: side,
+                  right: side,
+                  bottom: side,
+                  left: BorderSide(color: accentBar!, width: 4),
+                ),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.04),

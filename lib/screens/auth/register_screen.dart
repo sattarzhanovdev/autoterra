@@ -28,6 +28,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _contactCtrl = TextEditingController();
   final _phoneCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
+
+  /// Код приглашения. Заполняется из ссылки `?ref=CODE`, но его можно ввести
+  /// и вручную — код диктуют по телефону.
+  final _referralCtrl = TextEditingController();
   bool _obscure = true;
 
   bool _loading = false;
@@ -82,6 +86,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     _contactCtrl.dispose();
     _phoneCtrl.dispose();
     _passwordCtrl.dispose();
+    _referralCtrl.dispose();
     super.dispose();
   }
 
@@ -117,6 +122,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
         'company_name': _nameCtrl.text,
         'contact_name': _contactCtrl.text,
         'store_address': _addressCtrl.text,
+        if (_referralCtrl.text.trim().isNotEmpty)
+          'referralCode': _referralCtrl.text.trim().toUpperCase(),
       });
 
       if (mounted) {
@@ -456,6 +463,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 border: OutlineInputBorder(borderRadius: BorderRadius.zero),
               ),
               validator: (v) => v!.isEmpty ? 'Введите телефон' : null,
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: _referralCtrl,
+              textCapitalization: TextCapitalization.characters,
+              decoration: const InputDecoration(
+                labelText: 'КОД ПРИГЛАШЕНИЯ',
+                hintText: 'AT-XXXXXX',
+                helperText: 'Если вас пригласил другой автосервис',
+                border: OutlineInputBorder(borderRadius: BorderRadius.zero),
+              ),
             ),
             const SizedBox(height: 16),
             TextFormField(

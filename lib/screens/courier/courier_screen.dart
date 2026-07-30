@@ -138,7 +138,12 @@ class _CourierTaskTile extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     minimumSize: const Size(0, 36),
                   ),
-                  child: Text(task.status == CourierTaskStatus.assigned ? 'В ПУТЬ' : 'ГОТОВО'),
+                  child: Text(
+                    task.status == CourierTaskStatus.assigned
+                        ? 'ВЗЯТЬСЯ ЗА РАБОТУ'
+                        : 'ЗАВЕРШИТЬ ДОСТАВКУ',
+                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900),
+                  ),
                 ),
             ],
           ),
@@ -226,10 +231,10 @@ class _CourierTaskTile extends StatelessWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(isAssigned ? 'Начать выполнение?' : 'Завершить задачу?'),
-        content: Text(isAssigned 
-          ? 'Статус задачи изменится на "В пути"' 
-          : 'Подтвердите успешное выполнение задачи'),
+        title: Text(isAssigned ? 'Взяться за работу?' : 'Завершить доставку?'),
+        content: Text(isAssigned
+          ? 'Клиент увидит статус «В пути» и ваш телефон для связи.'
+          : 'Клиент увидит статус «Доставлено». Отменить это действие нельзя.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),

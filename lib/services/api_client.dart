@@ -1,4 +1,6 @@
 import 'dart:convert';
+import 'dart:typed_data';
+
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -102,12 +104,19 @@ class ApiClient {
     int pageSize = defaultPageSize,
     String? search,
     String? category,
+    String? brand,
+    bool inStockOnly = false,
   }) async {
     final (items, raw) = await _getPageWithMeta(
       '/products/',
       page: page,
       pageSize: pageSize,
-      filters: {'search': search, 'category': category},
+      filters: {
+        'search': search,
+        'category': category,
+        'brand': brand,
+        'inStock': inStockOnly ? 'true' : null,
+      },
     );
     final categories = ((raw['categories'] as List?) ?? const [])
         .map((e) => e.toString())
@@ -165,13 +174,19 @@ class ApiClient {
   }
 
   /// Оператор корректирует состав заказа.
-  /// [items] — список {itemId, quantity}; позиции с quantity=0 удаляются.
+  /// [items] — правки существующих позиций {itemId, quantity}, quantity=0 удаляет.
+  /// [newItems] — добавляемые товары {productId, quantity}.
   Future<Map<String, dynamic>> adjustOrder(
     String orderId, {
     required List<Map<String, dynamic>> items,
+    List<Map<String, dynamic>> newItems = const [],
     String reason = '',
   }) {
-    return _post('/orders/$orderId/adjust/', {'items': items, 'reason': reason});
+    return _post('/orders/$orderId/adjust/', {
+      'items': items,
+      'newItems': newItems,
+      'reason': reason,
+    });
   }
 
   /// Оператор отклоняет заказ с причиной.
@@ -258,10 +273,15 @@ class ApiClient {
     return _post('/referrals/create/', body);
   }
 
+  /// Рефералы плюс метаданные программы: сводка, личный код, ссылка-приглашение
+  /// и условия подарка. Код приходит с сервера — он у каждого клиента свой.
   Future<(Paginated<Map<String, dynamic>>, Map<String, dynamic>)> referrals({int page = 1, int pageSize = defaultPageSize}) async {
     final (items, raw) = await _getPageWithMeta('/referrals/', page: page, pageSize: pageSize);
-    final stats = (raw['stats'] as Map?) ?? const {};
-    return (items, Map<String, dynamic>.from(stats));
+    final stats = Map<String, dynamic>.from((raw['stats'] as Map?) ?? const {});
+    for (final key in ['referralCode', 'inviteLink', 'bonusThreshold', 'bonusGift']) {
+      if (raw[key] != null) stats[key] = raw[key];
+    }
+    return (items, stats);
   }
 
   Future<Paginated<Map<String, dynamic>>> tickets({int page = 1, int pageSize = defaultPageSize}) {
@@ -834,6 +854,54 @@ class ApiClient {
       _handleError(e);
       rethrow;
     }
+  }
+
+  /// Выгружает список клиентов файлом. Что попадёт в файл, решает сервер по
+  /// роли: дистрибьютору — свои клиенты, менеджеру региона — его регионы,
+  /// главному менеджеру — все. Возвращает байты и имя файла из заголовка.
+  Future<({Uint8List bytes, String fileName})> exportClients({
+    required String format,
+    String? search,
+    String? status,
+    String? partnerStatus,
+  }) async {
+    final params = <String, String>{'format': format};
+    if (search != null && search.isNotEmpty) params['search'] = search;
+    if (status != null && status.isNotEmpty) params['status'] = status;
+    if (partnerStatus != null && partnerStatus.isNotEmpty) {
+      params['partnerStatus'] = partnerStatus;
+    }
+
+    final normalizedPath = 'clients/export/';
+    final fullUrl = baseUrl.endsWith('/') ? '$baseUrl$normalizedPath' : '$baseUrl/$normalizedPath';
+    final uri = Uri.parse(fullUrl).replace(queryParameters: params);
+
+    // Файл может собираться дольше обычного запроса — список бывает большой.
+    final response = await _httpClient
+        .get(uri, headers: _headers())
+        .timeout(const Duration(seconds: 60));
+
+    if (response.statusCode != 200) {
+      // Ошибка приходит JSON-ом даже на файловом эндпоинте.
+      String message = 'Не удалось выгрузить список (${response.statusCode})';
+      try {
+        final decoded = jsonDecode(utf8.decode(response.bodyBytes));
+        if (decoded is Map && decoded['detail'] != null) message = '${decoded['detail']}';
+      } catch (_) {}
+      throw ApiException(message);
+    }
+
+    return (
+      bytes: response.bodyBytes,
+      fileName: _fileNameFrom(response.headers['content-disposition'], format),
+    );
+  }
+
+  static String _fileNameFrom(String? contentDisposition, String format) {
+    final match = RegExp(r'filename="([^"]+)"').firstMatch(contentDisposition ?? '');
+    if (match != null) return match.group(1)!;
+    final date = DateTime.now().toIso8601String().split('T').first;
+    return 'autoterra-clients-$date.$format';
   }
 
   Future<Map<String, dynamic>> _get(String path, {Map<String, String>? params}) async {

@@ -257,8 +257,27 @@ class _NewColorRequestSheetState extends State<_NewColorRequestSheet> {
 
   String _transferMethod = 'courier';
   DateTime? _pickupTime;
+
+  /// Крайнее время, до которого маляр готов принять курьера за лючком.
+  TimeOfDay? _arriveUntil;
   bool _urgent = false;
   bool _saving = false;
+
+  /// Время «до» в формате, который ждёт API, — «HH:MM».
+  String? get _arriveUntilText => _arriveUntil == null
+      ? null
+      : '${_arriveUntil!.hour.toString().padLeft(2, '0')}:'
+          '${_arriveUntil!.minute.toString().padLeft(2, '0')}';
+
+  static TimeOfDay? _parseTime(String? raw) {
+    if (raw == null || raw.isEmpty) return null;
+    final parts = raw.split(':');
+    if (parts.length < 2) return null;
+    final hour = int.tryParse(parts[0]);
+    final minute = int.tryParse(parts[1]);
+    if (hour == null || minute == null) return null;
+    return TimeOfDay(hour: hour, minute: minute);
+  }
 
   bool get _hasChanges {
     if (widget.initialRequest == null) {
@@ -277,6 +296,7 @@ class _NewColorRequestSheetState extends State<_NewColorRequestSheet> {
     if (_commentCtrl.text != (r.comment ?? '')) return true;
     if (_transferMethod != r.transferMethod) return true;
     if (_pickupTime != r.pickupTime) return true;
+    if (_arriveUntilText != r.courierArriveUntil) return true;
     if (_urgent != r.urgent) return true;
     return false;
   }
@@ -298,6 +318,7 @@ class _NewColorRequestSheetState extends State<_NewColorRequestSheet> {
       _commentCtrl.text = r.comment ?? '';
       _transferMethod = r.transferMethod;
       _pickupTime = r.pickupTime;
+      _arriveUntil = _parseTime(r.courierArriveUntil);
       _urgent = r.urgent;
     }
 
@@ -327,6 +348,7 @@ class _NewColorRequestSheetState extends State<_NewColorRequestSheet> {
           'transferMethod': _transferMethod,
           'pickupAddress': _addressCtrl.text,
           'pickupTime': _pickupTime?.toIso8601String(),
+          'courierArriveUntil': _arriveUntilText,
           'contactPerson': _contactPersonCtrl.text,
           'contactPhone': _contactPhoneCtrl.text,
           'comment': _commentCtrl.text,
@@ -343,6 +365,7 @@ class _NewColorRequestSheetState extends State<_NewColorRequestSheet> {
           'transferMethod': _transferMethod,
           'pickupAddress': _addressCtrl.text,
           'pickupTime': _pickupTime?.toIso8601String(),
+          'courierArriveUntil': _arriveUntilText,
           'contactPerson': _contactPersonCtrl.text,
           'contactPhone': _contactPhoneCtrl.text,
           'comment': _commentCtrl.text,
@@ -483,6 +506,38 @@ class _NewColorRequestSheetState extends State<_NewColorRequestSheet> {
                     child: InputDecorator(
                       decoration: const InputDecoration(labelText: 'ВРЕМЯ ЗАБОРА'),
                       child: Text(_pickupTime == null ? 'НЕ ВЫБРАНО' : DateFormat('HH:mm').format(_pickupTime!)),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  // Дедлайн приезда: колорист и курьер планируют выезд по нему,
+                  // иначе курьер приезжает, когда маляра уже нет на месте.
+                  InkWell(
+                    onTap: () async {
+                      final time = await showTimePicker(
+                        context: context,
+                        initialTime: _arriveUntil ?? const TimeOfDay(hour: 18, minute: 0),
+                        helpText: 'ДО СКОЛЬКИ МОЖЕТ ПРИЕХАТЬ КУРЬЕР?',
+                      );
+                      if (time != null) setState(() => _arriveUntil = time);
+                    },
+                    child: InputDecorator(
+                      decoration: InputDecoration(
+                        labelText: 'ДО СКОЛЬКИ МОЖЕТ ПРИЕХАТЬ КУРЬЕР?',
+                        helperText: 'Курьер приедет за лючком не позже этого времени',
+                        suffixIcon: _arriveUntil == null
+                            ? const Icon(Icons.schedule_outlined, size: 20)
+                            : IconButton(
+                                icon: const Icon(Icons.clear, size: 18),
+                                onPressed: () => setState(() => _arriveUntil = null),
+                              ),
+                      ),
+                      child: Text(
+                        _arriveUntilText ?? 'НЕ ОГРАНИЧЕНО',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          color: _arriveUntil == null ? AppColors.textHint : AppColors.textPrimary,
+                        ),
+                      ),
                     ),
                   ),
                 ],

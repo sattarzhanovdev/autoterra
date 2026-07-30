@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../../core/theme.dart';
 import '../../models/models.dart';
 import '../../services/data_repository.dart';
+import 'product_picker_sheet.dart';
 
 /// Разбор заказа оператором — узкое место всего потока.
 ///
@@ -36,10 +37,23 @@ class _OrderReviewScreenState extends State<OrderReviewScreen> {
   /// заказ не изменён и доступно обычное подтверждение.
   final Map<String, int> _quantities = {};
 
+  /// Товары, добавленные оператором сверх того, что выбрал клиент.
+  final List<_AddedLine> _added = [];
+
+  /// Старый бэкенд не отдаёт id позиций — без них корректировку не собрать.
+  /// Тогда правки недоступны, и об этом надо сказать прямо, а не молча
+  /// прятать элементы управления.
+  bool get _canEditComposition {
+    final order = _order;
+    if (order == null) return false;
+    return order.items.every((item) => item.id != null);
+  }
+
   /// Изменился ли состав относительно того, что прислал клиент.
   bool get _isModified {
     final order = _order;
     if (order == null) return false;
+    if (_added.isNotEmpty) return true;
     return order.items.any((item) {
       final id = item.id;
       if (id == null) return false;
@@ -47,7 +61,8 @@ class _OrderReviewScreenState extends State<OrderReviewScreen> {
     });
   }
 
-  bool get _hasAnyItem => _quantities.values.any((q) => q > 0);
+  bool get _hasAnyItem =>
+      _quantities.values.any((q) => q > 0) || _added.isNotEmpty;
 
   double get _adjustedTotal {
     final order = _order;
@@ -56,6 +71,9 @@ class _OrderReviewScreenState extends State<OrderReviewScreen> {
     for (final item in order.items) {
       final qty = _quantities[item.id] ?? item.quantity;
       sum += item.price * qty;
+    }
+    for (final line in _added) {
+      sum += line.product.price * line.quantity;
     }
     return sum;
   }
@@ -83,6 +101,7 @@ class _OrderReviewScreenState extends State<OrderReviewScreen> {
   void _applyOrder(Order order) {
     _order = order;
     _loadError = null;
+    _added.clear();
     _quantities
       ..clear()
       ..addEntries(
@@ -147,8 +166,20 @@ class _OrderReviewScreenState extends State<OrderReviewScreen> {
             })
         .toList();
 
+    final newItems = _added
+        .map((line) => {
+              'productId': int.tryParse(line.product.id) ?? line.product.id,
+              'quantity': line.quantity,
+            })
+        .toList();
+
     await _run(
-      () => _repo.adjustOrder(widget.orderId, items: items, reason: reason),
+      () => _repo.adjustOrder(
+        widget.orderId,
+        items: items,
+        newItems: newItems,
+        reason: reason,
+      ),
       'Корректировка отправлена клиенту на согласование',
     );
   }
@@ -166,6 +197,32 @@ class _OrderReviewScreenState extends State<OrderReviewScreen> {
       () => _repo.rejectOrder(widget.orderId, reason: reason),
       'Заказ отклонён, товар возвращён на склад',
     );
+  }
+
+  Future<void> _addProduct() async {
+    final product = await showProductPickerSheet(context);
+    if (product == null || !mounted) return;
+
+    // Тот же товар мог уже быть в заказе или добавлен ранее — наращиваем
+    // количество вместо второй строки с тем же SKU.
+    for (final item in _order?.items ?? const <PurchaseItem>[]) {
+      if (item.productId == product.id && item.id != null) {
+        setState(() {
+          _quantities[item.id!] = (_quantities[item.id!] ?? 0) + 1;
+        });
+        _toast('«${product.name}» уже в заказе — количество увеличено');
+        return;
+      }
+    }
+
+    final alreadyAdded = _added.indexWhere((line) => line.product.id == product.id);
+    setState(() {
+      if (alreadyAdded >= 0) {
+        _added[alreadyAdded].quantity += 1;
+      } else {
+        _added.add(_AddedLine(product: product, quantity: 1));
+      }
+    });
   }
 
   Future<void> _ship() {
@@ -379,6 +436,27 @@ class _OrderReviewScreenState extends State<OrderReviewScreen> {
         children: [
           _OrderSummary(order: order),
           const SizedBox(height: 16),
+
+          // Правки требуют id позиций. Если сервер их не прислал, объясняем
+          // почему состав не редактируется, вместо пустого места на экране.
+          if (order.status == OrderStatus.newOrder && !_canEditComposition) ...[
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                border: Border.all(color: AppColors.brandRed, width: 2),
+              ),
+              child: const Text(
+                'СОСТАВ НЕДОСТУПЕН ДЛЯ ПРАВКИ\n\n'
+                'Сервер не передал идентификаторы позиций — обновите бэкенд '
+                'до версии с поддержкой корректировок. Пока доступны только '
+                'подтверждение и отклонение заказа.',
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, height: 1.4),
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
+
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -395,6 +473,38 @@ class _OrderReviewScreenState extends State<OrderReviewScreen> {
           ),
           const SizedBox(height: 8),
           ...order.items.map(_buildItemRow),
+
+          if (_added.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            const Text(
+              'ДОБАВЛЕНО ОПЕРАТОРОМ',
+              style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 1, color: AppColors.brandRed),
+            ),
+            const SizedBox(height: 8),
+            ..._added.map(_buildAddedRow),
+          ],
+
+          if (order.status == OrderStatus.newOrder && _canEditComposition) ...[
+            const SizedBox(height: 8),
+            SizedBox(
+              width: double.infinity,
+              height: 44,
+              child: OutlinedButton.icon(
+                onPressed: _busy ? null : _addProduct,
+                icon: const Icon(Icons.add, size: 18),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.brandBlack,
+                  side: const BorderSide(color: AppColors.brandBlack, width: 2),
+                  shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+                ),
+                label: const Text(
+                  'ДОБАВИТЬ ТОВАР',
+                  style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 0.5),
+                ),
+              ),
+            ),
+          ],
+
           const SizedBox(height: 16),
           _buildTotals(order),
           if (order.comment != null && order.comment!.isNotEmpty) ...[
@@ -414,7 +524,8 @@ class _OrderReviewScreenState extends State<OrderReviewScreen> {
   Widget _buildItemRow(PurchaseItem item) {
     final id = item.id;
     final qty = _quantities[id] ?? item.quantity;
-    final editable = id != null && (_order?.status == OrderStatus.newOrder);
+    final editable =
+        id != null && _canEditComposition && _order?.status == OrderStatus.newOrder;
     final removed = qty == 0;
     // Дефицит считаем по текущему количеству, а не по изначальному: как только
     // оператор уменьшил позицию до остатка, подсветка должна погаснуть.
@@ -490,6 +601,78 @@ class _OrderReviewScreenState extends State<OrderReviewScreen> {
                   '× $qty',
                   style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14),
                 ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Строка добавленного оператором товара — её можно убрать целиком,
+  /// в отличие от позиций клиента, которые обнуляются количеством.
+  Widget _buildAddedRow(_AddedLine line) {
+    final product = line.product;
+    final available =
+        product.status == StockStatus.onOrder ? null : product.quantity;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(left: BorderSide(color: AppColors.brandRed, width: 4)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  product.name.toUpperCase(),
+                  style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12),
+                ),
+              ),
+              InkWell(
+                onTap: () => setState(() => _added.remove(line)),
+                child: const Padding(
+                  padding: EdgeInsets.all(4),
+                  child: Icon(Icons.close, size: 18, color: AppColors.textSecondary),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 2),
+          Text(
+            '${product.sku} · ${_fmt.format(product.price)} ₽/шт',
+            style: const TextStyle(fontSize: 11, color: AppColors.textSecondary, fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  available == null ? 'ПОД ЗАКАЗ' : 'В НАЛИЧИИ: $available',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w900,
+                    color: available != null && line.quantity > available
+                        ? AppColors.brandRed
+                        : AppColors.textSecondary,
+                  ),
+                ),
+              ),
+              _QuantityStepper(
+                quantity: line.quantity,
+                max: available,
+                onChanged: (value) => setState(() {
+                  if (value == 0) {
+                    _added.remove(line);
+                  } else {
+                    line.quantity = value;
+                  }
+                }),
+              ),
             ],
           ),
         ],
@@ -622,6 +805,15 @@ class _OrderReviewScreenState extends State<OrderReviewScreen> {
       ),
     );
   }
+}
+
+/// Товар, добавленный оператором: в заказе его ещё нет, поэтому у строки нет
+/// id позиции — на сервер она уходит как productId + количество.
+class _AddedLine {
+  final ProductData product;
+  int quantity;
+
+  _AddedLine({required this.product, required this.quantity});
 }
 
 /// Шапка: кто заказал, когда и куда.

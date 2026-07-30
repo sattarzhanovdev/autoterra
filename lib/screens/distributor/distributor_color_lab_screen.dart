@@ -10,7 +10,10 @@ import '../../widgets/common/status_badge.dart';
 import '../../widgets/delivery/assign_courier_sheet.dart';
 
 class DistributorColorLabScreen extends StatefulWidget {
-  const DistributorColorLabScreen({super.key});
+  /// Подменяется в тестах; в приложении создаётся сам.
+  final DataRepository? repository;
+
+  const DistributorColorLabScreen({super.key, this.repository});
 
   @override
   State<DistributorColorLabScreen> createState() => _DistributorColorLabScreenState();
@@ -18,16 +21,17 @@ class DistributorColorLabScreen extends StatefulWidget {
 
 // No SingleTickerProviderStateMixin — Historia tab removed entirely.
 class _DistributorColorLabScreenState extends State<DistributorColorLabScreen> {
+  late final DataRepository _repo;
   late final PaginationController<ColorRequest> _controller;
 
   @override
   void initState() {
     super.initState();
+    _repo = widget.repository ?? DataRepository();
     // Завершённые и отменённые заявки отсекает сервер — на клиенте фильтровать
     // страницу нельзя, она может целиком состоять из завершённых.
     _controller = PaginationController<ColorRequest>(
-      fetchPage: (page) =>
-          DataRepository().distributorColorRequests(page: page, activeOnly: true),
+      fetchPage: (page) => _repo.distributorColorRequests(page: page, activeOnly: true),
     );
   }
 
@@ -72,19 +76,11 @@ class _ColorLabCard extends StatelessWidget {
         status == ColorRequestStatus.pickedUp ||
         status == ColorRequestStatus.inProgress;
 
-    // "Назначить курьера" — the delivery (return лючка) task created when matching
-    // completes for a courier transfer. Drive the button off THIS task's state, not
-    // ColorRequest.status, so it stays in sync with the Deliveries screen — both assign
-    // the exact same CourierTask, so assigning in one place clears the button in the other.
-    CourierTask? deliveryTask;
-    for (final t in request.courierTasks) {
-      if (t.taskType == 'return') {
-        deliveryTask = t;
-        break;
-      }
-    }
-    final needsCourier = deliveryTask != null && deliveryTask.status == CourierTaskStatus.created;
-
+    // Курьер участвует только в ЗАБОРЕ лючка. Готовую краску и лючок маляр
+    // забирает сам: оттенок сверяют на месте и нередко сразу отдают в
+    // переделку, объясняя колористу, что не так. Поэтому кнопки назначения
+    // курьера на возврат здесь больше нет.
+    //
     // "Назначить курьера за лючком" — pickup leg: client asked for courier
     // pickup but nobody has been assigned yet to collect the sample.
     CourierTask? pickupTask;
@@ -179,6 +175,15 @@ class _ColorLabCard extends StatelessWidget {
               label: 'Время забора',
               value: DateFormat('dd.MM HH:mm').format(request.pickupTime!),
             ),
+          // Дедлайн приезда курьера — курьеру и колористу нужно понимать,
+          // до какого часа маляр вообще на месте.
+          if (request.courierArriveUntil != null && request.transferMethod != 'self_delivery')
+            _DetailRow(
+              icon: Icons.timer_outlined,
+              label: 'Забрать до',
+              value: request.courierArriveUntil!,
+              highlight: true,
+            ),
           if (request.contactPerson != null && request.contactPerson!.isNotEmpty)
             _DetailRow(icon: Icons.person_outline, label: 'Контакт', value: request.contactPerson!),
           if (request.contactPhone != null && request.contactPhone!.isNotEmpty)
@@ -253,23 +258,25 @@ class _ColorLabCard extends StatelessWidget {
             ),
           ],
 
-          // ── Action: assign courier (fixed — was hidden, now shown correctly)
-          if (needsCourier) ...[
+          // ── Готовое забирает клиент ───────────────────────────────────────
+          if (status == ColorRequestStatus.ready) ...[
             const Divider(height: 24, thickness: 0.5),
-            SizedBox(
+            Container(
               width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: () => _assignCourierToTask(context, deliveryTask!),
-                icon: const Icon(Icons.delivery_dining_outlined, size: 16),
-                label: const Text(
-                  'НАЗНАЧИТЬ КУРЬЕРА',
-                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.brandRed,
-                  minimumSize: const Size(0, 34),
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                ),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              color: AppColors.brandBlack.withValues(alpha: 0.06),
+              child: const Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(Icons.storefront_outlined, size: 14, color: AppColors.brandBlack),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Клиент забирает готовую краску и лючок сам — оттенок проверяют на месте.',
+                      style: TextStyle(fontSize: 11, height: 1.35),
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
@@ -278,8 +285,8 @@ class _ColorLabCard extends StatelessWidget {
     );
   }
 
-  // Both the pickup and the delivery legs assign a real CourierTask through the shared
-  // sheet (→ updateDeliveryStatus), so the Deliveries screen and Color Lab never diverge.
+  // Забор лючка назначается через общий шит (→ updateDeliveryStatus), поэтому
+  // экран «Доставка» и Color Lab всегда показывают одну и ту же задачу.
   Future<void> _assignCourierToTask(BuildContext context, CourierTask task) async {
     final assigned = await showAssignCourierSheet(context, task);
     if (assigned == true) onUpdate();
@@ -426,7 +433,16 @@ class _DetailRow extends StatelessWidget {
   final IconData icon;
   final String label;
   final String value;
-  const _DetailRow({required this.icon, required this.label, required this.value});
+
+  /// Выделяет строку красным — для дедлайнов, которые нельзя проглядеть.
+  final bool highlight;
+
+  const _DetailRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+    this.highlight = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -435,7 +451,7 @@ class _DetailRow extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 14, color: AppColors.textSecondary),
+          Icon(icon, size: 14, color: highlight ? AppColors.brandRed : AppColors.textSecondary),
           const SizedBox(width: 8),
           SizedBox(
             width: 92,
@@ -451,7 +467,11 @@ class _DetailRow extends StatelessWidget {
           Expanded(
             child: Text(
               value,
-              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: highlight ? FontWeight.w900 : FontWeight.w700,
+                color: highlight ? AppColors.brandRed : AppColors.textPrimary,
+              ),
             ),
           ),
         ],

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../core/theme.dart';
@@ -300,6 +301,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   _buildRoleSpecificSection(role, data),
                   const SizedBox(height: 16),
                   _buildUnifiedInfoSection(role, data),
+                  if (role == UserRole.client && data is DashboardData) ...[
+                    const SizedBox(height: 16),
+                    _buildReferralSection(data),
+                  ],
                   if (role == UserRole.client) ...[
                     const SizedBox(height: 16),
                     _buildStoresSection(),
@@ -312,6 +317,108 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           );
         },
+      ),
+    );
+  }
+
+  /// Реферальная программа в профиле: код виден сразу, без захода в раздел —
+  /// его чаще всего и диктуют коллеге по телефону.
+  Widget _buildReferralSection(DashboardData data) {
+    final code = data.client.referralCode;
+
+    return AppCard(
+      padding: EdgeInsets.zero,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+            child: Row(
+              children: [
+                const Icon(Icons.card_giftcard_outlined, size: 18, color: AppColors.brandRed),
+                const SizedBox(width: 8),
+                const Expanded(
+                  child: Text('Реферальная программа', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+                ),
+                Text(
+                  'ПРИГЛАШЕНО: ${data.referralInvitedCount}',
+                  style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: AppColors.textSecondary),
+                ),
+              ],
+            ),
+          ),
+          const Divider(height: 1),
+          if (code == null || code.isEmpty)
+            const Padding(
+              padding: EdgeInsets.all(16),
+              child: Text(
+                'Код приглашения ещё не выдан. Обновите страницу или обратитесь к своему дистрибьютору.',
+                style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+              ),
+            )
+          else
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 14, 8, 14),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'ВАШ КОД',
+                          style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 1, color: AppColors.textSecondary),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          code,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w900,
+                            fontSize: 20,
+                            letterSpacing: 2,
+                            color: AppColors.brandRed,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    tooltip: 'Скопировать код',
+                    icon: const Icon(Icons.copy, size: 18, color: AppColors.textSecondary),
+                    onPressed: () {
+                      Clipboard.setData(ClipboardData(text: code));
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('КОД СКОПИРОВАН')),
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
+          const Divider(height: 1),
+          ListTile(
+            onTap: () => context.push(AppRoutes.referral),
+            leading: Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(Icons.groups_outlined, color: AppColors.primary, size: 20),
+            ),
+            title: const Text('Мои приглашения и бонусы', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+            subtitle: Text(
+              data.referralGiftCount > 0
+                  ? 'Бонусов начислено: ${data.referralGiftCount}'
+                  : 'Пригласить сервис и отследить статус',
+              style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+            ),
+            trailing: const Icon(Icons.chevron_right, size: 18, color: AppColors.textHint),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+            dense: true,
+          ),
+        ],
       ),
     );
   }
@@ -487,7 +594,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               children: [
                 _headerStat('Покупки', '${NumberFormat('#,##0', 'ru_RU').format(data.client.totalPurchases)} ₽', AppColors.primary),
                 _vDivider(),
-                _headerStat('Рефералы', '2', AppColors.success),
+                _headerStat('Рефералы', '${data.referralInvitedCount}', AppColors.success),
                 _vDivider(),
                 _headerStat('С нами с', DateFormat('MM.yyyy', 'ru_RU').format(data.client.createdAt), AppColors.textSecondary),
               ],

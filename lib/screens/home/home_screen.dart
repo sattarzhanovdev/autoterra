@@ -274,6 +274,11 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
         'AI-помощник',
         () => context.push(AppRoutes.aiAssistant),
       ),
+      _QuickAction(
+        Icons.card_giftcard_outlined,
+        'Приведи друга',
+        () => context.push(AppRoutes.referral),
+      ),
     ];
 
     return Column(

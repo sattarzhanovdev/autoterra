@@ -136,6 +136,10 @@ class Client {
   final String? distributorName;
   final String? regionId;
 
+  /// Личный код приглашения. Его клиент диктует или отправляет коллегам —
+  /// показываем прямо в профиле, чтобы не искать по разделам.
+  final String? referralCode;
+
   const Client({
     required this.id,
     this.externalId,
@@ -154,6 +158,7 @@ class Client {
     required this.createdAt,
     this.distributorName,
     this.regionId,
+    this.referralCode,
   });
 
   String get categoryLabel {
@@ -482,6 +487,10 @@ class ColorRequest {
   final String transferMethod;
   final String? pickupAddress;
   final DateTime? pickupTime;
+
+  /// До скольки маляр готов принять курьера за лючком, формат «HH:MM».
+  /// Дедлайн для планирования выезда; пусто — ограничения нет.
+  final String? courierArriveUntil;
   final String? contactPerson;
   final String? contactPhone;
   final DateTime? slaDeadline;
@@ -506,6 +515,7 @@ class ColorRequest {
     required this.transferMethod,
     this.pickupAddress,
     this.pickupTime,
+    this.courierArriveUntil,
     this.contactPerson,
     this.contactPhone,
     this.slaDeadline,
@@ -532,6 +542,7 @@ class ColorRequest {
       transferMethod: json['transferMethod'] ?? 'courier',
       pickupAddress: json['pickupAddress'],
       pickupTime: json['pickupTime'] != null ? DateTime.parse(json['pickupTime']) : null,
+      courierArriveUntil: json['courierArriveUntil']?.toString(),
       contactPerson: json['contactPerson'],
       contactPhone: json['contactPhone'],
       slaDeadline: json['slaDeadline'] != null ? DateTime.parse(json['slaDeadline']) : null,
@@ -561,23 +572,50 @@ class ColorRequest {
   }
 }
 
+/// Отметка в истории заявки: когда заявка перешла в статус.
+class CourierTaskEvent {
+  final CourierTaskStatus status;
+  final DateTime at;
+  final String? comment;
+
+  const CourierTaskEvent({required this.status, required this.at, this.comment});
+
+  static CourierTaskEvent? fromJson(dynamic raw) {
+    if (raw is! Map) return null;
+    final at = DateTime.tryParse(raw['at']?.toString() ?? '');
+    if (at == null) return null;
+    final comment = raw['comment']?.toString();
+    return CourierTaskEvent(
+      status: CourierTask._parseStatus(raw['status']?.toString()),
+      at: at,
+      comment: (comment == null || comment.isEmpty) ? null : comment,
+    );
+  }
+}
+
 class CourierTask {
   final String id;
   final String clientId;
   final String clientName;
   final String? courierName;
+  final String? courierPhone;
+  final String? orderId;
   final String taskType; // 'pickup' | 'delivery' | 'return'
   final String typeDisplay;
   final String address;
   final String? contactName;
   final String? contactPhone;
   final String timeSlot;
+  final DateTime? scheduledTime;
   final CourierTaskStatus status;
   final String statusDisplay;
   final String? assignedCourierId;
   final String? photoProof;
   final String? comment;
   final String? courierComment;
+
+  /// История переходов статусов — из неё берутся даты этапов доставки.
+  final List<CourierTaskEvent> statusHistory;
   final DateTime createdAt;
 
   const CourierTask({
@@ -585,22 +623,36 @@ class CourierTask {
     required this.clientId,
     required this.clientName,
     this.courierName,
+    this.courierPhone,
+    this.orderId,
     required this.taskType,
     required this.typeDisplay,
     required this.address,
     this.contactName,
     this.contactPhone,
     required this.timeSlot,
+    this.scheduledTime,
     required this.status,
     required this.statusDisplay,
     this.assignedCourierId,
     this.photoProof,
     this.comment,
     this.courierComment,
+    this.statusHistory = const [],
     required this.createdAt,
   });
 
   String get type => taskType;
+
+  /// Когда заявка перешла в указанный статус (последнее событие), если известно.
+  DateTime? reachedAt(CourierTaskStatus status) {
+    DateTime? found;
+    for (final event in statusHistory) {
+      if (event.status == status) found = event.at;
+    }
+    if (found == null && status == CourierTaskStatus.created) return createdAt;
+    return found;
+  }
 
   factory CourierTask.fromJson(Map<String, dynamic> json) {
     return CourierTask(
@@ -608,18 +660,27 @@ class CourierTask {
       clientId: json['clientId'].toString(),
       clientName: json['clientName'] ?? '',
       courierName: json['courierName'],
+      courierPhone: json['courierPhone'],
+      orderId: json['orderId']?.toString(),
       taskType: json['taskType'] ?? 'delivery',
       typeDisplay: json['typeDisplay'] ?? '',
       address: json['address'] ?? '',
       contactName: json['contactName'],
       contactPhone: json['contactPhone'],
       timeSlot: json['timeSlot'] ?? '',
+      scheduledTime: DateTime.tryParse(json['scheduledTime']?.toString() ?? ''),
       status: _parseStatus(json['status']),
       statusDisplay: json['statusDisplay'] ?? '',
       assignedCourierId: json['assignedCourierId']?.toString(),
       photoProof: json['photoProof'],
       comment: json['comment'],
       courierComment: json['courierComment'],
+      statusHistory: (json['statusHistory'] is List)
+          ? (json['statusHistory'] as List)
+              .map(CourierTaskEvent.fromJson)
+              .whereType<CourierTaskEvent>()
+              .toList()
+          : const [],
       createdAt: DateTime.parse(json['createdAt']),
     );
   }

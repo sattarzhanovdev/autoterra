@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import '../../core/theme.dart';
 import '../../models/models.dart';
 import '../../services/data_repository.dart';
+import '../../services/pagination_controller.dart';
 import '../../widgets/common/premium_icon_badge.dart';
+import '../../widgets/common/product_photo.dart';
 
 class OrderScreen extends StatefulWidget {
   final DataRepository? repository;
@@ -22,7 +24,20 @@ class _OrderScreenState extends State<OrderScreen> {
   late final DataRepository _repo;
   late Future<OrderConfigData> _future;
   final Map<String, int> _qty = {};
+
+  /// Выбранные товары целиком. Каталог листается страницами, и товар из
+  /// корзины может быть уже не загружен — считать сумму и показывать состав
+  /// по текущей странице нельзя.
+  final Map<String, ProductData> _selected = {};
+
   final Set<String> _stockWarnings = {};
+
+  /// Лента каталога. Фильтры применяет сервер.
+  late final PaginationController<ProductData> _catalog;
+  String _search = '';
+  String? _brandFilter;
+  bool _inStockOnly = false;
+
   String _selectedCategory = _allCategories;
   String? _selectedStoreId;
   String _deliveryMethod = 'courier';
@@ -54,11 +69,11 @@ class _OrderScreenState extends State<OrderScreen> {
     return false;
   }
 
-  double _totalAmount(List<ProductData> products) {
-    double total = 0;
+  double get _totalAmount {
+    var total = 0.0;
     _qty.forEach((id, count) {
-      final product = products.firstWhere((p) => p.id == id, orElse: () => products.first);
-      total += product.price * count;
+      final product = _selected[id];
+      if (product != null) total += product.price * count;
     });
     return total;
   }
@@ -68,10 +83,21 @@ class _OrderScreenState extends State<OrderScreen> {
     super.initState();
     _repo = widget.repository ?? DataRepository();
     _future = _repo.orderConfig();
+    _catalog = PaginationController<ProductData>(
+      fetchPage: (page) => _repo.products(
+        page: page,
+        search: _search.isEmpty ? null : _search,
+        category: _selectedCategory == _allCategories ? null : _selectedCategory,
+        brand: _brandFilter,
+        inStockOnly: _inStockOnly,
+      ),
+    );
+    _catalog.loadInitial();
 
     if (widget.initialOrder != null) {
       _commentCtrl.text = widget.initialOrder!.comment ?? '';
       _deliveryMethod = widget.initialOrder!.deliveryMethod;
+      _prefillFromOrder(widget.initialOrder!);
     }
     
     // Listen to comments to track changes in real-time
@@ -84,7 +110,39 @@ class _OrderScreenState extends State<OrderScreen> {
   void dispose() {
     _commentCtrl.dispose();
     _searchCtrl.dispose();
+    _catalog.dispose();
     super.dispose();
+  }
+
+  /// Восстанавливает корзину из редактируемого заказа. Раньше позиции искались
+  /// по SKU в полном каталоге — с постраничной загрузкой его больше нет,
+  /// поэтому берём данные прямо из позиций заказа.
+  void _prefillFromOrder(Order order) {
+    for (final item in order.items) {
+      final productId = item.productId;
+      if (productId == null) continue;
+      _qty[productId] = item.quantity;
+      _selected[productId] = ProductData(
+        id: productId,
+        distributorId: order.distributorId,
+        sku: item.sku,
+        name: item.name,
+        category: item.category,
+        brand: item.brand,
+        volume: item.volume,
+        price: item.price,
+        quantity: item.availableQuantity ?? item.quantity,
+        status: StockStatus.inStock,
+        updatedAt: DateTime.now(),
+      );
+    }
+    _initialQty = Map.from(_qty);
+    _initialComment = _commentCtrl.text;
+    _initialDeliveryMethod = _deliveryMethod;
+  }
+
+  void _applyFilters() {
+    _catalog.setFilters(() {});
   }
 
   void _ensureStore(OrderConfigData data) {
@@ -96,23 +154,7 @@ class _OrderScreenState extends State<OrderScreen> {
       }
     }
     _selectedStoreId ??= data.stores.isEmpty ? null : data.stores.first.id;
-
-    // One-time population of quantities from initialOrder
-    if (widget.initialOrder != null && _initialQty == null && data.products.isNotEmpty) {
-      for (final item in widget.initialOrder!.items) {
-        // Find matching product in catalog by SKU
-        final p = data.products.where((x) => x.sku == item.sku).firstOrNull;
-        if (p != null) {
-          _qty[p.id] = item.quantity;
-        }
-      }
-      
-      // Capture baseline for change tracking
-      _initialQty = Map.from(_qty);
-      _initialComment = _commentCtrl.text;
-      _initialStoreId = _selectedStoreId;
-      _initialDeliveryMethod = _deliveryMethod;
-    }
+    _initialStoreId ??= _selectedStoreId;
   }
 
   StoreData? _selectedStore(List<StoreData> stores) {
@@ -136,8 +178,10 @@ class _OrderScreenState extends State<OrderScreen> {
     setState(() {
       if (next == 0) {
         _qty.remove(product.id);
+        _selected.remove(product.id);
       } else {
         _qty[product.id] = next;
+        _selected[product.id] = product;
       }
       if (!isUnlimited && requested > maxQty) {
         _stockWarnings.add(product.id);
@@ -154,30 +198,11 @@ class _OrderScreenState extends State<OrderScreen> {
     return true;
   }
 
-  List<String> _categories(List<ProductData> products) {
-    final categories = products
-        .map((item) => item.category.trim())
-        .where((value) => value.isNotEmpty)
-        .toSet()
-        .toList()
-      ..sort();
-    return [_allCategories, ...categories];
-  }
-
-  List<ProductData> _filteredProducts(List<ProductData> products) {
-    final query = _searchCtrl.text.trim().toLowerCase();
-    return products.where((item) {
-      final inCategory = _selectedCategory == _allCategories || item.category == _selectedCategory;
-      final inSearch = query.isEmpty ||
-          item.name.toLowerCase().contains(query) ||
-          item.sku.toLowerCase().contains(query) ||
-          item.brand.toLowerCase().contains(query);
-      return inCategory && inSearch;
-    }).toList();
-  }
-
-  List<ProductData> _selectedProducts(List<ProductData> products) {
-    return products.where((item) => (_qty[item.id] ?? 0) > 0).toList();
+  List<ProductData> get _selectedProducts {
+    return _qty.keys
+        .map((id) => _selected[id])
+        .whereType<ProductData>()
+        .toList();
   }
 
   Future<void> _submit(OrderConfigData data) async {
@@ -280,26 +305,37 @@ class _OrderScreenState extends State<OrderScreen> {
           _ensureStore(data);
           return RefreshIndicator(
             onRefresh: _refresh,
-            child: SingleChildScrollView(
+            child: CustomScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  _catalogCard(data.products),
-                  const SizedBox(height: 16),
-                  _selectedCard(data.products),
-                  const SizedBox(height: 16),
-                  _deliveryMethodCard(data),
-                  const SizedBox(height: 16),
-                  _storesCard(data.stores),
-                  const SizedBox(height: 16),
-                  _requestForm(data),
-                  const SizedBox(height: 16),
-                  _distributorCard(data),
-                  const SizedBox(height: 80),
-                ],
-              ),
+              slivers: [
+                // Каталог: шапка с фильтрами
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                  sliver: SliverToBoxAdapter(child: _catalogHeader(data)),
+                ),
+                // Каталог: виртуализированный список товаров
+                _catalogSliverList(),
+                // Остальные карточки
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 80),
+                  sliver: SliverList(
+                    delegate: SliverChildListDelegate([
+                      const SizedBox(height: 2),
+                      _catalogFooter(),
+                      const SizedBox(height: 16),
+                      _selectedCard(),
+                      const SizedBox(height: 16),
+                      _deliveryMethodCard(data),
+                      const SizedBox(height: 16),
+                      _storesCard(data.stores),
+                      const SizedBox(height: 16),
+                      _requestForm(data),
+                      const SizedBox(height: 16),
+                      _distributorCard(data),
+                    ]),
+                  ),
+                ),
+              ],
             ),
           );
         },
@@ -498,7 +534,7 @@ class _OrderScreenState extends State<OrderScreen> {
   Widget _requestForm(OrderConfigData data) {
     final disabled = _sending || !_hasChanges || _totalQty == 0 || (data.stores.isNotEmpty && _selectedStoreId == null);
     final store = _selectedStore(data.stores);
-    final totalAmount = _totalAmount(data.products);
+    final totalAmount = _totalAmount;
 
     return Card(
       child: Padding(
@@ -591,12 +627,21 @@ class _OrderScreenState extends State<OrderScreen> {
     );
   }
 
-  Widget _catalogCard(List<ProductData> products) {
-    final categories = _categories(products);
-    final filtered = _filteredProducts(products);
+  /// Шапка каталога: заголовок, поиск, фильтры. Рисуется в SliverToBoxAdapter,
+  /// чтобы товары ниже могли идти через SliverList.builder (виртуализация).
+  Widget _catalogHeader(OrderConfigData data) {
+    final categories = [_allCategories, ...data.categories];
+
     return Card(
+      margin: EdgeInsets.zero,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(12),
+          topRight: Radius.circular(12),
+        ),
+      ),
       child: Padding(
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -606,16 +651,30 @@ class _OrderScreenState extends State<OrderScreen> {
             ),
             const SizedBox(height: 4),
             const Text(
-              'Найдите товар, нажмите “Добавить” и укажите количество',
+              'Найдите товар, нажмите "Добавить" и укажите количество',
               style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
             ),
             const SizedBox(height: 12),
             TextField(
               controller: _searchCtrl,
-              onChanged: (_) => setState(() {}),
-              decoration: const InputDecoration(
+              onChanged: (value) {
+                _search = value.trim();
+                // Дебаунс: запрос уходит на сервер, а не фильтрует страницу.
+                _catalog.refreshDebounced();
+              },
+              decoration: InputDecoration(
                 hintText: 'Поиск по названию, артикулу или бренду',
-                prefixIcon: Icon(Icons.search),
+                prefixIcon: const Icon(Icons.search),
+                suffixIcon: _searchCtrl.text.isEmpty
+                    ? null
+                    : IconButton(
+                        icon: const Icon(Icons.clear),
+                        onPressed: () {
+                          _searchCtrl.clear();
+                          _search = '';
+                          _applyFilters();
+                        },
+                      ),
               ),
             ),
             const SizedBox(height: 12),
@@ -631,7 +690,10 @@ class _OrderScreenState extends State<OrderScreen> {
                   return ChoiceChip(
                     label: Text(category),
                     selected: selected,
-                    onSelected: (_) => setState(() => _selectedCategory = category),
+                    onSelected: (_) {
+                      setState(() => _selectedCategory = category);
+                      _applyFilters();
+                    },
                     selectedColor: AppColors.brandRed.withValues(alpha: 0.14),
                     labelStyle: TextStyle(
                       color: selected ? AppColors.brandRed : AppColors.textPrimary,
@@ -644,22 +706,175 @@ class _OrderScreenState extends State<OrderScreen> {
                 },
               ),
             ),
-            const SizedBox(height: 14),
-            if (products.isEmpty)
-              const Text(
-                'Ассортимент пока не заполнен',
-                style: TextStyle(color: AppColors.textSecondary),
-              )
-            else if (filtered.isEmpty)
-              const Text(
-                'Ничего не найдено',
-                style: TextStyle(color: AppColors.textSecondary),
-              )
-            else
-              ...filtered.map(_productTile),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: DropdownButtonFormField<String?>(
+                    initialValue: _brandFilter,
+                    isExpanded: true,
+                    decoration: const InputDecoration(
+                      labelText: 'Бренд',
+                      isDense: true,
+                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    ),
+                    items: [
+                      const DropdownMenuItem<String?>(value: null, child: Text('Все бренды')),
+                      ...data.brands.map(
+                        (brand) => DropdownMenuItem<String?>(value: brand, child: Text(brand)),
+                      ),
+                    ],
+                    onChanged: (value) {
+                      setState(() => _brandFilter = value);
+                      _applyFilters();
+                    },
+                  ),
+                ),
+                const SizedBox(width: 8),
+                FilterChip(
+                  label: const Text('В наличии'),
+                  selected: _inStockOnly,
+                  onSelected: (value) {
+                    setState(() => _inStockOnly = value);
+                    _applyFilters();
+                  },
+                  selectedColor: AppColors.brandRed.withValues(alpha: 0.14),
+                  labelStyle: TextStyle(
+                    color: _inStockOnly ? AppColors.brandRed : AppColors.textPrimary,
+                    fontWeight: FontWeight.w700,
+                  ),
+                  side: BorderSide(
+                    color: _inStockOnly ? AppColors.brandRed : AppColors.border,
+                  ),
+                ),
+              ],
+            ),
           ],
         ),
       ),
+    );
+  }
+
+
+  /// Виртуализированный список товаров каталога. Используется SliverList.builder,
+  /// который создаёт виджеты только для видимых элементов — без лагов при
+  /// накоплении страниц.
+  Widget _catalogSliverList() {
+    return ListenableBuilder(
+      listenable: _catalog,
+      builder: (context, _) {
+        // Загрузка
+        if (_catalog.isLoading && _catalog.items.isEmpty) {
+          return const SliverPadding(
+            padding: EdgeInsets.symmetric(horizontal: 16),
+            sliver: SliverToBoxAdapter(
+              child: Padding(
+                padding: EdgeInsets.symmetric(vertical: 32),
+                child: Center(child: CircularProgressIndicator(color: AppColors.brandRed)),
+              ),
+            ),
+          );
+        }
+
+        // Ошибка
+        if (_catalog.error != null && _catalog.items.isEmpty) {
+          return SliverPadding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            sliver: SliverToBoxAdapter(
+              child: Column(
+                children: [
+                  Text(
+                    _catalog.error!.toString(),
+                    style: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 12),
+                  OutlinedButton(
+                    onPressed: _catalog.refresh,
+                    child: const Text('ПОВТОРИТЬ'),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
+        // Пусто
+        if (_catalog.isEmpty) {
+          return const SliverPadding(
+            padding: EdgeInsets.symmetric(horizontal: 16),
+            sliver: SliverToBoxAdapter(
+              child: Padding(
+                padding: EdgeInsets.symmetric(vertical: 16),
+                child: Text(
+                  'Ничего не найдено',
+                  style: TextStyle(color: AppColors.textSecondary),
+                ),
+              ),
+            ),
+          );
+        }
+
+        // Виртуализированный список товаров
+        final items = _catalog.items;
+        return SliverPadding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          sliver: SliverList.builder(
+            itemCount: items.length,
+            itemBuilder: (context, index) => _productTile(items[index]),
+          ),
+        );
+      },
+    );
+  }
+
+  /// Футер каталога: кнопка «показать ещё» и закрытие карточки.
+  Widget _catalogFooter() {
+    return ListenableBuilder(
+      listenable: _catalog,
+      builder: (context, _) {
+        if (_catalog.items.isEmpty) return const SizedBox.shrink();
+
+        return Card(
+          margin: EdgeInsets.zero,
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.only(
+              bottomLeft: Radius.circular(12),
+              bottomRight: Radius.circular(12),
+            ),
+          ),
+          child: _catalog.hasMore
+              ? Padding(
+                  padding: const EdgeInsets.all(14),
+                  child: _catalog.isLoadingMore
+                      ? const Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(8),
+                            child: SizedBox(
+                              width: 22,
+                              height: 22,
+                              child: CircularProgressIndicator(
+                                color: AppColors.brandRed,
+                                strokeWidth: 2,
+                              ),
+                            ),
+                          ),
+                        )
+                      : OutlinedButton(
+                          onPressed: _catalog.loadMore,
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppColors.brandRed,
+                            side: const BorderSide(color: AppColors.brandRed),
+                          ),
+                          child: Text(
+                            'ПОКАЗАТЬ ЕЩЁ (${_catalog.items.length} ИЗ ${_catalog.totalCount})',
+                            style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12),
+                          ),
+                        ),
+                )
+              : const SizedBox(height: 4),
+        );
+      },
     );
   }
 
@@ -710,6 +925,18 @@ class _OrderScreenState extends State<OrderScreen> {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Фото товара: ссылки приходят из карточки ассортимента,
+                  // по нажатию открывается галерея (до 15 кадров).
+                  ProductThumb(
+                    images: item.images,
+                    size: 64,
+                    onTap: () => showProductGallery(
+                      context,
+                      images: item.images,
+                      title: item.name,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -787,8 +1014,8 @@ class _OrderScreenState extends State<OrderScreen> {
     );
   }
 
-  Widget _selectedCard(List<ProductData> products) {
-    final selected = _selectedProducts(products);
+  Widget _selectedCard() {
+    final selected = _selectedProducts;
     if (selected.isEmpty) {
       return const SizedBox.shrink();
     }
@@ -822,6 +1049,16 @@ class _OrderScreenState extends State<OrderScreen> {
                 padding: const EdgeInsets.only(bottom: 8),
                 child: Row(
                   children: [
+                    ProductThumb(
+                      images: item.images,
+                      size: 36,
+                      onTap: () => showProductGallery(
+                        context,
+                        images: item.images,
+                        title: item.name,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         item.name,

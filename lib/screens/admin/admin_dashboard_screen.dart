@@ -6,6 +6,7 @@ import '../../services/data_repository.dart';
 import '../../services/api_client.dart';
 import '../../services/auth_service.dart';
 import '../../models/models.dart';
+import '../../models/paginated.dart';
 import '../../widgets/common/section_header.dart';
 import '../../widgets/common/app_logo.dart';
 
@@ -42,8 +43,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       ]);
       setState(() {
         _analytics = res[0] as Map<String, dynamic>;
-        _regions = (res[1] as List).map((e) => Map<String, dynamic>.from(e as Map)).toList();
-        _distributors = (res[2] as List).map((e) => Map<String, dynamic>.from(e as Map)).toList();
+        _regions = (res[1] as Paginated<Map<String, dynamic>>).items;
+        _distributors = (res[2] as Paginated<Map<String, dynamic>>).items;
         _loading = false;
       });
     } catch (e) {

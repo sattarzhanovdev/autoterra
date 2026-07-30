@@ -74,17 +74,21 @@ class StoreData {
   });
 }
 
+/// Справочники для формы заказа. Ассортимент сюда не входит — он грузится
+/// постранично через [DataRepository.products].
 class OrderConfigData {
   final Client client;
   final Distributor distributor;
   final List<StoreData> stores;
-  final List<ProductData> products;
+  final List<String> categories;
+  final List<String> brands;
 
   const OrderConfigData({
     required this.client,
     required this.distributor,
     required this.stores,
-    required this.products,
+    this.categories = const [],
+    this.brands = const [],
   });
 }
 
@@ -96,6 +100,11 @@ class DashboardData {
   final List<ColorRequest> activeColorRequests;
   final bool fromBackend;
 
+  /// Сколько сервисов клиент уже привёл и по скольким начислен бонус.
+  /// Полный список живёт на экране реферальной программы, здесь — только цифры.
+  final int referralInvitedCount;
+  final int referralGiftCount;
+
   const DashboardData({
     required this.client,
     required this.distributor,
@@ -103,6 +112,8 @@ class DashboardData {
     required this.recentPurchases,
     required this.activeColorRequests,
     required this.fromBackend,
+    this.referralInvitedCount = 0,
+    this.referralGiftCount = 0,
   });
 }
 
@@ -137,6 +148,7 @@ class DataRepository {
 
   Future<DashboardData> dashboard() async {
     final data = await _api.dashboard();
+    final referrals = data['referralSummary'] as Map<String, dynamic>? ?? const {};
     return DashboardData(
       client: _clientFromJson(data['client'] as Map<String, dynamic>),
       distributor: distributorFromJson(
@@ -150,6 +162,8 @@ class DataRepository {
         data['activeColorRequests'] ?? [],
       ).map((item) => _colorRequestFromJson(item)).toList(),
       fromBackend: true,
+      referralInvitedCount: (referrals['invitedCount'] as num? ?? 0).toInt(),
+      referralGiftCount: (referrals['giftCount'] as num? ?? 0).toInt(),
     );
   }
 
@@ -194,8 +208,31 @@ class DataRepository {
         data['distributor'] as Map<String, dynamic>,
       ),
       stores: _list(data['stores']).map(_storeFromJson).toList(),
-      products: _list(data['products']).map(_productFromJson).toList(),
+      categories: _stringList(data['categories']),
+      brands: _stringList(data['brands']),
     );
+  }
+
+  /// Страница каталога для клиента. Фильтры уходят на сервер: отбирать внутри
+  /// страницы нельзя — подходящие товары остались бы на других страницах.
+  Future<Paginated<ProductData>> products({
+    int page = 1,
+    int pageSize = ApiClient.defaultPageSize,
+    String? search,
+    String? category,
+    String? brand,
+    bool inStockOnly = false,
+  }) async {
+    final (result, _) = await _api.products(
+      page: page,
+      pageSize: pageSize,
+      search: search,
+      category: category,
+      brand: brand,
+      inStockOnly: inStockOnly,
+    );
+    final parsed = await compute(_parseProductList, result.items);
+    return Paginated(items: parsed, pageInfo: result.pageInfo);
   }
 
   /// Магазины клиента целиком — список короткий и нужен в выпадающих списках.
@@ -763,9 +800,15 @@ class DataRepository {
   Future<Order> adjustOrder(
     String orderId, {
     required List<Map<String, dynamic>> items,
+    List<Map<String, dynamic>> newItems = const [],
     String reason = '',
   }) async {
-    final res = await _api.adjustOrder(orderId, items: items, reason: reason);
+    final res = await _api.adjustOrder(
+      orderId,
+      items: items,
+      newItems: newItems,
+      reason: reason,
+    );
     return _orderFromJson(Map<String, dynamic>.from(res['order'] as Map));
   }
 
@@ -837,6 +880,13 @@ class DataRepository {
     return (value as List<dynamic>).cast<Map<String, dynamic>>();
   }
 
+  /// Список строк (справочники категорий, брендов). Отдельно от [_list],
+  /// который приводит элементы к Map и падает на списке строк.
+  static List<String> _stringList(Object? value) {
+    if (value is! List) return const [];
+    return value.map((item) => item.toString()).toList();
+  }
+
   static double _toDouble(dynamic value) {
     if (value == null) return 0.0;
     if (value is num) return value.toDouble();
@@ -875,6 +925,7 @@ class DataRepository {
       createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? '') ?? DateTime.now(),
       distributorName: _toString(json['distributorName']),
       regionId: _toString(json['regionId']),
+      referralCode: _toString(json['referralCode']),
     );
   }
 

@@ -44,9 +44,19 @@ class _ReferralScreenState extends State<ReferralScreen> {
     _controller.refresh();
   }
 
-  void _share(String code) {
-    final text = 'Присоединяйся к AutoTerra! Используй мой промокод $code для получения бонуса: https://autoterra.ru/register?ref=$code';
-    Share.share(text, subject: 'Приглашение в AutoTerra');
+  String? get _refCode => _stats['referralCode'] as String?;
+
+  String? get _inviteLink => _stats['inviteLink'] as String?;
+
+  void _share() {
+    final code = _refCode;
+    final link = _inviteLink;
+    if (code == null || link == null) return;
+    Share.share(
+      'Присоединяйтесь к AutoTerra! Регистрация по моей ссылке: $link\n'
+      'Или введите код при регистрации: $code',
+      subject: 'Приглашение в AutoTerra',
+    );
   }
 
   void _showAddDialog() {
@@ -98,7 +108,6 @@ class _ReferralScreenState extends State<ReferralScreen> {
   @override
   Widget build(BuildContext context) {
     final fmt = NumberFormat('#,##0', 'ru_RU');
-    const refCode = 'AT-MASTER-2847';
 
     return Scaffold(
       appBar: AppBar(title: const Text('РЕФЕРАЛЬНАЯ ПРОГРАММА')),
@@ -108,9 +117,9 @@ class _ReferralScreenState extends State<ReferralScreen> {
         header: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildHowItWorks(),
+            _buildHowItWorks(fmt),
             const SizedBox(height: 16),
-            _buildRefCode(context, refCode),
+            _buildRefCode(context),
             const SizedBox(height: 20),
             _buildStats(fmt),
             const SizedBox(height: 24),
@@ -127,13 +136,21 @@ class _ReferralScreenState extends State<ReferralScreen> {
             const SizedBox(height: 12),
           ],
         ),
-        itemBuilder: (context, referral, _) =>
-            _ReferralCard(referral: referral, fmt: fmt),
+        itemBuilder: (context, referral, _) => _ReferralCard(
+          referral: referral,
+          fmt: fmt,
+          threshold: (_stats['bonusThreshold'] as num?)?.toDouble(),
+        ),
       ),
     );
   }
 
-  Widget _buildHowItWorks() {
+  Widget _buildHowItWorks(NumberFormat fmt) {
+    // Порог и подарок настраиваются на сервере — в тексте показываем то, что
+    // действует сейчас, а не зашитые в приложение цифры.
+    final threshold = (_stats['bonusThreshold'] as num?)?.toInt();
+    final gift = (_stats['bonusGift'] as String?)?.trim();
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(color: Colors.white, border: Border.all(color: AppColors.border)),
@@ -142,10 +159,20 @@ class _ReferralScreenState extends State<ReferralScreen> {
         children: [
           const Text('КАК ЭТО РАБОТАЕТ', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14)),
           const SizedBox(height: 16),
-          _step('1', 'ОТПРАВЬТЕ РЕФЕРАЛЬНЫЙ КОД ДРУГОМУ СТО'),
-          _step('2', 'СТО РЕГИСТРИРУЕТСЯ И ДЕЛАЕТ ЗАКАЗЫ'),
-          _step('3', 'СУММА ЗАКАЗОВ ДОСТИГАЕТ 30 000 ₽'),
-          _step('4', 'ВЫ ПОЛУЧАЕТЕ СЕРТИФИКАТ НА 5 000 ₽'),
+          _step('1', 'ОТПРАВЬТЕ ССЫЛКУ ИЛИ КОД ДРУГОМУ СТО'),
+          _step('2', 'СТО РЕГИСТРИРУЕТСЯ ПО НЕЙ И ДЕЛАЕТ ЗАКАЗЫ'),
+          _step(
+            '3',
+            threshold == null
+                ? 'СУММА ПОДТВЕРЖДЁННЫХ ЗАКАЗОВ ДОСТИГАЕТ ПОРОГА'
+                : 'СУММА ПОДТВЕРЖДЁННЫХ ЗАКАЗОВ ДОСТИГАЕТ ${fmt.format(threshold)} ₽',
+          ),
+          _step(
+            '4',
+            (gift == null || gift.isEmpty)
+                ? 'ВЫ ПОЛУЧАЕТЕ ПОДАРОК'
+                : 'ВЫ ПОЛУЧАЕТЕ: ${gift.toUpperCase()}',
+          ),
         ],
       ),
     );
@@ -164,7 +191,10 @@ class _ReferralScreenState extends State<ReferralScreen> {
     );
   }
 
-  Widget _buildRefCode(BuildContext context, String code) {
+  Widget _buildRefCode(BuildContext context) {
+    final code = _refCode;
+    final link = _inviteLink;
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(color: AppColors.brandBlack, border: Border.all(color: AppColors.brandBlack)),
@@ -173,20 +203,64 @@ class _ReferralScreenState extends State<ReferralScreen> {
         children: [
           const Text('ВАШ РЕФЕРАЛЬНЫЙ КОД', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: Colors.white)),
           const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(child: Text(code, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 24, color: AppColors.brandRed, letterSpacing: 2))),
-              IconButton(icon: const Icon(Icons.copy, color: Colors.white), onPressed: () {
-                Clipboard.setData(ClipboardData(text: code));
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('КОД СКОПИРОВАН')));
-              }),
+          if (code == null)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 8),
+              child: Text(
+                'Загружаем…',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.white54),
+              ),
+            )
+          else ...[
+            Row(
+              children: [
+                Expanded(child: Text(code, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 24, color: AppColors.brandRed, letterSpacing: 2))),
+                IconButton(
+                  tooltip: 'Скопировать код',
+                  icon: const Icon(Icons.copy, color: Colors.white),
+                  onPressed: () {
+                    Clipboard.setData(ClipboardData(text: code));
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('КОД СКОПИРОВАН')));
+                  },
+                ),
+              ],
+            ),
+            if (link != null) ...[
+              const SizedBox(height: 4),
+              // Ссылка — основной путь: по ней новый сервис регистрируется, и
+              // система сама свяжет его с пригласившим.
+              InkWell(
+                onTap: () {
+                  Clipboard.setData(ClipboardData(text: link));
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('ССЫЛКА СКОПИРОВАНА')));
+                },
+                child: Row(
+                  children: [
+                    const Icon(Icons.link, size: 13, color: Colors.white54),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        link,
+                        style: const TextStyle(fontSize: 10, color: Colors.white54),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ],
-          ),
-          const SizedBox(height: 16),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(onPressed: () => _share(code), icon: const Icon(Icons.share, size: 16), label: const Text('ПОДЕЛИТЬСЯ'), style: ElevatedButton.styleFrom(backgroundColor: AppColors.brandRed, shape: const BeveledRectangleBorder())),
-          ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: _share,
+                icon: const Icon(Icons.share, size: 16),
+                label: const Text('ПОДЕЛИТЬСЯ ССЫЛКОЙ'),
+                style: ElevatedButton.styleFrom(backgroundColor: AppColors.brandRed, shape: const BeveledRectangleBorder()),
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -222,7 +296,12 @@ class _ReferralScreenState extends State<ReferralScreen> {
 class _ReferralCard extends StatelessWidget {
   final Referral referral;
   final NumberFormat fmt;
-  const _ReferralCard({required this.referral, required this.fmt});
+
+  /// Порог бонуса приходит с сервера. Пока он не загружен, прогресс до бонуса
+  /// не показываем — иначе он врал бы про зашитую в приложение сумму.
+  final double? threshold;
+
+  const _ReferralCard({required this.referral, required this.fmt, this.threshold});
 
   @override
   Widget build(BuildContext context) {
@@ -252,16 +331,19 @@ class _ReferralCard extends StatelessWidget {
               _stepIcon('БОНУС', referral.conditionMet),
             ],
           ),
-          if (referral.hasPurchase && !referral.conditionMet) ...[
+          if (referral.hasPurchase && !referral.conditionMet && threshold != null && threshold! > 0) ...[
             const SizedBox(height: 12),
             LinearProgressIndicator(
-              value: referral.purchaseAmount / 30000,
+              value: (referral.purchaseAmount / threshold!).clamp(0.0, 1.0),
               backgroundColor: AppColors.canvas,
               color: AppColors.brandRed,
               minHeight: 4,
             ),
             const SizedBox(height: 4),
-            Text('ДО БОНУСА: ${fmt.format(30000 - referral.purchaseAmount)} ₽', style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: AppColors.textSecondary)),
+            Text(
+              'ДО БОНУСА: ${fmt.format((threshold! - referral.purchaseAmount).clamp(0, double.infinity))} ₽',
+              style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: AppColors.textSecondary),
+            ),
           ],
           if (referral.gift != null && referral.conditionMet) ...[
             const SizedBox(height: 12),

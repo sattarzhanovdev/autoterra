@@ -4,23 +4,28 @@ import '../../models/models.dart';
 import '../../services/data_repository.dart';
 import '../../services/pagination_controller.dart';
 import '../../widgets/common/paginated_list_view.dart';
+import '../../widgets/common/export_sheet.dart';
 import '../../widgets/common/premium_icon_badge.dart';
 
 class DistributorClientsScreen extends StatefulWidget {
-  const DistributorClientsScreen({super.key});
+  /// Подменяется в тестах; в приложении создаётся сам.
+  final DataRepository? repository;
+
+  const DistributorClientsScreen({super.key, this.repository});
 
   @override
   State<DistributorClientsScreen> createState() => _DistributorClientsScreenState();
 }
 
 class _DistributorClientsScreenState extends State<DistributorClientsScreen> {
-  final DataRepository _repo = DataRepository();
+  late final DataRepository _repo;
   late final PaginationController<Client> _controller;
   final TextEditingController _searchCtrl = TextEditingController();
 
   @override
   void initState() {
     super.initState();
+    _repo = widget.repository ?? DataRepository();
     // Поиск идёт на сервере — иначе фильтр видел бы только текущую страницу.
     _controller = PaginationController<Client>(
       fetchPage: (page) => _repo.distributorClients(
@@ -38,12 +43,29 @@ class _DistributorClientsScreenState extends State<DistributorClientsScreen> {
     super.dispose();
   }
 
+  /// Выгрузка учитывает поиск: скачивается то, что человек видит на экране.
+  void _openExport() {
+    final search = _searchCtrl.text.trim();
+    showClientExportSheet(
+      context,
+      search: search.isEmpty ? null : search,
+      visibleCount: _controller.totalCount,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: const Color(0xFF171717),
         title: const Text('КЛИЕНТЫ РЕГИОНА', style: TextStyle(letterSpacing: 1.5, fontWeight: FontWeight.w900)),
+        actions: [
+          IconButton(
+            tooltip: 'Скачать список',
+            onPressed: _openExport,
+            icon: const Icon(Icons.download_outlined, color: Colors.white),
+          ),
+        ],
       ),
       body: Column(
         children: [
@@ -100,7 +122,11 @@ class ClientListCard extends StatelessWidget {
           ),
         ],
       ),
-      child: Theme(
+      // Material нужен, чтобы ExpansionTile рисовал нажатие: без него фон
+      // Container перекрывает ink-эффект, и тап выглядит «мёртвым».
+      child: Material(
+        type: MaterialType.transparency,
+        child: Theme(
         data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
         child: ExpansionTile(
           title: Text(
@@ -136,6 +162,7 @@ class ClientListCard extends StatelessWidget {
               ),
             ),
           ],
+        ),
         ),
       ),
     );

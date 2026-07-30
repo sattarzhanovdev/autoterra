@@ -3,18 +3,22 @@ import 'package:go_router/go_router.dart';
 import '../../models/models.dart';
 import '../../services/data_repository.dart';
 import '../../services/pagination_controller.dart';
+import '../../widgets/common/export_sheet.dart';
 import '../../widgets/common/paginated_list_view.dart';
 import '../../core/constants.dart';
 
 class ManagerClientsScreen extends StatefulWidget {
-  const ManagerClientsScreen({super.key});
+  /// Подменяется в тестах; в приложении создаётся сам.
+  final DataRepository? repository;
+
+  const ManagerClientsScreen({super.key, this.repository});
 
   @override
   State<ManagerClientsScreen> createState() => _ManagerClientsScreenState();
 }
 
 class _ManagerClientsScreenState extends State<ManagerClientsScreen> {
-  final _repo = DataRepository();
+  late final DataRepository _repo;
   late final PaginationController<Client> _controller;
 
   String? _filterStatus;
@@ -23,6 +27,7 @@ class _ManagerClientsScreenState extends State<ManagerClientsScreen> {
   @override
   void initState() {
     super.initState();
+    _repo = widget.repository ?? DataRepository();
     // Фильтры уходят на сервер — отбирать записи внутри загруженной страницы
     // нельзя, подходящие клиенты остались бы на других страницах.
     _controller = PaginationController<Client>(
@@ -57,6 +62,15 @@ class _ManagerClientsScreenState extends State<ManagerClientsScreen> {
     );
   }
 
+  /// Выгрузка идёт с теми же фильтрами, что и список на экране.
+  void _openExport() {
+    showClientExportSheet(
+      context,
+      status: _filterStatus,
+      visibleCount: _controller.totalCount,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -68,6 +82,11 @@ class _ManagerClientsScreenState extends State<ManagerClientsScreen> {
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, letterSpacing: 2),
         ),
         actions: [
+          IconButton(
+            tooltip: 'Скачать список',
+            onPressed: _openExport,
+            icon: const Icon(Icons.download_outlined, color: Colors.white),
+          ),
           IconButton(
             onPressed: _load,
             icon: const Icon(Icons.refresh, color: Colors.white),

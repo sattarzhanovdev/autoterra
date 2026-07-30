@@ -3,6 +3,7 @@ import 'package:file_picker/file_picker.dart';
 import '../../services/data_repository.dart';
 import '../../services/pagination_controller.dart';
 import '../../widgets/common/paginated_list_view.dart';
+import '../../widgets/common/product_photo.dart';
 import '../../core/theme.dart';
 
 class DistributorStockScreen extends StatefulWidget {
@@ -207,14 +208,38 @@ class _ProductStockCard extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 12),
-              Text(
-                product.name.toUpperCase(),
-                style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13, height: 1.2),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                '${product.brand.toUpperCase()} · ${product.volume} Л',
-                style: const TextStyle(color: AppColors.brandRed, fontWeight: FontWeight.w800, fontSize: 11),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Фото из загруженного ассортимента — видно, что клиент
+                  // увидит в каталоге, и что импорт ссылок отработал.
+                  ProductThumb(
+                    images: product.images,
+                    size: 56,
+                    onTap: () => showProductGallery(
+                      context,
+                      images: product.images,
+                      title: product.name,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          product.name.toUpperCase(),
+                          style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13, height: 1.2),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '${product.brand.toUpperCase()} · ${product.volume} Л',
+                          style: const TextStyle(color: AppColors.brandRed, fontWeight: FontWeight.w800, fontSize: 11),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
               const Divider(height: 24),
               Row(
@@ -261,7 +286,23 @@ class AddProductSheetState extends State<AddProductSheet> {
   final _brandCtrl = TextEditingController(text: 'AutoTerra');
   final _priceCtrl = TextEditingController();
   final _qtyCtrl = TextEditingController(text: '0');
+  final _imagesCtrl = TextEditingController();
   bool _saving = false;
+
+  /// Максимум фото на товар — совпадает с лимитом на бэкенде.
+  static const int maxImages = 15;
+
+  /// Ссылки на фото из поля ввода: через «;» или с новой строки, без дублей.
+  List<String> get _images {
+    final seen = <String>[];
+    for (final part in _imagesCtrl.text.split(RegExp(r'[;\n]'))) {
+      final url = part.trim();
+      if (url.isEmpty || seen.contains(url)) continue;
+      if (!url.startsWith('http://') && !url.startsWith('https://')) continue;
+      seen.add(url);
+    }
+    return seen.take(maxImages).toList();
+  }
 
   @override
   void dispose() {
@@ -271,6 +312,7 @@ class AddProductSheetState extends State<AddProductSheet> {
     _brandCtrl.dispose();
     _priceCtrl.dispose();
     _qtyCtrl.dispose();
+    _imagesCtrl.dispose();
     super.dispose();
   }
 
@@ -289,6 +331,7 @@ class AddProductSheetState extends State<AddProductSheet> {
         'brand': _brandCtrl.text.trim(),
         'price': double.tryParse(_priceCtrl.text.replaceAll(',', '.')) ?? 0.0,
         'quantity': int.tryParse(_qtyCtrl.text) ?? 0,
+        'images': _images,
       });
 
       if (!mounted) return;
@@ -343,6 +386,19 @@ class AddProductSheetState extends State<AddProductSheet> {
               const SizedBox(width: 12),
               Expanded(child: TextField(controller: _qtyCtrl, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'ОСТАТОК (ШТ)'))),
             ],
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _imagesCtrl,
+            maxLines: 3,
+            minLines: 1,
+            keyboardType: TextInputType.multiline,
+            onChanged: (_) => setState(() {}),
+            decoration: InputDecoration(
+              labelText: 'ССЫЛКИ НА ФОТО (ДО $maxImages)',
+              helperText: 'Через «;» или с новой строки. Сохранится ${_images.length} из $maxImages',
+              helperMaxLines: 2,
+            ),
           ),
           const SizedBox(height: 32),
           SizedBox(
