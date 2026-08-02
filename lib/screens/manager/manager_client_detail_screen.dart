@@ -462,12 +462,13 @@ class _StatusSheet extends StatelessWidget {
 
   const _StatusSheet({required this.currentStatus, required this.onSelect});
 
+  // Ровно те статусы, что принимает бэкенд (ClientProfile.STATUS_CHOICES).
+  // «Ожидание» и «архив» ему неизвестны — на них он отвечал 400.
   static const _statuses = [
     ('new', 'НОВЫЙ'),
-    ('pending', 'ОЖИДАНИЕ'),
+    ('under_review', 'НА ПРОВЕРКЕ'),
     ('active', 'АКТИВНЫЙ'),
     ('blocked', 'ЗАБЛОКИРОВАН'),
-    ('archived', 'АРХИВ'),
   ];
 
   @override

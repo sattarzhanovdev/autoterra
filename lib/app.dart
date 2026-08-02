@@ -78,7 +78,13 @@ final GoRouter _router = GoRouter(
   },
   routes: [
     GoRoute(path: AppRoutes.login, builder: (ctx, _) => const LoginScreen()),
-    GoRoute(path: AppRoutes.register, builder: (ctx, _) => const RegisterScreen()),
+    // ?ref=CODE из ссылки-приглашения подставляется в поле кода.
+    GoRoute(
+      path: AppRoutes.register,
+      builder: (ctx, state) => RegisterScreen(
+        referralCode: state.uri.queryParameters['ref'],
+      ),
+    ),
     ShellRoute(
       navigatorKey: _shellNavigatorKey,
       builder: (context, state, child) => _MainShell(

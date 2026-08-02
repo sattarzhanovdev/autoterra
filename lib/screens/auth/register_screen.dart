@@ -6,7 +6,10 @@ import '../../models/paginated.dart';
 import '../../services/api_client.dart';
 
 class RegisterScreen extends StatefulWidget {
-  const RegisterScreen({super.key});
+  /// Код из ссылки-приглашения `?ref=CODE`. Пусто — код вводят вручную.
+  final String? referralCode;
+
+  const RegisterScreen({super.key, this.referralCode});
 
   @override
   State<RegisterScreen> createState() => _RegisterScreenState();
@@ -45,6 +48,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   void initState() {
     super.initState();
+    final invite = widget.referralCode?.trim().toUpperCase();
+    if (invite != null && invite.isNotEmpty) {
+      _referralCtrl.text = invite;
+    }
     _fetchRegions();
   }
 
