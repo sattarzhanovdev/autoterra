@@ -59,6 +59,28 @@ enum CourierTaskStatus { created, assigned, inProgress, delivered, returned, can
 
 enum ColorRequestStatus { created, assigned, pickedUp, inProgress, ready, delivered, cancelled }
 
+/// Тип лакокрасочного покрытия. Задаёт состав рецепта и цену, поэтому клиент
+/// выбирает его в заявке: добор краски считается по цене своего типа.
+enum PaintCoatingType { acrylic, baseClear, threeStage }
+
+extension PaintCoatingTypeExtension on PaintCoatingType {
+  String get label {
+    switch (this) {
+      case PaintCoatingType.acrylic: return 'Акрил';
+      case PaintCoatingType.baseClear: return 'База + лак';
+      case PaintCoatingType.threeStage: return 'Трёхстадийная';
+    }
+  }
+
+  String get description {
+    switch (this) {
+      case PaintCoatingType.acrylic: return 'Однослойная акриловая эмаль';
+      case PaintCoatingType.baseClear: return 'База под лак, двухслойная система';
+      case PaintCoatingType.threeStage: return 'База + перламутр + лак';
+    }
+  }
+}
+
 enum UserRole { client, distributor, manager, admin, courier, aiExpert }
 
 extension UserRoleExtension on UserRole {
@@ -482,6 +504,7 @@ class ColorRequest {
   final String vin;
   final String colorCode;
   final String colorName;
+  final PaintCoatingType paintType;
   final bool urgent;
   final ColorRequestStatus status;
   final String transferMethod;
@@ -510,6 +533,7 @@ class ColorRequest {
     required this.vin,
     required this.colorCode,
     required this.colorName,
+    this.paintType = PaintCoatingType.baseClear,
     this.urgent = false,
     required this.status,
     required this.transferMethod,
@@ -537,6 +561,7 @@ class ColorRequest {
       vin: json['vin'] ?? '',
       colorCode: json['colorCode'] ?? '',
       colorName: json['colorName'] ?? '',
+      paintType: _parsePaintType(json['paintType']?.toString()),
       urgent: json['urgent'] ?? false,
       status: _parseStatus(json['status']?.toString()),
       transferMethod: json['transferMethod'] ?? 'courier',
@@ -556,6 +581,17 @@ class ColorRequest {
           : const [],
       createdAt: json['createdAt'] != null ? DateTime.parse(json['createdAt']) : DateTime.now(),
     );
+  }
+
+  /// Заявки, созданные до появления типа покрытия, приходят без поля —
+  /// показываем самый частый вариант «база + лак».
+  static PaintCoatingType _parsePaintType(String? value) {
+    switch (value) {
+      case 'acrylic': return PaintCoatingType.acrylic;
+      case 'threeStage': return PaintCoatingType.threeStage;
+      case 'baseClear': return PaintCoatingType.baseClear;
+      default: return PaintCoatingType.baseClear;
+    }
   }
 
   static ColorRequestStatus _parseStatus(String? value) {

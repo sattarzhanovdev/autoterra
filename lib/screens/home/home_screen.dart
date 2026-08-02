@@ -613,6 +613,15 @@ class _ColorRequestItem extends StatelessWidget {
                       letterSpacing: 0.2,
                     ),
                   ),
+                  Text(
+                    request.paintType.label.toUpperCase(),
+                    style: const TextStyle(
+                      color: AppColors.textHint,
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 0.2,
+                    ),
+                  ),
                 ],
               ),
             ),

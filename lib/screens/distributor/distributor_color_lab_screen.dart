@@ -158,6 +158,8 @@ class _ColorLabCard extends StatelessWidget {
           const Divider(height: 24, thickness: 0.5),
           if (request.colorName.isNotEmpty)
             _DetailRow(icon: Icons.color_lens_outlined, label: 'Цвет', value: request.colorName),
+          // Колорист смешивает по типу покрытия — без него рецепт не собрать.
+          _DetailRow(icon: Icons.layers_outlined, label: 'Тип покрытия', value: request.paintType.label),
           if (request.vin.isNotEmpty)
             _DetailRow(icon: Icons.tag_outlined, label: 'VIN/Госномер', value: request.vin),
           if (request.carYear.isNotEmpty)

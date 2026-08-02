@@ -90,6 +90,7 @@ class _ColorCenterScreenState extends State<ColorCenterScreen> {
             InfoRow(label: 'АВТОМОБИЛЬ', value: '${request.carBrand} ${request.carModel}'.toUpperCase()),
             InfoRow(label: 'КОД ЦВЕТА', value: request.colorCode.toUpperCase()),
             InfoRow(label: 'ЦВЕТ', value: request.colorName.toUpperCase()),
+            InfoRow(label: 'ТИП ПОКРЫТИЯ', value: request.paintType.label.toUpperCase()),
             const Divider(height: 32),
             Container(
               width: double.infinity,
@@ -185,8 +186,16 @@ class _ColorCard extends StatelessWidget {
               const Divider(height: 24),
               Row(
                 children: [
-                  _infoChip(Icons.color_lens_outlined, '${request.colorCode} · ${request.colorName}'.toUpperCase()),
-                  const Spacer(),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _infoChip(Icons.color_lens_outlined, '${request.colorCode} · ${request.colorName}'.toUpperCase()),
+                        const SizedBox(height: 6),
+                        _infoChip(Icons.layers_outlined, request.paintType.label.toUpperCase()),
+                      ],
+                    ),
+                  ),
                   if (request.slaDeadline != null)
                     _infoChip(Icons.timer_outlined, 'ДО ${DateFormat('HH:mm').format(request.slaDeadline!)}', request.isOverdue ? AppColors.brandRed : AppColors.success),
                 ],
@@ -256,6 +265,10 @@ class _NewColorRequestSheetState extends State<_NewColorRequestSheet> {
   final _commentCtrl = TextEditingController();
 
   String _transferMethod = 'courier';
+
+  /// Тип покрытия. В новой заявке не предзаполняем: от него зависит цена,
+  /// выбор должен быть осознанным.
+  PaintCoatingType? _paintType;
   DateTime? _pickupTime;
 
   /// Крайнее время, до которого маляр готов принять курьера за лючком.
@@ -290,6 +303,7 @@ class _NewColorRequestSheetState extends State<_NewColorRequestSheet> {
     if (_vinCtrl.text != r.vin) return true;
     if (_colorCodeCtrl.text != r.colorCode) return true;
     if (_colorNameCtrl.text != r.colorName) return true;
+    if (_paintType != r.paintType) return true;
     if (_addressCtrl.text != (r.pickupAddress ?? '')) return true;
     if (_contactPersonCtrl.text != (r.contactPerson ?? '')) return true;
     if (_contactPhoneCtrl.text != (r.contactPhone ?? '')) return true;
@@ -312,6 +326,7 @@ class _NewColorRequestSheetState extends State<_NewColorRequestSheet> {
       _vinCtrl.text = r.vin;
       _colorCodeCtrl.text = r.colorCode;
       _colorNameCtrl.text = r.colorName;
+      _paintType = r.paintType;
       _addressCtrl.text = r.pickupAddress ?? '';
       _contactPersonCtrl.text = r.contactPerson ?? '';
       _contactPhoneCtrl.text = r.contactPhone ?? '';
@@ -334,6 +349,16 @@ class _NewColorRequestSheetState extends State<_NewColorRequestSheet> {
   }
 
   Future<void> _submit() async {
+    final paintType = _paintType;
+    if (paintType == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('ВЫБЕРИТЕ ТИП ПОКРЫТИЯ'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
     setState(() => _saving = true);
     try {
       if (widget.initialRequest != null) {
@@ -344,6 +369,7 @@ class _NewColorRequestSheetState extends State<_NewColorRequestSheet> {
           'vin': _vinCtrl.text,
           'colorCode': _colorCodeCtrl.text,
           'colorName': _colorNameCtrl.text,
+          'paintType': paintType.name,
           'urgent': _urgent,
           'transferMethod': _transferMethod,
           'pickupAddress': _addressCtrl.text,
@@ -361,6 +387,7 @@ class _NewColorRequestSheetState extends State<_NewColorRequestSheet> {
           'vin': _vinCtrl.text,
           'colorCode': _colorCodeCtrl.text,
           'colorName': _colorNameCtrl.text,
+          'paintType': paintType.name,
           'urgent': _urgent,
           'transferMethod': _transferMethod,
           'pickupAddress': _addressCtrl.text,
@@ -464,6 +491,20 @@ class _NewColorRequestSheetState extends State<_NewColorRequestSheet> {
                     Expanded(child: TextFormField(controller: _colorNameCtrl, decoration: const InputDecoration(labelText: 'НАЗВАНИЕ ЦВЕТА'))),
                   ],
                 ),
+                const SizedBox(height: 20),
+                _sectionTitle('2. ТИП ПОКРЫТИЯ'),
+                const SizedBox(height: 6),
+                const Text(
+                  'От типа покрытия зависят состав рецепта и цена — по нему же считается добор краски.',
+                  style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                ),
+                const SizedBox(height: 10),
+                ...PaintCoatingType.values.map(
+                  (type) => Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: _paintTypeTile(type),
+                  ),
+                ),
                 const SizedBox(height: 12),
                 SwitchListTile(
                   contentPadding: EdgeInsets.zero,
@@ -474,7 +515,7 @@ class _NewColorRequestSheetState extends State<_NewColorRequestSheet> {
                   subtitle: const Text('Сокращённый срок выполнения (SLA 4 часа)', style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
                 ),
                 const SizedBox(height: 12),
-                _sectionTitle('2. ПЕРЕДАЧА ЛЮЧКА'),
+                _sectionTitle('3. ПЕРЕДАЧА ЛЮЧКА'),
                 const SizedBox(height: 12),
                 Row(
                   children: [
@@ -592,6 +633,55 @@ class _NewColorRequestSheetState extends State<_NewColorRequestSheet> {
   }
 
   Widget _sectionTitle(String title) => Text(title, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 0.5));
+
+  /// Галочка на один из трёх типов покрытия: акрил, база + лак, трёхстадийная.
+  Widget _paintTypeTile(PaintCoatingType type) {
+    final selected = _paintType == type;
+    return InkWell(
+      onTap: () => setState(() => _paintType = type),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: selected ? AppColors.brandBlack : Colors.white,
+          border: Border.all(color: selected ? AppColors.brandBlack : AppColors.border),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              selected ? Icons.check_box : Icons.check_box_outline_blank,
+              size: 20,
+              color: selected ? Colors.white : AppColors.textHint,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    type.label.toUpperCase(),
+                    style: TextStyle(
+                      fontWeight: FontWeight.w900,
+                      fontSize: 12,
+                      letterSpacing: 0.5,
+                      color: selected ? Colors.white : AppColors.brandBlack,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    type.description,
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: selected ? Colors.white70 : AppColors.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
   Widget _radioBtn(String value, String label) {
     final selected = _transferMethod == value;
