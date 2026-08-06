@@ -44,8 +44,17 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
 
   Future<void> _refresh() async {
     final next = DataRepository().dashboard();
-    setState(() => _future = next);
-    await next;
+    // Тело блоком, а не стрелкой: `() => _future = next` возвращает сам Future,
+    // и setState на это ругается ассертом «callback argument returned a Future».
+    setState(() {
+      _future = next;
+    });
+    // Ошибку глотаем намеренно: её показывает FutureBuilder по _future. Если
+    // дать ей улететь отсюда, повторная неудачная попытка обвалится
+    // необработанным исключением вместо того же экрана с кнопкой «Повторить».
+    try {
+      await next;
+    } catch (_) {}
   }
 
   @override
@@ -60,7 +69,7 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
             return const Center(child: CircularProgressIndicator());
           }
           if (snapshot.hasError) {
-            return _BackendError(message: snapshot.error.toString());
+            return _BackendError(message: snapshot.error.toString(), onRetry: _refresh);
           }
           final data = snapshot.data!;
           return RefreshIndicator(
@@ -88,6 +97,16 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        // Если при регистрации вопрос пропустили, спрашиваем
+                        // здесь: иначе заявка навсегда останется висеть
+                        // неподтверждённой, и пригласивший не получит подарок.
+                        if (data.pendingReferralClaim != null) ...[
+                          _PendingReferralBanner(
+                            claim: data.pendingReferralClaim!,
+                            onDecided: _refresh,
+                          ),
+                          const SizedBox(height: 20),
+                        ],
                         _buildQuickActions(context),
                         const SizedBox(height: 20),
                         _buildRecentPurchases(
@@ -249,11 +268,8 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
         'Заказ и ассортимент',
         () => context.push(AppRoutes.order),
       ),
-      _QuickAction(
-        Icons.receipt_long_outlined,
-        'Мои покупки',
-        () => context.push(AppRoutes.purchases),
-      ),
+      // «Мои покупки» и «AI-помощник» здесь не дублируем: у обоих есть свои
+      // вкладки в нижней панели.
       _QuickAction(
         Icons.palette_outlined,
         'Подбор цвета',
@@ -270,14 +286,14 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
         () => context.push(AppRoutes.qa),
       ),
       _QuickAction(
-        Icons.smart_toy_outlined,
-        'AI-помощник',
-        () => context.push(AppRoutes.aiAssistant),
-      ),
-      _QuickAction(
         Icons.card_giftcard_outlined,
         'Приведи друга',
         () => context.push(AppRoutes.referral),
+      ),
+      _QuickAction(
+        Icons.school_outlined,
+        'Обучение',
+        () => context.push(AppRoutes.learning),
       ),
     ];
 
@@ -459,30 +475,141 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
   }
 }
 
-class _BackendError extends StatelessWidget {
-  final String message;
+/// Кто-то заявил, что привёл этого клиента. Пока клиент не ответит, заявка не
+/// даёт права на подарок — иначе достаточно было бы вписать чужой ИНН.
+class _PendingReferralBanner extends StatefulWidget {
+  final PendingReferralClaim claim;
+  final Future<void> Function() onDecided;
 
-  const _BackendError({required this.message});
+  const _PendingReferralBanner({required this.claim, required this.onDecided});
+
+  @override
+  State<_PendingReferralBanner> createState() => _PendingReferralBannerState();
+}
+
+class _PendingReferralBannerState extends State<_PendingReferralBanner> {
+  bool _busy = false;
+
+  Future<void> _decide(bool confirmed) async {
+    setState(() => _busy = true);
+    try {
+      await DataRepository().confirmReferral(widget.claim.id, confirmed: confirmed);
+      await widget.onDecided();
+    } catch (e) {
+      if (mounted) {
+        setState(() => _busy = false);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.cloud_off_outlined, size: 40),
-            const SizedBox(height: 12),
-            const Text(
-              'ОШИБКА ПОДКЛЮЧЕНИЯ К СЕРВЕРУ',
-              style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14),
+    final claim = widget.claim;
+    final where = claim.inviterCity.isEmpty ? '' : ', ${claim.inviterCity}';
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceCard,
+        border: Border.all(color: AppColors.brandRed),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'ВАС ПРИГЛАСИЛИ?',
+            style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '«${claim.inviterName}»$where указал, что пригласил вас в AutoTerra. '
+            'Подтвердите, если это так — бонус получит тот, кто вас привёл.',
+            style: const TextStyle(fontSize: 12, height: 1.4, color: AppColors.textSecondary),
+          ),
+          const SizedBox(height: 16),
+          if (_busy)
+            const Center(child: SizedBox(
+              width: 20, height: 20,
+              child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.brandRed),
+            ))
+          else
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => _decide(false),
+                    child: const Text('НЕТ', style: TextStyle(fontWeight: FontWeight.w900)),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () => _decide(true),
+                    style: ElevatedButton.styleFrom(backgroundColor: AppColors.brandRed),
+                    child: const Text('ДА', style: TextStyle(fontWeight: FontWeight.w900)),
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 8),
-            Text(
-              message,
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: AppColors.textSecondary, fontSize: 11),
+        ],
+      ),
+    );
+  }
+}
+
+class _BackendError extends StatelessWidget {
+  final String message;
+  final Future<void> Function() onRetry;
+
+  const _BackendError({required this.message, required this.onRetry});
+
+  @override
+  Widget build(BuildContext context) {
+    // Раньше это был тупик: экран с ошибкой отдавался голым виджетом, кнопки
+    // не было, а RefreshIndicator строился только в ветке успеха — обновить
+    // было нечем, помогал только перезапуск приложения. Теперь и кнопка, и
+    // жест «потянуть вниз» (для этого нужен прокручиваемый список).
+    return RefreshIndicator(
+      color: AppColors.brandRed,
+      onRefresh: onRetry,
+      child: LayoutBuilder(
+        builder: (context, constraints) => ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          children: [
+            ConstrainedBox(
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+              child: Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.cloud_off_outlined, size: 40),
+                      const SizedBox(height: 12),
+                      const Text(
+                        'ОШИБКА ПОДКЛЮЧЕНИЯ К СЕРВЕРУ',
+                        style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        message,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(color: AppColors.textSecondary, fontSize: 11),
+                      ),
+                      const SizedBox(height: 20),
+                      ElevatedButton(
+                        onPressed: onRetry,
+                        style: ElevatedButton.styleFrom(backgroundColor: AppColors.brandBlack),
+                        child: const Text(
+                          'ПОВТОРИТЬ',
+                          style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ),
           ],
         ),

@@ -92,6 +92,17 @@ class OrderConfigData {
   });
 }
 
+/// Результат запуска оплаты. Ссылки может не быть — тогда бонус покрыл заказ
+/// целиком и платить через ЮKassa уже нечего.
+class PaymentStart {
+  final String? confirmationUrl;
+  final double bonusApplied;
+
+  const PaymentStart({this.confirmationUrl, this.bonusApplied = 0});
+
+  bool get fullyCoveredByBonus => confirmationUrl == null;
+}
+
 class DashboardData {
   final Client client;
   final Distributor distributor;
@@ -105,6 +116,13 @@ class DashboardData {
   final int referralInvitedCount;
   final int referralGiftCount;
 
+  /// Бонусный счёт в рублях: им можно оплатить часть заказа.
+  final double bonusBalance;
+
+  /// Кто-то заявил, что привёл этого клиента, а тот ещё не ответил.
+  /// Спрашиваем с главной, если при регистрации подтверждение пропустили.
+  final PendingReferralClaim? pendingReferralClaim;
+
   const DashboardData({
     required this.client,
     required this.distributor,
@@ -114,6 +132,8 @@ class DashboardData {
     required this.fromBackend,
     this.referralInvitedCount = 0,
     this.referralGiftCount = 0,
+    this.bonusBalance = 0,
+    this.pendingReferralClaim,
   });
 }
 
@@ -164,6 +184,8 @@ class DataRepository {
       fromBackend: true,
       referralInvitedCount: (referrals['invitedCount'] as num? ?? 0).toInt(),
       referralGiftCount: (referrals['giftCount'] as num? ?? 0).toInt(),
+      bonusBalance: _toDouble(data['bonusBalance']),
+      pendingReferralClaim: PendingReferralClaim.fromJson(data['pendingReferral']),
     );
   }
 
@@ -571,6 +593,43 @@ class DataRepository {
     return (result.map(_referralFromJson), stats);
   }
 
+  /// Приглашённый подтверждает или отклоняет заявку на себя.
+  ///
+  /// [authToken] нужен сразу после регистрации: токен уже выдан, но в клиенте
+  /// его ещё нет.
+  Future<void> confirmReferral(
+    String referralId, {
+    required bool confirmed,
+    String? authToken,
+  }) async {
+    await _api.confirmReferral(referralId, confirmed: confirmed, authToken: authToken);
+  }
+
+  /// Подарки, ждущие решения дистрибьютора (п. 7 ТЗ).
+  Future<Paginated<Map<String, dynamic>>> pendingReferralGifts({
+    int page = 1,
+    int pageSize = ApiClient.defaultPageSize,
+  }) {
+    return _api.pendingReferralGifts(page: page, pageSize: pageSize);
+  }
+
+  Future<void> decideReferralGift(
+    String referralId, {
+    required bool approved,
+    String comment = '',
+  }) async {
+    await _api.decideReferralGift(referralId, approved: approved, comment: comment);
+  }
+
+  Future<Paginated<LearningMaterial>> learningMaterials({
+    int page = 1,
+    int pageSize = ApiClient.defaultPageSize,
+    String? kind,
+  }) async {
+    final result = await _api.learningMaterials(page: page, pageSize: pageSize, kind: kind);
+    return result.map(_learningMaterialFromJson);
+  }
+
   Future<Paginated<ExpertTicket>> tickets({
     int page = 1,
     int pageSize = ApiClient.defaultPageSize,
@@ -827,14 +886,25 @@ class DataRepository {
     return _orderFromJson(Map<String, dynamic>.from(res['order'] as Map));
   }
 
-  /// Инициирует оплату. Возвращает confirmationUrl (ссылку YooKassa) либо null.
-  Future<String?> payOrder(String orderId) async {
-    final res = await _api.payOrder(orderId);
+  /// Инициирует оплату. Возвращает ссылку ЮKassa либо null, если платить
+  /// нечего — бонус покрыл заказ целиком и он уже оплачен.
+  Future<PaymentStart> payOrder(String orderId, {double useBonus = 0}) async {
+    final res = await _api.payOrder(orderId, useBonus: useBonus);
     final payment = res['payment'];
-    if (payment is Map && payment['confirmationUrl'] != null) {
-      return payment['confirmationUrl'].toString();
-    }
-    return null;
+    return PaymentStart(
+      confirmationUrl: payment is Map && payment['confirmationUrl'] != null
+          ? payment['confirmationUrl'].toString()
+          : null,
+      bonusApplied: (res['bonusApplied'] as num? ?? 0).toDouble(),
+    );
+  }
+
+  /// Баланс бонусного счёта и история операций по нему.
+  Future<(Paginated<Map<String, dynamic>>, double)> bonusAccount({
+    int page = 1,
+    int pageSize = ApiClient.defaultPageSize,
+  }) {
+    return _api.bonusAccount(page: page, pageSize: pageSize);
   }
 
   Future<Map<String, dynamic>> register(Map<String, dynamic> data) {
@@ -1008,6 +1078,8 @@ class DataRepository {
       paidAt: json['paidAt'] != null ? DateTime.tryParse(json['paidAt'].toString()) : null,
       shippedAt: json['shippedAt'] != null ? DateTime.tryParse(json['shippedAt'].toString()) : null,
       isPayable: json['isPayable'] == true,
+      bonusAvailable: _toDouble(json['bonusAvailable']),
+      bonusApplied: _toDouble(json['bonusApplied']),
       adjustments: _list(json['adjustments']).map((a) => _orderAdjustmentFromJson(a)).toList(),
       pendingPaymentUrl: json['pendingPayment'] is Map
           ? _toString((json['pendingPayment'] as Map)['confirmationUrl'])
@@ -1080,7 +1152,26 @@ class DataRepository {
       purchaseAmount: (json['purchaseAmount'] as num).toDouble(),
       conditionMet: json['conditionMet'] as bool? ?? false,
       gift: json['gift'] as String?,
+      giftStatus: json['giftStatus'] as String? ?? 'none',
+      giftComment: json['giftComment'] as String?,
+      confirmation: json['confirmation'] as String? ?? 'auto',
       createdAt: DateTime.parse(json['createdAt'] as String),
+    );
+  }
+
+  static LearningMaterial _learningMaterialFromJson(Map<String, dynamic> json) {
+    return LearningMaterial(
+      id: json['id'].toString(),
+      title: json['title']?.toString() ?? '',
+      kind: json['kind']?.toString() ?? 'lesson',
+      kindLabel: json['kindLabel']?.toString() ?? '',
+      category: json['category']?.toString() ?? '',
+      summary: json['summary']?.toString() ?? '',
+      body: json['body']?.toString() ?? '',
+      videoUrl: _toString(json['videoUrl']),
+      fileUrl: _toString(json['fileUrl']),
+      durationMinutes: (json['durationMinutes'] as num?)?.toInt(),
+      createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? '') ?? DateTime.now(),
     );
   }
 

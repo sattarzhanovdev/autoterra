@@ -13,6 +13,27 @@ class ApiClient {
   /// Размер страницы по умолчанию — совпадает с бэкендом (`DEFAULT_PAGE_SIZE`).
   static const int defaultPageSize = 20;
 
+  /// Таймаут одной попытки обычного запроса.
+  ///
+  /// Было 15 секунд — этого не хватало. Клиенты работают из России, сервер
+  /// стоит на FastVPS и закрыт Cloudflare: путь до ближайшего edge на мобильной
+  /// сети регулярно проседает, и живой сервер не успевал ответить за 15 с.
+  /// Экран отваливался в «Превышено время ожидания» на ровном месте.
+  ///
+  /// 30 секунд с запасом покрывают и холодный старт бэкенда. Для GET к этому
+  /// добавляется повтор, то есть на деле у запроса минута — но пользователь
+  /// видит крутилку не дольше 30 секунд подряд.
+  static const Duration defaultTimeout = Duration(seconds: 30);
+
+  /// Файлы, выгрузки и импорт: сервер собирает ответ дольше, чем отдаёт JSON.
+  static const Duration longTimeout = Duration(seconds: 120);
+
+  /// Сколько раз повторить GET, если ответ не пришёл.
+  ///
+  /// Только GET: он идемпотентен, и повтор ничего не создаст дважды. POST,
+  /// PATCH и DELETE не повторяем — второй заход мог бы завести дубль заказа.
+  static const int _getRetries = 1;
+
   final http.Client _httpClient;
 
   ApiClient({http.Client? client}) : _httpClient = client ?? _DefaultHttpClient();
@@ -22,6 +43,12 @@ class ApiClient {
   static String? _role;
 
   static bool get isAuthorized => _token != null;
+
+  /// Вызывается, когда сервер ответил 401 на запрос с токеном.
+  ///
+  /// Разрывать зависимости иначе нельзя: AuthService уже импортирует ApiClient,
+  /// и обратный импорт замкнул бы круг. Подписку ставит main().
+  static void Function()? onUnauthorized;
   static String? get role => _role;
 
   /// Resolves a (possibly relative) media path returned by the backend into an
@@ -205,8 +232,23 @@ class ApiClient {
   }
 
   /// Клиент инициирует оплату. Возвращает payload с confirmationUrl (YooKassa).
-  Future<Map<String, dynamic>> payOrder(String orderId) {
-    return _post('/orders/$orderId/pay/', {});
+  ///
+  /// [useBonus] — сколько рублей списать с бонусного счёта. Бонус уменьшает
+  /// сумму, которая уходит в ЮKassa; если он покрывает заказ целиком, ссылка
+  /// на оплату не придёт — заказ сразу станет оплаченным.
+  Future<Map<String, dynamic>> payOrder(String orderId, {double useBonus = 0}) {
+    return _post('/orders/$orderId/pay/', {
+      if (useBonus > 0) 'useBonus': useBonus,
+    });
+  }
+
+  /// Баланс бонусов и история операций.
+  Future<(Paginated<Map<String, dynamic>>, double)> bonusAccount({
+    int page = 1,
+    int pageSize = defaultPageSize,
+  }) async {
+    final (items, raw) = await _getPageWithMeta('/bonus-account/', page: page, pageSize: pageSize);
+    return (items, (raw['balance'] as num? ?? 0).toDouble());
   }
 
   Future<(Paginated<Map<String, dynamic>>, Map<String, dynamic>)> purchases({
@@ -282,6 +324,36 @@ class ApiClient {
       if (raw[key] != null) stats[key] = raw[key];
     }
     return (items, stats);
+  }
+
+  /// Подарки, ждущие согласования дистрибьютором (п. 7 ТЗ).
+  Future<Paginated<Map<String, dynamic>>> pendingReferralGifts({int page = 1, int pageSize = defaultPageSize}) {
+    return _getPage('/referrals/pending-gifts/', page: page, pageSize: pageSize);
+  }
+
+  Future<Map<String, dynamic>> decideReferralGift(
+    String referralId, {
+    required bool approved,
+    String comment = '',
+  }) {
+    return _post('/referrals/$referralId/decide-gift/', {
+      'approved': approved,
+      'comment': comment,
+    });
+  }
+
+  /// Обучающие материалы (п. 10 ТЗ). Управляются из админки, клиент читает.
+  Future<Paginated<Map<String, dynamic>>> learningMaterials({
+    int page = 1,
+    int pageSize = defaultPageSize,
+    String? kind,
+  }) {
+    return _getPage(
+      '/learning-materials/',
+      page: page,
+      pageSize: pageSize,
+      filters: {'kind': kind},
+    );
   }
 
   Future<Paginated<Map<String, dynamic>>> tickets({int page = 1, int pageSize = defaultPageSize}) {
@@ -487,13 +559,29 @@ class ApiClient {
     final result = await _post(
       '/ai/chat/',
       {'message': message},
-      timeout: const Duration(seconds: 60),
+      timeout: longTimeout,
     );
     return result['answer'] as String;
   }
 
   Future<Map<String, dynamic>> register(Map<String, dynamic> body) {
     return _post('/auth/register/', body);
+  }
+
+  /// Приглашённый подтверждает или отклоняет заявку на себя.
+  ///
+  /// [authToken] передаётся сразу после регистрации: токен уже выдан, но
+  /// пользователь ещё не вошёл, и в клиенте его нет.
+  Future<Map<String, dynamic>> confirmReferral(
+    String referralId, {
+    required bool confirmed,
+    String? authToken,
+  }) {
+    return _post(
+      '/referrals/$referralId/confirm/',
+      {'confirmed': confirmed},
+      authToken: authToken,
+    );
   }
 
   Future<Paginated<Map<String, dynamic>>> getRegions({int page = 1, int pageSize = defaultPageSize}) {
@@ -556,7 +644,7 @@ class ApiClient {
         contentType: _mediaTypeForFile(fileName),
       ));
 
-      final streamedResponse = await request.send().timeout(const Duration(seconds: 30));
+      final streamedResponse = await request.send().timeout(longTimeout);
       final response = await http.Response.fromStream(streamedResponse);
       return _decode(response);
     } catch (e) {
@@ -631,7 +719,7 @@ class ApiClient {
           imageBytes,
           filename: fileName,
         ));
-        final streamedResponse = await request.send().timeout(const Duration(seconds: 30));
+        final streamedResponse = await request.send().timeout(longTimeout);
         final response = await http.Response.fromStream(streamedResponse);
         return _decode(response);
       } catch (e) {
@@ -792,7 +880,7 @@ class ApiClient {
             headers: {'Content-Type': 'application/json', 'X-Integration-Token': integrationToken},
             body: jsonEncode(payload),
           )
-          .timeout(const Duration(seconds: 60));
+          .timeout(longTimeout);
       return _decode(response);
     } catch (e) {
       _handleError(e);
@@ -801,7 +889,7 @@ class ApiClient {
   }
 
   Future<void> distributorStockUpload(List<Map<String, dynamic>> items) async {
-    await _post('/distributor/stock/upload/', {'items': items}, timeout: const Duration(seconds: 60));
+    await _post('/distributor/stock/upload/', {'items': items}, timeout: longTimeout);
   }
 
   /// Загрузка ассортимента сырым Excel-файлом (шаблон WB «Общие характеристики»).
@@ -848,7 +936,7 @@ class ApiClient {
             headers: _headers(),
             body: jsonEncode(body),
           )
-          .timeout(const Duration(seconds: 15));
+          .timeout(defaultTimeout);
       return _decode(response);
     } catch (e) {
       _handleError(e);
@@ -879,7 +967,7 @@ class ApiClient {
     // Файл может собираться дольше обычного запроса — список бывает большой.
     final response = await _httpClient
         .get(uri, headers: _headers())
-        .timeout(const Duration(seconds: 60));
+        .timeout(longTimeout);
 
     if (response.statusCode != 200) {
       // Ошибка приходит JSON-ом даже на файловом эндпоинте.
@@ -909,10 +997,25 @@ class ApiClient {
       final normalizedPath = path.startsWith('/') ? path.substring(1) : path;
       final fullUrl = baseUrl.endsWith('/') ? '$baseUrl$normalizedPath' : '$baseUrl/$normalizedPath';
       final uri = Uri.parse(fullUrl).replace(queryParameters: params);
-      final response = await _httpClient
-          .get(uri, headers: _headers())
-          .timeout(const Duration(seconds: 15));
-      return _decode(response);
+
+      // Один автоматический повтор: обрыв по дороге до Cloudflare — обычное
+      // дело на мобильной сети, и чаще всего вторая попытка проходит. Показывать
+      // из-за такого ошибку на весь экран смысла нет.
+      Object? lastError;
+      for (var attempt = 0; attempt <= _getRetries; attempt++) {
+        try {
+          final response = await _httpClient
+              .get(uri, headers: _headers())
+              .timeout(defaultTimeout);
+          return _decode(response);
+        } catch (e) {
+          // Повторяем только обрывы связи. Ответ сервера с ошибкой (403, 500)
+          // повторять бессмысленно — он придёт таким же.
+          if (!_isTransport(e)) rethrow;
+          lastError = e;
+        }
+      }
+      throw lastError!;
     } catch (e) {
       _handleError(e);
       rethrow;
@@ -961,7 +1064,8 @@ class ApiClient {
   Future<Map<String, dynamic>> _post(
     String path,
     dynamic body, {
-    Duration timeout = const Duration(seconds: 15),
+    Duration timeout = defaultTimeout,
+    String? authToken,
   }) async {
     try {
       final normalizedPath = path.startsWith('/') ? path.substring(1) : path;
@@ -969,7 +1073,7 @@ class ApiClient {
       final response = await _httpClient
           .post(
             Uri.parse(fullUrl),
-            headers: _headers(),
+            headers: _headers(authToken: authToken),
             body: jsonEncode(body),
           )
           .timeout(timeout);
@@ -986,12 +1090,23 @@ class ApiClient {
       final fullUrl = baseUrl.endsWith('/') ? '$baseUrl$normalizedPath' : '$baseUrl/$normalizedPath';
       final response = await _httpClient
           .delete(Uri.parse(fullUrl), headers: _headers())
-          .timeout(const Duration(seconds: 15));
+          .timeout(defaultTimeout);
       return _decode(response);
     } catch (e) {
       _handleError(e);
       rethrow;
     }
+  }
+
+  /// Сбой связи, а не ответ сервера: такой запрос имеет смысл повторить.
+  static bool _isTransport(Object e) {
+    final errStr = e.toString().toLowerCase();
+    return errStr.contains('timeoutexception') ||
+        errStr.contains('socketexception') ||
+        errStr.contains('clientexception') ||
+        errStr.contains('handshakeexception') ||
+        errStr.contains('connection closed') ||
+        errStr.contains('connection reset');
   }
 
   void _handleError(Object e) {
@@ -1004,14 +1119,31 @@ class ApiClient {
     }
   }
 
-  Map<String, String> _headers() {
+  /// [authToken] нужен там, где токен уже выдан, но в клиент ещё не сохранён —
+  /// например, подтверждение приглашения сразу после регистрации: пользователь
+  /// формально ещё не вошёл.
+  Map<String, String> _headers({String? authToken}) {
+    final token = authToken ?? _token;
     return {
       'Content-Type': 'application/json',
-      if (_token != null) 'Authorization': 'Bearer $_token',
+      if (token != null) 'Authorization': 'Bearer $token',
     };
   }
 
   Map<String, dynamic> _decode(http.Response response) {
+    // 401 с токеном — протухшая сессия. Раньше это доезжало до экрана сырым
+    // «Unauthorized» внутри формы, и пользователь тыкал в кнопку, которая уже
+    // не могла сработать. Теперь сбрасываем токен: роутер сам уводит на вход.
+    //
+    // Без токена 401 означает неверный логин или пароль на /login/ — там
+    // выходить неоткуда, и текст сервера нужен как есть.
+    if (response.statusCode == 401 && _token != null) {
+      _token = null;
+      _role = null;
+      onUnauthorized?.call();
+      throw const ApiException('Сессия истекла. Войдите заново.');
+    }
+
     String bodyString;
     try {
       bodyString = utf8.decode(response.bodyBytes);

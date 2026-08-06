@@ -16,6 +16,8 @@ import 'screens/color/color_center_screen.dart';
 import 'screens/ai/ai_assistant_screen.dart';
 import 'screens/qa/qa_screen.dart';
 import 'screens/referral/referral_screen.dart';
+import 'screens/qa/learning_materials_screen.dart';
+import 'screens/distributor/distributor_referral_gifts_screen.dart';
 import 'screens/notifications/notifications_screen.dart';
 import 'screens/distributor/distributor_screen.dart';
 import 'screens/distributor/distributor_cabinet_screen.dart';
@@ -104,6 +106,7 @@ final GoRouter _router = GoRouter(
         GoRoute(path: AppRoutes.distributorDeliveries, builder: (ctx, _) => const DistributorDeliveriesScreen()),
         GoRoute(path: AppRoutes.distributorOrders, builder: (ctx, _) => const DistributorOrdersScreen()),
         GoRoute(path: AppRoutes.distributorPurchasesVerification, builder: (ctx, _) => const DistributorPurchasesScreen()),
+        GoRoute(path: AppRoutes.distributorReferralGifts, builder: (ctx, _) => const DistributorReferralGiftsScreen()),
 
         GoRoute(path: '/distributor-cabinet', builder: (ctx, _) => const DistributorCabinetScreen()),
         GoRoute(path: '/courier-cabinet', builder: (ctx, _) => const CourierScreen()),
@@ -119,6 +122,7 @@ final GoRouter _router = GoRouter(
     GoRoute(path: AppRoutes.qa, builder: (ctx, _) => const QaScreen()),
     GoRoute(path: '/knowledge-base', builder: (ctx, _) => const KnowledgeBaseScreen()),
     GoRoute(path: AppRoutes.referral, builder: (ctx, _) => const ReferralScreen()),
+    GoRoute(path: AppRoutes.learning, builder: (ctx, _) => const LearningMaterialsScreen()),
     GoRoute(path: AppRoutes.notifications, builder: (ctx, _) => const NotificationsScreen()),
     GoRoute(path: AppRoutes.distributor, builder: (ctx, _) => const DistributorScreen()),
     GoRoute(path: AppRoutes.order, builder: (ctx, state) => OrderScreen(initialOrder: state.extra as Order?)),

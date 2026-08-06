@@ -83,6 +83,7 @@ class _AdminManagerTasksScreenState extends State<AdminManagerTasksScreen> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(0)),
       ),
+      useSafeArea: true,
       builder: (ctx) => _CreateTaskSheet(
         managers: _managers,
         repo: _repo,
@@ -462,7 +463,12 @@ class _CreateTaskSheetState extends State<_CreateTaskSheet> {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      // Клавиатура — viewInsets, системная навигация Android — viewPadding.
+      // Без второго нижняя кнопка уезжает под кнопки навигации.
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.viewInsetsOf(context).bottom +
+            MediaQuery.viewPaddingOf(context).bottom,
+      ),
       child: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,

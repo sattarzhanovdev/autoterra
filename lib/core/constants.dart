@@ -42,6 +42,7 @@ class AppRoutes {
   static const aiAssistant = '/ai';
   static const qa = '/qa';
   static const referral = '/referral';
+  static const learning = '/learning';
   static const delivery = '/delivery';
   static const admin = '/admin';
   static const notifications = '/notifications';
@@ -53,6 +54,7 @@ class AppRoutes {
   static const distributorDeliveries = '/distributor/deliveries';
   static const distributorOrders = '/distributor/orders';
   static const distributorPurchasesVerification = '/distributor/purchases-verification';
+  static const distributorReferralGifts = '/distributor/referral-gifts';
   static const managerClients = '/manager/clients';
   static const managerTasks = '/manager/tasks';
 }

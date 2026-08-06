@@ -268,6 +268,11 @@ class Order {
   final DateTime? paidAt;
   final DateTime? shippedAt;
   final bool isPayable;
+
+  /// Сколько бонусов доступно клиенту и сколько уже брошено в этот заказ.
+  /// Бонус уменьшает сумму, которая уходит в ЮKassa.
+  final double bonusAvailable;
+  final double bonusApplied;
   final List<OrderAdjustment> adjustments;
   /// Ссылка на страницу оплаты YooKassa, если платёж уже создан и ждёт оплаты.
   final String? pendingPaymentUrl;
@@ -296,6 +301,8 @@ class Order {
     this.paidAt,
     this.shippedAt,
     this.isPayable = false,
+    this.bonusAvailable = 0,
+    this.bonusApplied = 0,
     this.adjustments = const [],
     this.pendingPaymentUrl,
   });
@@ -505,6 +512,19 @@ class ColorRequest {
   final String colorCode;
   final String colorName;
   final PaintCoatingType paintType;
+
+  /// Уточнение к покрытию своими словами. Пусто — хватило одного из трёх
+  /// стандартных типов.
+  final String? paintTypeNote;
+
+  /// Что показывать в заголовке заявки. Модель больше не спрашиваем, но в
+  /// старых заявках она есть — там показываем «Марка Модель».
+  String get carLabel =>
+      carModel.isEmpty ? carBrand : '\$carBrand \$carModel';
+
+  /// Тип покрытия вместе с уточнением маляра, если оно было.
+  String get paintTypeLabel =>
+      paintTypeNote == null ? paintType.label : '\${paintType.label} · \$paintTypeNote';
   final bool urgent;
   final ColorRequestStatus status;
   final String transferMethod;
@@ -534,6 +554,7 @@ class ColorRequest {
     required this.colorCode,
     required this.colorName,
     this.paintType = PaintCoatingType.baseClear,
+    this.paintTypeNote,
     this.urgent = false,
     required this.status,
     required this.transferMethod,
@@ -562,6 +583,9 @@ class ColorRequest {
       colorCode: json['colorCode'] ?? '',
       colorName: json['colorName'] ?? '',
       paintType: _parsePaintType(json['paintType']?.toString()),
+      paintTypeNote: (json['paintTypeNote'] as String?)?.trim().isEmpty ?? true
+          ? null
+          : (json['paintTypeNote'] as String).trim(),
       urgent: json['urgent'] ?? false,
       status: _parseStatus(json['status']?.toString()),
       transferMethod: json['transferMethod'] ?? 'courier',
@@ -636,7 +660,10 @@ class CourierTask {
   final String? courierName;
   final String? courierPhone;
   final String? orderId;
-  final String taskType; // 'pickup' | 'delivery' | 'return'
+  /// 'pickup' | 'color_lab_pickup' | 'delivery'.
+  /// 'return' больше не создаётся — готовое маляр забирает сам, чтобы сверить
+  /// оттенок на месте. Экраны его всё ещё разбирают: в старых записях он есть.
+  final String taskType;
   final String typeDisplay;
   final String address;
   final String? contactName;
@@ -749,7 +776,22 @@ class Referral {
   final bool hasPurchase;
   final double purchaseAmount;
   final bool conditionMet;
+
+  /// Заполнен только после согласования: до решения дистрибьютора обещать
+  /// клиенту скидку или отсрочку нельзя (п. 7 ТЗ).
   final String? gift;
+
+  /// none · pending · approved · declined
+  final String giftStatus;
+  final String? giftComment;
+
+  /// Подтвердил ли приглашённый, что его действительно привели:
+  /// auto (пришёл по коду) · pending · confirmed · declined.
+  ///
+  /// Ручную заявку по чужому ИНН может подать кто угодно, поэтому подарок
+  /// начисляется только по auto и confirmed.
+  final String confirmation;
+
   final DateTime createdAt;
 
   const Referral({
@@ -763,6 +805,74 @@ class Referral {
     this.purchaseAmount = 0,
     this.conditionMet = false,
     this.gift,
+    this.giftStatus = 'none',
+    this.giftComment,
+    this.confirmation = 'auto',
+    required this.createdAt,
+  });
+
+  bool get giftPending => giftStatus == 'pending';
+  bool get giftApproved => giftStatus == 'approved';
+  bool get giftDeclined => giftStatus == 'declined';
+
+  /// Заявка подана, но приглашённый её ещё не подтвердил — подарка не будет.
+  bool get awaitingConfirmation => confirmation == 'pending';
+
+  /// Приглашённый сказал, что его приводил не этот сервис.
+  bool get confirmationDeclined => confirmation == 'declined';
+}
+
+/// Заявка, которую кто-то подал на текущего клиента и которую тот должен
+/// подтвердить или отклонить.
+class PendingReferralClaim {
+  final String id;
+  final String inviterName;
+  final String inviterCity;
+
+  const PendingReferralClaim({
+    required this.id,
+    required this.inviterName,
+    this.inviterCity = '',
+  });
+
+  static PendingReferralClaim? fromJson(Object? json) {
+    if (json is! Map<String, dynamic>) return null;
+    final id = json['id']?.toString();
+    final name = json['inviterName']?.toString();
+    if (id == null || name == null || name.isEmpty) return null;
+    return PendingReferralClaim(
+      id: id,
+      inviterName: name,
+      inviterCity: json['inviterCity']?.toString() ?? '',
+    );
+  }
+}
+
+/// Обучающий материал: урок, чек-лист, видео, инструкция, вебинар (п. 10 ТЗ).
+class LearningMaterial {
+  final String id;
+  final String title;
+  final String kind;
+  final String kindLabel;
+  final String category;
+  final String summary;
+  final String body;
+  final String? videoUrl;
+  final String? fileUrl;
+  final int? durationMinutes;
+  final DateTime createdAt;
+
+  const LearningMaterial({
+    required this.id,
+    required this.title,
+    required this.kind,
+    required this.kindLabel,
+    this.category = '',
+    this.summary = '',
+    this.body = '',
+    this.videoUrl,
+    this.fileUrl,
+    this.durationMinutes,
     required this.createdAt,
   });
 }

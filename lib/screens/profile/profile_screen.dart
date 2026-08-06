@@ -230,6 +230,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       isScrollControlled: true,
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(),
+      useSafeArea: true,
       builder: (_) => _StoreFormSheet(
         store: store,
         repo: _repo,
@@ -393,6 +394,44 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     },
                   ),
                 ],
+              ),
+            ),
+          const Divider(height: 1),
+          // Бонусы — то, ради чего программа и нужна: ими оплачивается заказ.
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+            child: Row(
+              children: [
+                const Expanded(
+                  child: Text(
+                    'БОНУСНЫЙ СЧЁТ',
+                    style: TextStyle(
+                      fontSize: 9,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 1,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ),
+                Text(
+                  '${NumberFormat('#,##0', 'ru_RU').format(data.bonusBalance)} ₽',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w900,
+                    fontSize: 18,
+                    color: data.bonusBalance > 0
+                        ? AppColors.success
+                        : AppColors.textHint,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (data.bonusBalance > 0)
+            const Padding(
+              padding: EdgeInsets.fromLTRB(16, 0, 16, 14),
+              child: Text(
+                'Спишется при оплате заказа — уменьшит сумму к оплате.',
+                style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
               ),
             ),
           const Divider(height: 1),

@@ -75,32 +75,101 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     final order = _order;
     if (order == null) return;
 
+    // Платёж уже создан — ведём на ту же страницу, бонус там учтён.
+    if (order.pendingPaymentUrl != null) {
+      await _openPaymentPage(order.pendingPaymentUrl!);
+      return;
+    }
+
+    // Бонус можно потратить только на ещё не начатую оплату.
+    final useBonus = order.bonusAvailable > 0 ? await _askAboutBonus(order) : 0.0;
+    if (useBonus == null) return; // отменили
+
     setState(() => _busy = true);
     try {
-      // Если платёж уже создан, повторно не создаём — ведём на ту же страницу.
-      final url = order.pendingPaymentUrl ?? await _repo.payOrder(widget.orderId);
+      final result = await _repo.payOrder(widget.orderId, useBonus: useBonus);
       if (!mounted) return;
       setState(() {
         _busy = false;
         _changed = true;
       });
 
-      if (url == null) {
-        _toast('Не удалось получить ссылку на оплату', isError: true);
+      // Бонус покрыл заказ целиком — платить через ЮKassa нечего.
+      if (result.fullyCoveredByBonus) {
+        _toast('Заказ оплачен бонусами');
+        await _load();
         return;
       }
-      final opened = await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
-      if (!opened && mounted) {
-        _toast('Не удалось открыть страницу оплаты', isError: true);
-        return;
-      }
-      // Статус меняет вебхук провайдера, поэтому по возвращении перечитываем.
-      await _load();
+      await _openPaymentPage(result.confirmationUrl!);
     } catch (e) {
       if (!mounted) return;
       setState(() => _busy = false);
       _toast(e.toString(), isError: true);
     }
+  }
+
+  Future<void> _openPaymentPage(String url) async {
+    final opened = await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+    if (!opened && mounted) {
+      _toast('Не удалось открыть страницу оплаты', isError: true);
+      return;
+    }
+    // Статус меняет вебхук провайдера, поэтому по возвращении перечитываем.
+    await _load();
+  }
+
+  /// Сколько бонусов потратить. null — платить передумали.
+  Future<double?> _askAboutBonus(Order order) {
+    final fmt = NumberFormat('#,##0', 'ru_RU');
+    final maxBonus =
+        order.bonusAvailable < order.totalAmount ? order.bonusAvailable : order.totalAmount;
+    final rest = order.totalAmount - maxBonus;
+
+    return showDialog<double>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+        title: const Text(
+          'ИСПОЛЬЗОВАТЬ БОНУСЫ?',
+          style: TextStyle(fontWeight: FontWeight.w900, fontSize: 15),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'На счёте ${fmt.format(order.bonusAvailable)} ₽.',
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              rest > 0
+                  ? 'Спишем ${fmt.format(maxBonus)} ₽, останется доплатить '
+                      '${fmt.format(rest)} ₽.'
+                  : 'Бонусов хватает на весь заказ — доплачивать не придётся.',
+              style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('ОТМЕНА',
+                style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: AppColors.textSecondary)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, 0.0),
+            child: const Text('БЕЗ БОНУСОВ',
+                style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: AppColors.textSecondary)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, maxBonus),
+            child: const Text('СПИСАТЬ',
+                style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: AppColors.brandRed)),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _cancel() async {

@@ -78,6 +78,7 @@ class _KnowledgeBaseScreenState extends State<KnowledgeBaseScreen> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
+      useSafeArea: true,
       builder: (_) => _EditKnowledgeCardSheet(
         card: card,
         onSaved: _refresh,
@@ -200,6 +201,7 @@ class _KnowledgeCardTile extends StatelessWidget {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
+      useSafeArea: true,
       builder: (_) => _EditKnowledgeCardSheet(
         card: card,
         onSaved: onUpdate,
@@ -289,7 +291,15 @@ class _EditKnowledgeCardSheetState extends State<_EditKnowledgeCardSheet> {
     return Container(
       height: MediaQuery.of(context).size.height * 0.8,
       decoration: const BoxDecoration(color: Colors.white),
-      padding: EdgeInsets.fromLTRB(20, 20, 20, 20 + MediaQuery.of(context).viewInsets.bottom),
+      // Клавиатура — viewInsets, системная навигация Android — viewPadding.
+      padding: EdgeInsets.fromLTRB(
+        20,
+        20,
+        20,
+        20 +
+            MediaQuery.viewInsetsOf(context).bottom +
+            MediaQuery.viewPaddingOf(context).bottom,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

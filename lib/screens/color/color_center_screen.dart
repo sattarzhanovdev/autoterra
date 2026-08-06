@@ -75,9 +75,14 @@ class _ColorCenterScreenState extends State<ColorCenterScreen> {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
-      builder: (_) => Container(
+      useSafeArea: true,
+      builder: (sheetContext) => Container(
         decoration: const BoxDecoration(color: Colors.white),
-        padding: const EdgeInsets.all(24),
+        // Нижний отступ — под системную навигацию Android: useSafeArea
+        // прикрывает только верх.
+        padding: EdgeInsets.fromLTRB(
+          24, 24, 24, 24 + MediaQuery.viewPaddingOf(sheetContext).bottom,
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -87,10 +92,10 @@ class _ColorCenterScreenState extends State<ColorCenterScreen> {
               style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: 1),
             ),
             const SizedBox(height: 16),
-            InfoRow(label: 'АВТОМОБИЛЬ', value: '${request.carBrand} ${request.carModel}'.toUpperCase()),
+            InfoRow(label: 'МАРКА', value: request.carLabel.toUpperCase()),
             InfoRow(label: 'КОД ЦВЕТА', value: request.colorCode.toUpperCase()),
             InfoRow(label: 'ЦВЕТ', value: request.colorName.toUpperCase()),
-            InfoRow(label: 'ТИП ПОКРЫТИЯ', value: request.paintType.label.toUpperCase()),
+            InfoRow(label: 'ТИП ПОКРЫТИЯ', value: request.paintTypeLabel.toUpperCase()),
             const Divider(height: 32),
             Container(
               width: double.infinity,
@@ -170,13 +175,14 @@ class _ColorCard extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          '${request.carBrand} ${request.carModel}'.toUpperCase(),
+                          request.carLabel.toUpperCase(),
                           style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
                         ),
-                        Text(
-                          'VIN: ${request.vin}'.toUpperCase(),
-                          style: const TextStyle(color: AppColors.textSecondary, fontSize: 11),
-                        ),
+                        if (request.vin.isNotEmpty)
+                          Text(
+                            'VIN: ${request.vin}'.toUpperCase(),
+                            style: const TextStyle(color: AppColors.textSecondary, fontSize: 11),
+                          ),
                       ],
                     ),
                   ),
@@ -192,7 +198,7 @@ class _ColorCard extends StatelessWidget {
                       children: [
                         _infoChip(Icons.color_lens_outlined, '${request.colorCode} · ${request.colorName}'.toUpperCase()),
                         const SizedBox(height: 6),
-                        _infoChip(Icons.layers_outlined, request.paintType.label.toUpperCase()),
+                        _infoChip(Icons.layers_outlined, request.paintTypeLabel.toUpperCase()),
                       ],
                     ),
                   ),
@@ -254,9 +260,6 @@ class _NewColorRequestSheet extends StatefulWidget {
 
 class _NewColorRequestSheetState extends State<_NewColorRequestSheet> {
   final _brandCtrl = TextEditingController();
-  final _modelCtrl = TextEditingController();
-  final _yearCtrl = TextEditingController();
-  final _vinCtrl = TextEditingController();
   final _colorCodeCtrl = TextEditingController();
   final _colorNameCtrl = TextEditingController();
   final _addressCtrl = TextEditingController();
@@ -269,6 +272,10 @@ class _NewColorRequestSheetState extends State<_NewColorRequestSheet> {
   /// Тип покрытия. В новой заявке не предзаполняем: от него зависит цена,
   /// выбор должен быть осознанным.
   PaintCoatingType? _paintType;
+
+  /// Уточнение к покрытию своими словами: три варианта покрывают почти всё,
+  /// но состав бывает нестандартный, и колористу это надо передать.
+  final _paintNoteCtrl = TextEditingController();
   DateTime? _pickupTime;
 
   /// Крайнее время, до которого маляр готов принять курьера за лючком.
@@ -294,13 +301,11 @@ class _NewColorRequestSheetState extends State<_NewColorRequestSheet> {
 
   bool get _hasChanges {
     if (widget.initialRequest == null) {
-      return _brandCtrl.text.isNotEmpty || _modelCtrl.text.isNotEmpty;
+      return _brandCtrl.text.isNotEmpty || _colorCodeCtrl.text.isNotEmpty;
     }
     final r = widget.initialRequest!;
     if (_brandCtrl.text != r.carBrand) return true;
-    if (_modelCtrl.text != r.carModel) return true;
-    if (_yearCtrl.text != r.carYear) return true;
-    if (_vinCtrl.text != r.vin) return true;
+    if (_paintNoteCtrl.text != (r.paintTypeNote ?? '')) return true;
     if (_colorCodeCtrl.text != r.colorCode) return true;
     if (_colorNameCtrl.text != r.colorName) return true;
     if (_paintType != r.paintType) return true;
@@ -321,9 +326,7 @@ class _NewColorRequestSheetState extends State<_NewColorRequestSheet> {
     if (widget.initialRequest != null) {
       final r = widget.initialRequest!;
       _brandCtrl.text = r.carBrand;
-      _modelCtrl.text = r.carModel;
-      _yearCtrl.text = r.carYear;
-      _vinCtrl.text = r.vin;
+      _paintNoteCtrl.text = r.paintTypeNote ?? '';
       _colorCodeCtrl.text = r.colorCode;
       _colorNameCtrl.text = r.colorName;
       _paintType = r.paintType;
@@ -339,7 +342,7 @@ class _NewColorRequestSheetState extends State<_NewColorRequestSheet> {
 
     // Refresh UI when any text changes to update button state
     for (final controller in [
-      _brandCtrl, _modelCtrl, _yearCtrl, _vinCtrl, _colorCodeCtrl, _colorNameCtrl,
+      _brandCtrl, _colorCodeCtrl, _colorNameCtrl, _paintNoteCtrl,
       _addressCtrl, _contactPersonCtrl, _contactPhoneCtrl, _commentCtrl
     ]) {
       controller.addListener(() {
@@ -349,6 +352,17 @@ class _NewColorRequestSheetState extends State<_NewColorRequestSheet> {
   }
 
   Future<void> _submit() async {
+    // Марка и код — то, по чему колорист подбирает цвет. Раньше обязательной
+    // была модель, но для подбора она ничего не даёт.
+    if (_brandCtrl.text.trim().isEmpty || _colorCodeCtrl.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('УКАЖИТЕ МАРКУ И КОД ЦВЕТА'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
     final paintType = _paintType;
     if (paintType == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -364,9 +378,7 @@ class _NewColorRequestSheetState extends State<_NewColorRequestSheet> {
       if (widget.initialRequest != null) {
         await DataRepository().updateColorRequest(widget.initialRequest!.id, {
           'carBrand': _brandCtrl.text,
-          'carModel': _modelCtrl.text,
-          'carYear': _yearCtrl.text,
-          'vin': _vinCtrl.text,
+          'paintTypeNote': _paintNoteCtrl.text.trim(),
           'colorCode': _colorCodeCtrl.text,
           'colorName': _colorNameCtrl.text,
           'paintType': paintType.name,
@@ -382,9 +394,7 @@ class _NewColorRequestSheetState extends State<_NewColorRequestSheet> {
       } else {
         await DataRepository().createColorRequest({
           'carBrand': _brandCtrl.text,
-          'carModel': _modelCtrl.text,
-          'carYear': _yearCtrl.text,
-          'vin': _vinCtrl.text,
+          'paintTypeNote': _paintNoteCtrl.text.trim(),
           'colorCode': _colorCodeCtrl.text,
           'colorName': _colorNameCtrl.text,
           'paintType': paintType.name,
@@ -459,34 +469,18 @@ class _NewColorRequestSheetState extends State<_NewColorRequestSheet> {
             child: ListView(
               padding: const EdgeInsets.all(20),
               children: [
-                _sectionTitle('1. АВТОМОБИЛЬ И ЦВЕТ'),
+                // Цвет определяют марка и код. Модель, VIN и год для подбора
+                // не нужны — они только удлиняли форму.
+                _sectionTitle('1. МАРКА И ЦВЕТ'),
                 const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(child: TextFormField(controller: _brandCtrl, decoration: const InputDecoration(labelText: 'МАРКА *'))),
-                    const SizedBox(width: 10),
-                    Expanded(child: TextFormField(controller: _modelCtrl, decoration: const InputDecoration(labelText: 'МОДЕЛЬ *'))),
-                  ],
+                TextFormField(
+                  controller: _brandCtrl,
+                  decoration: const InputDecoration(labelText: 'МАРКА *'),
                 ),
                 const SizedBox(height: 12),
                 Row(
                   children: [
-                    Expanded(flex: 2, child: TextFormField(controller: _vinCtrl, decoration: const InputDecoration(labelText: 'VIN / ГОСНОМЕР'))),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: TextFormField(
-                        controller: _yearCtrl,
-                        keyboardType: TextInputType.number,
-                        maxLength: 4,
-                        decoration: const InputDecoration(labelText: 'ГОД', counterText: ''),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(child: TextFormField(controller: _colorCodeCtrl, decoration: const InputDecoration(labelText: 'КОД ЦВЕТА'))),
+                    Expanded(child: TextFormField(controller: _colorCodeCtrl, decoration: const InputDecoration(labelText: 'КОД ЦВЕТА *'))),
                     const SizedBox(width: 10),
                     Expanded(child: TextFormField(controller: _colorNameCtrl, decoration: const InputDecoration(labelText: 'НАЗВАНИЕ ЦВЕТА'))),
                   ],
@@ -503,6 +497,18 @@ class _NewColorRequestSheetState extends State<_NewColorRequestSheet> {
                   (type) => Padding(
                     padding: const EdgeInsets.only(bottom: 8),
                     child: _paintTypeTile(type),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                // Три варианта покрывают почти всё, но состав бывает
+                // нестандартный — тогда маляр дописывает его словами.
+                TextFormField(
+                  controller: _paintNoteCtrl,
+                  textCapitalization: TextCapitalization.sentences,
+                  decoration: const InputDecoration(
+                    labelText: 'УТОЧНЕНИЕ ПО ПОКРЫТИЮ',
+                    hintText: 'Например: перламутр в 3 слоя, матовый лак',
+                    helperText: 'Если ни один вариант не описывает состав точно',
                   ),
                 ),
                 const SizedBox(height: 12),

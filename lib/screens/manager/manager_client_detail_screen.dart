@@ -112,6 +112,7 @@ class _ManagerClientDetailScreenState extends State<ManagerClientDetailScreen> {
       context: context,
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+      useSafeArea: true,
       builder: (ctx) => _StatusSheet(
         currentStatus: currentStatus,
         onSelect: (newStatus) async {

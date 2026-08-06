@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/theme.dart';
 import '../../core/constants.dart';
+import '../../models/models.dart';
 import '../../models/paginated.dart';
 import '../../services/api_client.dart';
+import '../../services/data_repository.dart';
 
 class RegisterScreen extends StatefulWidget {
   /// Код из ссылки-приглашения `?ref=CODE`. Пусто — код вводят вручную.
@@ -134,6 +136,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
       });
 
       if (mounted) {
+        // Кто-то мог заявить это СТО вручную ещё до регистрации. Такая заявка
+        // не даёт права на подарок, пока клиент сам её не подтвердит, — и
+        // спросить об этом лучше сейчас, пока человек помнит, кто его звал.
+        await _askAboutPendingClaim(
+          PendingReferralClaim.fromJson(result['pendingReferral']),
+          result['token'] as String?,
+        );
+        if (!mounted) return;
         _showSuccessDialog(result['requires_approval'] == true);
       }
     } on ApiException catch (e) {
@@ -186,6 +196,75 @@ class _RegisterScreenState extends State<RegisterScreen> {
           backgroundColor: AppColors.brandRed,
         ),
       );
+    }
+  }
+
+  /// Спрашивает у только что зарегистрировавшегося, действительно ли его привёл
+  /// заявивший об этом сервис.
+  ///
+  /// Отказ или закрытие окна ничего не ломают: заявка просто останется
+  /// неподтверждённой, и то же самое спросят с главной после входа.
+  Future<void> _askAboutPendingClaim(
+    PendingReferralClaim? claim,
+    String? token,
+  ) async {
+    if (claim == null || token == null) return;
+
+    final where = claim.inviterCity.isEmpty ? '' : ', ${claim.inviterCity}';
+    final confirmed = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: AppColors.brandBlack,
+        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+        title: const Text(
+          'ВАС ПРИГЛАСИЛИ?',
+          style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '«${claim.inviterName}»$where указал, что пригласил вас в AutoTerra.',
+              style: const TextStyle(color: Colors.white, fontSize: 14),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Подтвердите, если это так. Ответ ни на что не влияет для вас — '
+              'он нужен, чтобы бонус за приглашение получил именно тот, кто вас привёл.',
+              style: TextStyle(color: Colors.white70, fontSize: 12),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('НЕТ', style: TextStyle(color: Colors.white70)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            style: TextButton.styleFrom(
+              backgroundColor: AppColors.brandRed,
+              foregroundColor: Colors.white,
+              shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+            ),
+            child: const Text('ДА, ПРИГЛАСИЛИ'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == null) return;
+    try {
+      await DataRepository().confirmReferral(
+        claim.id,
+        confirmed: confirmed,
+        authToken: token,
+      );
+    } catch (_) {
+      // Регистрация уже прошла — ронять её из-за неотправленного ответа нельзя.
+      // Тот же вопрос задастся с главной после входа.
     }
   }
 

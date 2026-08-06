@@ -56,9 +56,19 @@ flutter:
   #       - asset: assets/fonts/TTNeoris-Bold.ttf
   #         weight: 700
 
+# Ярлык приложения — по гайдбуку: знак «летящая звезда» красный #F01D2C
+# на фирменном чёрном #171717 (стр. 06, 07 и 12 гайдбука).
+# После правки этого блока обязательно перегенерировать:
+#   dart run flutter_launcher_icons
 flutter_launcher_icons:
   android: true
   ios: true
   image_path: assets/icon-1024.png
   remove_alpha_ios: true
+  # Без adaptive-иконки Android 8+ подставляет знак на белую подложку и
+  # уменьшает его — фирменный чёрный фон пропадает.
+  adaptive_icon_background: "#171717"
+  adaptive_icon_foreground: assets/icon-foreground-1024.png
+  # Themed icons (Android 13+): система красит силуэт в цвета обоев.
+  adaptive_icon_monochrome: assets/icon-monochrome-1024.png
 

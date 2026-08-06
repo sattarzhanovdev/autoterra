@@ -8,6 +8,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'app.dart';
 import 'firebase_options.dart';
 import 'services/api_client.dart';
+import 'services/auth_service.dart';
 import 'services/push_notification_manager.dart';
 
 Future<void> main() async {
@@ -25,6 +26,10 @@ Future<void> main() async {
   }
 
   await ApiClient.loadSavedToken();
+  // Протухшая сессия должна уводить на экран входа, а не показывать
+  // «Unauthorized» посреди формы: роутер слушает authService и сам сделает
+  // редирект, как только токен пропадёт.
+  ApiClient.onUnauthorized = () => authService.logout();
   await initializeDateFormatting('ru_RU');
   SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
   SystemChrome.setSystemUIOverlayStyle(

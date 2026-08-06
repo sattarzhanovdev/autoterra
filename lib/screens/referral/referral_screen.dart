@@ -48,61 +48,180 @@ class _ReferralScreenState extends State<ReferralScreen> {
 
   String? get _inviteLink => _stats['inviteLink'] as String?;
 
-  void _share() {
+  /// Текст приглашения. Приложение никому ничего не отправляет само — ссылку
+  /// разносит сам клиент через свой мессенджер, поэтому текст должен быть
+  /// самодостаточным: и ссылка, и код на случай ручной регистрации.
+  String? _inviteText({String? forName}) {
     final code = _refCode;
     final link = _inviteLink;
-    if (code == null || link == null) return;
-    Share.share(
-      'Присоединяйтесь к AutoTerra! Регистрация по моей ссылке: $link\n'
-      'Или введите код при регистрации: $code',
-      subject: 'Приглашение в AutoTerra',
-    );
+    if (code == null || link == null) return null;
+    final greeting = (forName == null || forName.trim().isEmpty)
+        ? 'Приглашаю вас в AutoTerra.'
+        : 'Приглашаю «${forName.trim()}» в AutoTerra.';
+    return '$greeting\n\n'
+        'Зарегистрируйтесь по ссылке — она сразу свяжет ваш аккаунт с моим:\n'
+        '$link\n\n'
+        'Если регистрируетесь вручную, введите код приглашения: $code';
   }
 
-  void _showAddDialog() {
+  /// Открывает системное «Поделиться». Это единственный способ, которым
+  /// приглашение доходит до второго СТО, — до этого запись видна только
+  /// пригласившему.
+  Future<void> _sendInvite({String? forName}) async {
+    final text = _inviteText(forName: forName);
+    if (text == null) {
+      _toast('КОД ЕЩЁ ЗАГРУЖАЕТСЯ, ПОВТОРИТЕ ЧЕРЕЗ СЕКУНДУ');
+      return;
+    }
+    await Share.share(text, subject: 'Приглашение в AutoTerra');
+  }
+
+  void _toast(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  Future<void> _showAddDialog() async {
     final innCtrl = TextEditingController();
     final nameCtrl = TextEditingController();
-    showModalBottomSheet(
+    String? error;
+    var busy = false;
+
+    // Возвращает название СТО, если запись создана, — по нему сразу открываем
+    // «Поделиться», иначе приглашение так и останется висеть только в ЛК.
+    final createdName = await showModalBottomSheet<String>(
       context: context,
       isScrollControlled: true,
-      builder: (_) => Padding(
-        padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-        child: Container(
-          padding: const EdgeInsets.all(24),
-          decoration: const BoxDecoration(color: Colors.white),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text('ПРИГЛАСИТЬ СТО', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
-              const SizedBox(height: 16),
-              TextFormField(controller: innCtrl, decoration: const InputDecoration(labelText: 'ИНН СТО *')),
-              const SizedBox(height: 12),
-              TextFormField(controller: nameCtrl, decoration: const InputDecoration(labelText: 'НАЗВАНИЕ СТО *')),
-              const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                height: 50,
-                child: ElevatedButton(
-                  onPressed: () async {
-                    if (innCtrl.text.isEmpty || nameCtrl.text.isEmpty) return;
-                    await DataRepository().createReferral({
-                      'inviteeInn': innCtrl.text,
-                      'inviteeName': nameCtrl.text,
-                    });
-                    if (mounted) {
-                      Navigator.pop(context);
-                      _reload();
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.brandRed),
-                  child: const Text('ДОБАВИТЬ'),
-                ),
+      useSafeArea: true,
+      builder: (sheetContext) => StatefulBuilder(
+        builder: (sheetContext, setSheetState) => Padding(
+          // Клавиатура — viewInsets, системная навигация Android — viewPadding.
+          // Без второго кнопка «ДОБАВИТЬ» уезжает под кнопки навигации.
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.viewInsetsOf(sheetContext).bottom +
+                MediaQuery.viewPaddingOf(sheetContext).bottom,
+          ),
+          child: SingleChildScrollView(
+            child: Container(
+              padding: const EdgeInsets.all(24),
+              decoration: const BoxDecoration(color: Colors.white),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Text(
+                    'ПРИГЛАСИТЬ СТО',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16),
+                  ),
+                  const SizedBox(height: 12),
+                  // Главный вопрос клиентов: «как человек получит приглашение?».
+                  // Отвечаем прямо в форме — само приложение ничего не шлёт.
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    color: AppColors.canvas,
+                    child: const Text(
+                      'Запись закрепит за вами это СТО по ИНН: бонус зачтётся, '
+                      'даже если оно зарегистрируется без вашего кода.\n\n'
+                      'Само приглашение отправите вы — после сохранения '
+                      'откроется «Поделиться» с готовой ссылкой.',
+                      style: TextStyle(fontSize: 11, height: 1.4, color: AppColors.textSecondary),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: innCtrl,
+                    keyboardType: TextInputType.number,
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                    maxLength: 12,
+                    decoration: const InputDecoration(
+                      labelText: 'ИНН СТО *',
+                      helperText: '10 цифр для организации, 12 — для ИП',
+                      counterText: '',
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: nameCtrl,
+                    textCapitalization: TextCapitalization.words,
+                    decoration: const InputDecoration(labelText: 'НАЗВАНИЕ СТО *'),
+                  ),
+                  if (error != null) ...[
+                    const SizedBox(height: 12),
+                    Text(
+                      error!,
+                      style: const TextStyle(
+                        color: AppColors.brandRed,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    height: 50,
+                    child: ElevatedButton(
+                      onPressed: busy
+                          ? null
+                          : () async {
+                              final inn = innCtrl.text.trim();
+                              final name = nameCtrl.text.trim();
+                              // Проверяем только длину: контрольную сумму не
+                              // считаем — в базе полно СТО с номерами, которые
+                              // её не проходят.
+                              if (inn.length != 10 && inn.length != 12) {
+                                setSheetState(() => error = 'ИНН — 10 цифр для организации, 12 для ИП');
+                                return;
+                              }
+                              if (name.isEmpty) {
+                                setSheetState(() => error = 'Укажите название СТО');
+                                return;
+                              }
+                              setSheetState(() {
+                                error = null;
+                                busy = true;
+                              });
+                              try {
+                                await DataRepository().createReferral({
+                                  'inviteeInn': inn,
+                                  'inviteeName': name,
+                                });
+                                if (sheetContext.mounted) Navigator.pop(sheetContext, name);
+                              } catch (e) {
+                                // У ApiException toString() — это уже текст с
+                                // сервера («Нельзя пригласить самого себя» и
+                                // т.п.), показываем его как есть.
+                                setSheetState(() {
+                                  busy = false;
+                                  error = '$e';
+                                });
+                              }
+                            },
+                      style: ElevatedButton.styleFrom(backgroundColor: AppColors.brandRed),
+                      child: busy
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                            )
+                          : const Text('ДОБАВИТЬ И ОТПРАВИТЬ'),
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ),
     );
+
+    innCtrl.dispose();
+    nameCtrl.dispose();
+    if (createdName == null || !mounted) return;
+
+    _reload();
+    // Без этого шага приглашение остаётся только записью в ЛК пригласившего.
+    await _sendInvite(forName: createdName);
   }
 
   @override
@@ -140,6 +259,7 @@ class _ReferralScreenState extends State<ReferralScreen> {
           referral: referral,
           fmt: fmt,
           threshold: (_stats['bonusThreshold'] as num?)?.toDouble(),
+          onResend: () => _sendInvite(forName: referral.inviteeName),
         ),
       ),
     );
@@ -257,7 +377,7 @@ class _ReferralScreenState extends State<ReferralScreen> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
-                onPressed: _share,
+                onPressed: () => _sendInvite(),
                 icon: const Icon(Icons.share, size: 16),
                 label: const Text('ПОДЕЛИТЬСЯ ССЫЛКОЙ'),
                 style: ElevatedButton.styleFrom(backgroundColor: AppColors.brandRed, shape: const BeveledRectangleBorder()),
@@ -304,7 +424,16 @@ class _ReferralCard extends StatelessWidget {
   /// не показываем — иначе он врал бы про зашитую в приложение сумму.
   final double? threshold;
 
-  const _ReferralCard({required this.referral, required this.fmt, this.threshold});
+  /// Повторная отправка ссылки: пока СТО не зарегистрировалось, запись живёт
+  /// только в ЛК пригласившего, и её нужно чем-то «дожать».
+  final VoidCallback onResend;
+
+  const _ReferralCard({
+    required this.referral,
+    required this.fmt,
+    required this.onResend,
+    this.threshold,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -331,9 +460,71 @@ class _ReferralCard extends StatelessWidget {
               _arrow(),
               _stepIcon('ЗАКАЗЫ', referral.hasPurchase),
               _arrow(),
-              _stepIcon('БОНУС', referral.conditionMet),
+              // Галочка только после согласования — условие выполнено ещё не
+              // значит, что подарок выдан.
+              _stepIcon('БОНУС', referral.giftApproved),
             ],
           ),
+          // Приглашённый должен сам подтвердить, что его привели именно вы —
+          // иначе подарка не будет. Пишем это прямо, чтобы ожидание бонуса не
+          // упиралось в невидимое условие.
+          if (referral.awaitingConfirmation && referral.isRegistered) ...[
+            const SizedBox(height: 12),
+            _giftBanner(
+              icon: Icons.help_outline,
+              color: AppColors.textSecondary,
+              text: 'СТО ЕЩЁ НЕ ПОДТВЕРДИЛО ПРИГЛАШЕНИЕ — БОНУС НЕ НАЧИСЛИТСЯ',
+            ),
+          ],
+          if (referral.confirmationDeclined) ...[
+            const SizedBox(height: 12),
+            _giftBanner(
+              icon: Icons.person_off_outlined,
+              color: AppColors.brandRed,
+              text: 'СТО УКАЗАЛО, ЧТО ЕГО ПРИГЛАСИЛИ НЕ ВЫ',
+            ),
+          ],
+          // Пока СТО не зарегистрировалось, запись никак ему не видна: система
+          // свяжет их только когда оно придёт по ссылке или заведётся с этим
+          // ИНН. Поэтому здесь прямо говорим, чего ждём, и даём переотправить.
+          if (!referral.isRegistered) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(8),
+              color: AppColors.canvas,
+              child: Row(
+                children: [
+                  const Icon(Icons.schedule_send, size: 14, color: AppColors.textSecondary),
+                  const SizedBox(width: 8),
+                  const Expanded(
+                    child: Text(
+                      'ЖДЁМ РЕГИСТРАЦИЮ. ОТПРАВЬТЕ ССЫЛКУ, ЕСЛИ ЕЩЁ НЕ ОТПРАВИЛИ',
+                      style: TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  InkWell(
+                    onTap: onResend,
+                    child: const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                      child: Text(
+                        'ОТПРАВИТЬ',
+                        style: TextStyle(
+                          color: AppColors.brandRed,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
           if (referral.hasPurchase && !referral.conditionMet && threshold != null && threshold! > 0) ...[
             const SizedBox(height: 12),
             LinearProgressIndicator(
@@ -348,20 +539,57 @@ class _ReferralCard extends StatelessWidget {
               style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: AppColors.textSecondary),
             ),
           ],
-          if (referral.gift != null && referral.conditionMet) ...[
+          // Подарок проходит согласование у дистрибьютора: до его решения
+          // конкретную скидку обещать нельзя (п. 7 ТЗ).
+          if (referral.giftPending) ...[
             const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.all(8),
-              color: AppColors.success.withValues(alpha: 0.1),
-              child: Row(
-                children: [
-                  const Icon(Icons.card_giftcard, size: 14, color: AppColors.success),
-                  const SizedBox(width: 8),
-                  Text(referral.gift!.toUpperCase(), style: const TextStyle(color: AppColors.success, fontSize: 11, fontWeight: FontWeight.w900)),
-                ],
-              ),
+            _giftBanner(
+              icon: Icons.hourglass_empty,
+              color: AppColors.textSecondary,
+              text: 'ПОДАРОК НА СОГЛАСОВАНИИ У ДИСТРИБЬЮТОРА',
             ),
           ],
+          if (referral.giftDeclined) ...[
+            const SizedBox(height: 12),
+            _giftBanner(
+              icon: Icons.block,
+              color: AppColors.brandRed,
+              text: referral.giftComment == null
+                  ? 'ПОДАРОК НЕ СОГЛАСОВАН'
+                  : 'НЕ СОГЛАСОВАН: ${referral.giftComment!.toUpperCase()}',
+            ),
+          ],
+          if (referral.gift != null && referral.giftApproved) ...[
+            const SizedBox(height: 12),
+            _giftBanner(
+              icon: Icons.card_giftcard,
+              color: AppColors.success,
+              text: referral.gift!.toUpperCase(),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _giftBanner({
+    required IconData icon,
+    required Color color,
+    required String text,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(8),
+      color: color.withValues(alpha: 0.1),
+      child: Row(
+        children: [
+          Icon(icon, size: 14, color: color),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w900),
+            ),
+          ),
         ],
       ),
     );
