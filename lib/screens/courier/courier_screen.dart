@@ -5,6 +5,7 @@ import '../../services/data_repository.dart';
 import '../../services/pagination_controller.dart';
 import '../../widgets/common/paginated_list_view.dart';
 import '../../widgets/common/section_header.dart';
+import '../../widgets/common/brand_icon.dart';
 
 class CourierScreen extends StatefulWidget {
   const CourierScreen({super.key});
@@ -85,7 +86,7 @@ class _CourierTaskTile extends StatelessWidget {
           const SizedBox(height: 4),
           Row(
             children: [
-              const Icon(Icons.location_on_outlined, size: 14, color: AppColors.textSecondary),
+              const BrandIcon(BrandIcons.location, size: 14, color: AppColors.textSecondary),
               const SizedBox(width: 4),
               Expanded(
                 child: Text(
@@ -166,18 +167,18 @@ class _CourierTaskTile extends StatelessWidget {
         icon = Icons.local_shipping_outlined;
         break;
       case 'return':
-        color = const Color(0xFF5A5A5A);
+        color = AppColors.textSecondary;
         icon = Icons.assignment_return_outlined;
         break;
       default:
-        color = const Color(0xFF9A9A9A);
+        color = AppColors.textHint;
         icon = Icons.help_outline;
     }
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(4),
+        borderRadius: BorderRadius.zero,
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -210,14 +211,14 @@ class _CourierTaskTile extends StatelessWidget {
         color = AppColors.brandRed;
         break;
       default:
-        color = const Color(0xFF9A9A9A);
+        color = AppColors.textHint;
     }
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.1),
         border: Border.all(color: color.withValues(alpha: 0.5)),
-        borderRadius: BorderRadius.circular(4),
+        borderRadius: BorderRadius.zero,
       ),
       child: Text(
         display.toUpperCase(),

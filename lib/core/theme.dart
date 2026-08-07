@@ -5,7 +5,10 @@ class AppColors {
   static const brandBlack = Color(0xFF171717);
   static const brandRed = Color(0xFFF01D2C);
   static const brandWhite = Color(0xFFF5F5F5);
-  static const canvas = Color(0xFFF0F0F0);
+
+  // Фон страницы — фирменный белый (гайдбук, стр. 12). Карточки отделяются
+  // от него не оттенком, а фирменной обводкой [border].
+  static const canvas = brandWhite;
 
   // Aliases for compatibility
   static const primary = brandBlack;
@@ -40,39 +43,41 @@ class AppColors {
   static const categoryC = Color(0xFF5A5A5A);
 }
 
-// Chamfer helper
+/// Фирменный срез. Гайдбук, стр. 16: у форм фаска (chamfer) вместо
+/// стандартного скругления, на макетах она ставится в правый верхний угол.
+/// Нижняя граница среза по гайду — 10 px, поэтому мельче [chamferSm] не берём.
 class AppShapes {
-  static const double chamferSm = 8.0;
-  static const double chamferMd = 12.0;
+  static const double chamferSm = 10.0;
+  static const double chamferMd = 14.0;
   static const double chamferLg = 20.0;
 
-  // Top-right chamfer only (brand cut)
-  static Path chamferPath(Size size, double cut) {
-    return Path()
-      ..moveTo(0, 0)
-      ..lineTo(size.width - cut, 0)
-      ..lineTo(size.width, cut)
-      ..lineTo(size.width, size.height)
-      ..lineTo(0, size.height)
-      ..close();
-  }
+  static BorderRadius cut([double size = chamferMd]) =>
+      BorderRadius.only(topRight: Radius.circular(size));
 
-  // Bottom-left chamfer
-  static Path chamferPathBL(Size size, double cut) {
-    return Path()
-      ..moveTo(0, 0)
-      ..lineTo(size.width, 0)
-      ..lineTo(size.width, size.height)
-      ..lineTo(cut, size.height)
-      ..lineTo(0, size.height - cut)
-      ..close();
-  }
+  /// Ответная фаска для нижней половины составной формы. Гайдбук, стр. 16:
+  /// формы, стоящие друг за другом, соединяются в пару — верхняя срезана
+  /// справа сверху, нижняя слева снизу.
+  static BorderRadius cutPaired([double size = chamferMd]) =>
+      BorderRadius.only(bottomLeft: Radius.circular(size));
+
+  static BeveledRectangleBorder border({
+    double size = chamferMd,
+    BorderSide side = BorderSide.none,
+  }) =>
+      BeveledRectangleBorder(borderRadius: cut(size), side: side);
 }
 
+/// Начертания — гайдбук, стр. 13. У Octosquares в айдентике есть только
+/// Medium (500), у Neoris — Regular (400) для текста и DemiBold (600) для
+/// акцентов. Других весов в брендбуке нет, поэтому не изобретаем.
 class _AppFonts {
+  static const _medium = FontWeight.w500;
+  static const _regular = FontWeight.w400;
+  static const _demiBold = FontWeight.w600;
+
   static TextStyle octosquares({
     double? fontSize,
-    FontWeight? fontWeight,
+    FontWeight fontWeight = _medium,
     Color? color,
     double? letterSpacing,
   }) {
@@ -87,7 +92,7 @@ class _AppFonts {
 
   static TextStyle neoris({
     double? fontSize,
-    FontWeight? fontWeight,
+    FontWeight fontWeight = _regular,
     Color? color,
     double? letterSpacing,
   }) {
@@ -99,6 +104,18 @@ class _AppFonts {
       letterSpacing: letterSpacing,
     );
   }
+
+  static TextStyle neorisAccent({
+    double? fontSize,
+    Color? color,
+    double? letterSpacing,
+  }) =>
+      neoris(
+        fontSize: fontSize,
+        fontWeight: _demiBold,
+        color: color,
+        letterSpacing: letterSpacing,
+      );
 }
 
 class AppTheme {
@@ -122,7 +139,6 @@ class AppTheme {
         centerTitle: false,
         titleTextStyle: _AppFonts.octosquares(
           fontSize: 16,
-          fontWeight: FontWeight.w900,
           color: Colors.white,
           letterSpacing: 0.8,
         ),
@@ -131,8 +147,9 @@ class AppTheme {
       cardTheme: CardThemeData(
         color: AppColors.surfaceCard,
         elevation: 0,
-        shape: const BeveledRectangleBorder(
-          side: BorderSide(color: AppColors.border, width: 1),
+        shape: AppShapes.border(
+          size: AppShapes.chamferMd,
+          side: const BorderSide(color: AppColors.border, width: 1),
         ),
         margin: EdgeInsets.zero,
       ),
@@ -142,10 +159,9 @@ class AppTheme {
           foregroundColor: Colors.white,
           elevation: 0,
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-          shape: const BeveledRectangleBorder(),
+          shape: AppShapes.border(size: AppShapes.chamferSm),
           textStyle: _AppFonts.octosquares(
             fontSize: 13,
-            fontWeight: FontWeight.w900,
             letterSpacing: 0.8,
           ),
         ),
@@ -155,28 +171,25 @@ class AppTheme {
           foregroundColor: AppColors.brandBlack,
           side: const BorderSide(color: AppColors.brandBlack, width: 1.5),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-          shape: const BeveledRectangleBorder(),
-          textStyle: _AppFonts.octosquares(
-            fontSize: 12,
-            fontWeight: FontWeight.w900,
-          ),
+          shape: AppShapes.border(size: AppShapes.chamferSm),
+          textStyle: _AppFonts.octosquares(fontSize: 12),
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: Colors.white,
-        border: const OutlineInputBorder(borderRadius: BorderRadius.zero, borderSide: BorderSide(color: AppColors.border)),
-        enabledBorder: const OutlineInputBorder(borderRadius: BorderRadius.zero, borderSide: BorderSide(color: AppColors.border)),
-        focusedBorder: const OutlineInputBorder(borderRadius: BorderRadius.zero, borderSide: BorderSide(color: AppColors.brandBlack, width: 2)),
-        labelStyle: _AppFonts.octosquares(color: AppColors.textSecondary, fontSize: 11, fontWeight: FontWeight.bold),
+        border: OutlineInputBorder(borderRadius: AppShapes.cut(AppShapes.chamferSm), borderSide: const BorderSide(color: AppColors.border)),
+        enabledBorder: OutlineInputBorder(borderRadius: AppShapes.cut(AppShapes.chamferSm), borderSide: const BorderSide(color: AppColors.border)),
+        focusedBorder: OutlineInputBorder(borderRadius: AppShapes.cut(AppShapes.chamferSm), borderSide: const BorderSide(color: AppColors.brandBlack, width: 2)),
+        labelStyle: _AppFonts.octosquares(color: AppColors.textSecondary, fontSize: 11),
         hintStyle: _AppFonts.neoris(color: AppColors.textHint, fontSize: 14),
       ),
       tabBarTheme: TabBarThemeData(
         labelColor: AppColors.brandRed,
         unselectedLabelColor: Colors.white.withValues(alpha: 0.7),
         indicatorColor: AppColors.brandRed,
-        labelStyle: _AppFonts.octosquares(fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 0.5),
-        unselectedLabelStyle: _AppFonts.octosquares(fontSize: 11, fontWeight: FontWeight.w900),
+        labelStyle: _AppFonts.octosquares(fontSize: 11, letterSpacing: 0.5),
+        unselectedLabelStyle: _AppFonts.octosquares(fontSize: 11),
       ),
       bottomNavigationBarTheme: BottomNavigationBarThemeData(
         backgroundColor: AppColors.brandBlack,
@@ -184,12 +197,12 @@ class AppTheme {
         unselectedItemColor: Colors.white.withValues(alpha: 0.45),
         type: BottomNavigationBarType.fixed,
         elevation: 0,
-        selectedLabelStyle: _AppFonts.neoris(fontSize: 11, fontWeight: FontWeight.bold),
+        selectedLabelStyle: _AppFonts.neorisAccent(fontSize: 11),
         unselectedLabelStyle: _AppFonts.neoris(fontSize: 11),
       ),
-      bottomSheetTheme: const BottomSheetThemeData(
+      bottomSheetTheme: BottomSheetThemeData(
         backgroundColor: Colors.white,
-        shape: BeveledRectangleBorder(),
+        shape: AppShapes.border(size: AppShapes.chamferLg),
         elevation: 0,
       ),
       pageTransitionsTheme: const PageTransitionsTheme(
@@ -206,12 +219,12 @@ class AppTheme {
 
   static TextTheme _buildTextTheme() {
     return TextTheme(
-      displayLarge: _AppFonts.octosquares(fontSize: 28, fontWeight: FontWeight.w900, color: AppColors.textPrimary),
-      headlineMedium: _AppFonts.octosquares(fontSize: 18, fontWeight: FontWeight.w900, color: AppColors.textPrimary),
-      titleLarge: _AppFonts.octosquares(fontSize: 15, fontWeight: FontWeight.w800, color: AppColors.textPrimary, letterSpacing: 0.5),
-      bodyLarge: _AppFonts.neoris(fontSize: 15, fontWeight: FontWeight.w400, color: AppColors.textPrimary),
-      bodyMedium: _AppFonts.neoris(fontSize: 14, fontWeight: FontWeight.w400, color: AppColors.textSecondary),
-      labelLarge: _AppFonts.octosquares(fontSize: 13, fontWeight: FontWeight.w900, color: AppColors.brandBlack, letterSpacing: 0.8),
+      displayLarge: _AppFonts.octosquares(fontSize: 28, color: AppColors.textPrimary),
+      headlineMedium: _AppFonts.octosquares(fontSize: 18, color: AppColors.textPrimary),
+      titleLarge: _AppFonts.octosquares(fontSize: 15, color: AppColors.textPrimary, letterSpacing: 0.5),
+      bodyLarge: _AppFonts.neoris(fontSize: 15, color: AppColors.textPrimary),
+      bodyMedium: _AppFonts.neoris(fontSize: 14, color: AppColors.textSecondary),
+      labelLarge: _AppFonts.octosquares(fontSize: 13, color: AppColors.brandBlack, letterSpacing: 0.8),
     );
   }
 }

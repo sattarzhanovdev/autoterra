@@ -792,6 +792,13 @@ class Referral {
   /// начисляется только по auto и confirmed.
   final String confirmation;
 
+  /// Ставка в процентах по достигнутой ступени оборота этого СТО.
+  final double bonusRate;
+
+  /// Сколько уже начислено пригласившему за этого СТО. Сгоревшее тоже здесь:
+  /// это сумма начислений, а не текущий остаток на счёте.
+  final double bonusEarned;
+
   final DateTime createdAt;
 
   const Referral({
@@ -808,6 +815,8 @@ class Referral {
     this.giftStatus = 'none',
     this.giftComment,
     this.confirmation = 'auto',
+    this.bonusRate = 0,
+    this.bonusEarned = 0,
     required this.createdAt,
   });
 

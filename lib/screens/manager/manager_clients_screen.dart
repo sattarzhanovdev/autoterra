@@ -6,6 +6,8 @@ import '../../services/pagination_controller.dart';
 import '../../widgets/common/export_sheet.dart';
 import '../../widgets/common/paginated_list_view.dart';
 import '../../core/constants.dart';
+import '../../core/theme.dart';
+import '../../widgets/common/brand_icon.dart';
 
 class ManagerClientsScreen extends StatefulWidget {
   /// Подменяется в тестах; в приложении создаётся сам.
@@ -74,9 +76,9 @@ class _ManagerClientsScreenState extends State<ManagerClientsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
+      backgroundColor: AppColors.brandWhite,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF171717),
+        backgroundColor: AppColors.brandBlack,
         title: const Text(
           'КЛИЕНТЫ',
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, letterSpacing: 2),
@@ -112,7 +114,7 @@ class _ManagerClientsScreenState extends State<ManagerClientsScreen> {
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _openRegistration,
-        backgroundColor: const Color(0xFFF01D2C),
+        backgroundColor: AppColors.brandRed,
         foregroundColor: Colors.white,
         shape: const BeveledRectangleBorder(
           borderRadius: BorderRadius.only(topRight: Radius.circular(14)),
@@ -128,7 +130,7 @@ class _ManagerClientsScreenState extends State<ManagerClientsScreen> {
 
   Widget _buildFilters() {
     return Container(
-      color: const Color(0xFF171717),
+      color: AppColors.brandBlack,
       padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
@@ -213,7 +215,7 @@ class _FilterChip extends StatelessWidget {
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        color: selected ? const Color(0xFFF01D2C) : Colors.white.withOpacity(0.1),
+        color: selected ? AppColors.brandRed : Colors.white.withOpacity(0.1),
         child: Text(
           label,
           style: TextStyle(
@@ -247,10 +249,10 @@ class _ClientCard extends StatelessWidget {
 
   Color get _statusColor {
     switch (client.status) {
-      case ClientStatus.active: return const Color(0xFF2E7D32);
-      case ClientStatus.blocked: return const Color(0xFFF01D2C);
-      case ClientStatus.archived: return Colors.grey;
-      default: return const Color(0xFFE65100);
+      case ClientStatus.active: return AppColors.statusActive;
+      case ClientStatus.blocked: return AppColors.statusBlocked;
+      case ClientStatus.archived: return AppColors.statusNew;
+      default: return AppColors.statusPending;
     }
   }
 
@@ -263,7 +265,7 @@ class _ClientCard extends StatelessWidget {
         decoration: ShapeDecoration(
           color: Colors.white,
           shape: const BeveledRectangleBorder(
-            side: BorderSide(color: Color(0xFF171717), width: 1),
+            side: BorderSide(color: AppColors.brandBlack, width: 1),
             borderRadius: BorderRadius.only(topRight: Radius.circular(15)),
           ),
           shadows: [
@@ -284,7 +286,7 @@ class _ClientCard extends StatelessWidget {
                 children: [
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    color: const Color(0xFF171717),
+                    color: AppColors.brandBlack,
                     child: Text(
                       'КАТ. ${client.categoryLabel}',
                       style: const TextStyle(
@@ -316,29 +318,29 @@ class _ClientCard extends StatelessWidget {
                 style: const TextStyle(
                   fontWeight: FontWeight.w900,
                   fontSize: 13,
-                  color: Color(0xFF171717),
+                  color: AppColors.brandBlack,
                 ),
               ),
               const SizedBox(height: 4),
               Text(
                 'ИНН: ${client.inn}',
-                style: const TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.bold),
+                style: const TextStyle(fontSize: 11, color: AppColors.textHint, fontWeight: FontWeight.bold),
               ),
               if (client.distributorName != null) ...[
                 const SizedBox(height: 2),
                 Text(
                   'ДИСТРИБЬЮТОР: ${client.distributorName}',
-                  style: const TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.bold),
+                  style: const TextStyle(fontSize: 11, color: AppColors.textHint, fontWeight: FontWeight.bold),
                 ),
               ],
               const SizedBox(height: 6),
               Row(
                 children: [
-                  const Icon(Icons.location_on_outlined, size: 13, color: Color(0xFFF01D2C)),
+                  const BrandIcon(BrandIcons.location, size: 13, color: AppColors.brandRed),
                   const SizedBox(width: 4),
                   Text(
                     '${client.city}, ${client.region}',
-                    style: const TextStyle(fontSize: 11, color: Color(0xFF171717), fontWeight: FontWeight.bold),
+                    style: const TextStyle(fontSize: 11, color: AppColors.brandBlack, fontWeight: FontWeight.bold),
                   ),
                 ],
               ),
@@ -479,8 +481,8 @@ class _RegistrationSheetState extends State<_RegistrationSheet> {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: Colors.grey.shade300,
-                borderRadius: BorderRadius.circular(2),
+                color: AppColors.border,
+                borderRadius: BorderRadius.zero,
               ),
             ),
             // ── Header ───────────────────────────────────────────────────────
@@ -495,12 +497,12 @@ class _RegistrationSheetState extends State<_RegistrationSheet> {
                       fontWeight: FontWeight.w900,
                       fontSize: 14,
                       letterSpacing: 1,
-                      color: Color(0xFF171717),
+                      color: AppColors.brandBlack,
                     ),
                   ),
                   IconButton(
                     onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.close, size: 20, color: Color(0xFF171717)),
+                    icon: const Icon(Icons.close, size: 20, color: AppColors.brandBlack),
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(),
                   ),
@@ -512,7 +514,7 @@ class _RegistrationSheetState extends State<_RegistrationSheet> {
             if (_metaLoading)
               const Padding(
                 padding: EdgeInsets.symmetric(vertical: 40),
-                child: CircularProgressIndicator(color: Color(0xFFF01D2C)),
+                child: CircularProgressIndicator(color: AppColors.brandRed),
               )
             else ...[
               // ── Inline API error banner ────────────────────────────────────
@@ -521,18 +523,18 @@ class _RegistrationSheetState extends State<_RegistrationSheet> {
                   width: double.infinity,
                   margin: const EdgeInsets.fromLTRB(20, 0, 20, 12),
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                  color: const Color(0xFFF01D2C).withValues(alpha: 0.08),
+                  color: AppColors.brandRed.withValues(alpha: 0.08),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Icon(Icons.error_outline, size: 16, color: Color(0xFFF01D2C)),
+                      const Icon(Icons.error_outline, size: 16, color: AppColors.brandRed),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
                           _apiError!,
                           style: const TextStyle(
                             fontSize: 12,
-                            color: Color(0xFFF01D2C),
+                            color: AppColors.brandRed,
                             fontWeight: FontWeight.w600,
                             height: 1.4,
                           ),
@@ -625,7 +627,7 @@ class _RegistrationSheetState extends State<_RegistrationSheet> {
                         const SizedBox(height: 4),
                         const Text(
                           'Если не указан — назначается автоматически по региону',
-                          style: TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.w500),
+                          style: TextStyle(fontSize: 10, color: AppColors.textHint, fontWeight: FontWeight.w500),
                         ),
                         const SizedBox(height: 6),
                         DropdownButtonFormField<Map<String, dynamic>>(
@@ -637,7 +639,7 @@ class _RegistrationSheetState extends State<_RegistrationSheet> {
                               value: null,
                               child: Text(
                                 'Авто (по региону)',
-                                style: TextStyle(fontSize: 13, color: Colors.grey, fontStyle: FontStyle.italic),
+                                style: TextStyle(fontSize: 13, color: AppColors.textHint, fontStyle: FontStyle.italic),
                               ),
                             ),
                             ..._distributors.map((d) => DropdownMenuItem(
@@ -675,14 +677,14 @@ class _RegistrationSheetState extends State<_RegistrationSheet> {
                         Container(
                           width: double.infinity,
                           padding: const EdgeInsets.all(12),
-                          color: const Color(0xFFF5F5F5),
+                          color: AppColors.brandWhite,
                           child: const Row(
                             children: [
-                              Icon(Icons.person_outline, size: 14, color: Colors.grey),
+                              BrandIcon(BrandIcons.person, size: 14, color: AppColors.textHint),
                               SizedBox(width: 8),
                               Text(
                                 'Менеджер будет назначен автоматически (вы)',
-                                style: TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w600),
+                                style: TextStyle(fontSize: 11, color: AppColors.textHint, fontWeight: FontWeight.w600),
                               ),
                             ],
                           ),
@@ -695,9 +697,9 @@ class _RegistrationSheetState extends State<_RegistrationSheet> {
                           child: ElevatedButton(
                             onPressed: _submitting ? null : _submit,
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFFF01D2C),
+                              backgroundColor: AppColors.brandRed,
                               foregroundColor: Colors.white,
-                              disabledBackgroundColor: const Color(0xFFF01D2C).withValues(alpha: 0.5),
+                              disabledBackgroundColor: AppColors.brandRed.withValues(alpha: 0.5),
                               elevation: 0,
                               shape: const BeveledRectangleBorder(
                                 borderRadius: BorderRadius.only(topRight: Radius.circular(14)),
@@ -745,13 +747,13 @@ class _FieldLabel extends StatelessWidget {
             fontSize: 11,
             fontWeight: FontWeight.w900,
             letterSpacing: 1,
-            color: Colors.grey,
+            color: AppColors.textHint,
           ),
         ),
         if (required)
           const Text(
             ' *',
-            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: Color(0xFFF01D2C)),
+            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: AppColors.brandRed),
           ),
       ],
     );
@@ -797,29 +799,29 @@ class _Field extends StatelessWidget {
 
 InputDecoration _inputDecoration(String hint) => InputDecoration(
       hintText: hint.isEmpty ? null : hint,
-      hintStyle: const TextStyle(fontSize: 12, color: Colors.grey),
+      hintStyle: const TextStyle(fontSize: 12, color: AppColors.textHint),
       contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
       filled: true,
-      fillColor: const Color(0xFFF5F5F5),
+      fillColor: AppColors.brandWhite,
       border: InputBorder.none,
       enabledBorder: const OutlineInputBorder(
-        borderSide: BorderSide(color: Color(0xFFE0E0E0)),
+        borderSide: BorderSide(color: AppColors.border),
         borderRadius: BorderRadius.zero,
       ),
       focusedBorder: const OutlineInputBorder(
-        borderSide: BorderSide(color: Color(0xFF171717), width: 1.5),
+        borderSide: BorderSide(color: AppColors.brandBlack, width: 1.5),
         borderRadius: BorderRadius.zero,
       ),
       errorBorder: const OutlineInputBorder(
-        borderSide: BorderSide(color: Color(0xFFF01D2C), width: 1.5),
+        borderSide: BorderSide(color: AppColors.brandRed, width: 1.5),
         borderRadius: BorderRadius.zero,
       ),
       focusedErrorBorder: const OutlineInputBorder(
-        borderSide: BorderSide(color: Color(0xFFF01D2C), width: 1.5),
+        borderSide: BorderSide(color: AppColors.brandRed, width: 1.5),
         borderRadius: BorderRadius.zero,
       ),
       errorStyle: const TextStyle(
-        color: Color(0xFFF01D2C),
+        color: AppColors.brandRed,
         fontSize: 11,
         fontWeight: FontWeight.w600,
       ),

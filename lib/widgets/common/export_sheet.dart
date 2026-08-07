@@ -49,7 +49,7 @@ const kExportFormats = <ExportFormat>[
     label: 'CSV',
     hint: 'Для загрузки в 1С и другие системы',
     icon: Icons.list_alt_outlined,
-    color: Color(0xFF555555),
+    color: AppColors.textSecondary,
   ),
 ];
 
@@ -189,7 +189,7 @@ class _ClientExportSheetState extends State<_ClientExportSheet> {
             height: 4,
             decoration: BoxDecoration(
               color: AppColors.border,
-              borderRadius: BorderRadius.circular(2),
+              borderRadius: BorderRadius.zero,
             ),
           ),
           Padding(
@@ -277,7 +277,7 @@ class _DestinationBadge extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
       decoration: BoxDecoration(
         color: AppColors.brandBlack.withValues(alpha: 0.06),
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: AppShapes.cut(AppShapes.chamferSm),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.end,

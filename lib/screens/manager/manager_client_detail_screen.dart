@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import '../../models/models.dart';
 import '../../models/paginated.dart';
 import '../../services/data_repository.dart';
+import '../../core/theme.dart';
 
 const _kStatusLabels = {
   'new': 'НОВЫЙ',
@@ -111,7 +112,7 @@ class _ManagerClientDetailScreenState extends State<ManagerClientDetailScreen> {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+      shape: AppShapes.border(size: AppShapes.chamferLg),
       useSafeArea: true,
       builder: (ctx) => _StatusSheet(
         currentStatus: currentStatus,
@@ -147,9 +148,9 @@ class _ManagerClientDetailScreenState extends State<ManagerClientDetailScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
+      backgroundColor: AppColors.brandWhite,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF171717),
+        backgroundColor: AppColors.brandBlack,
         title: Text(
           _loading ? 'КЛИЕНТ' : (_unified?['client']?['name']?.toString().toUpperCase() ?? 'КЛИЕНТ'),
           style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, letterSpacing: 1, fontSize: 14),
@@ -163,7 +164,7 @@ class _ManagerClientDetailScreenState extends State<ManagerClientDetailScreen> {
         ],
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator(color: Color(0xFFF01D2C)))
+          ? const Center(child: CircularProgressIndicator(color: AppColors.brandRed))
           : SingleChildScrollView(
               padding: const EdgeInsets.all(16),
               child: Column(
@@ -186,7 +187,7 @@ class _ManagerClientDetailScreenState extends State<ManagerClientDetailScreen> {
       decoration: const ShapeDecoration(
         color: Colors.white,
         shape: BeveledRectangleBorder(
-          side: BorderSide(color: Color(0xFF171717), width: 1),
+          side: BorderSide(color: AppColors.brandBlack, width: 1),
           borderRadius: BorderRadius.only(topRight: Radius.circular(15)),
         ),
       ),
@@ -200,7 +201,7 @@ class _ManagerClientDetailScreenState extends State<ManagerClientDetailScreen> {
               children: [
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                  color: const Color(0xFF171717),
+                  color: AppColors.brandBlack,
                   child: Text(
                     'КАТ. ${(c['category'] as String? ?? 'B').toUpperCase()}',
                     style: const TextStyle(
@@ -214,8 +215,8 @@ class _ManagerClientDetailScreenState extends State<ManagerClientDetailScreen> {
                 TextButton(
                   onPressed: _openStatusChange,
                   style: TextButton.styleFrom(
-                    backgroundColor: const Color(0xFFF01D2C).withOpacity(0.08),
-                    foregroundColor: const Color(0xFFF01D2C),
+                    backgroundColor: AppColors.brandRed.withOpacity(0.08),
+                    foregroundColor: AppColors.brandRed,
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     shape: const BeveledRectangleBorder(
                       borderRadius: BorderRadius.only(topRight: Radius.circular(8)),
@@ -260,13 +261,13 @@ class _ManagerClientDetailScreenState extends State<ManagerClientDetailScreen> {
                 fontWeight: FontWeight.w900,
                 fontSize: 12,
                 letterSpacing: 1,
-                color: Color(0xFF171717),
+                color: AppColors.brandBlack,
               ),
             ),
             TextButton.icon(
               onPressed: _openAddHistory,
               style: TextButton.styleFrom(
-                backgroundColor: const Color(0xFF171717),
+                backgroundColor: AppColors.brandBlack,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 shape: const BeveledRectangleBorder(
@@ -283,7 +284,7 @@ class _ManagerClientDetailScreenState extends State<ManagerClientDetailScreen> {
         ),
         const SizedBox(height: 12),
         if (_historyLoading)
-          const Center(child: CircularProgressIndicator(color: Color(0xFFF01D2C)))
+          const Center(child: CircularProgressIndicator(color: AppColors.brandRed))
         else if (_history.isEmpty)
           Container(
             padding: const EdgeInsets.all(20),
@@ -294,7 +295,7 @@ class _ManagerClientDetailScreenState extends State<ManagerClientDetailScreen> {
                 style: TextStyle(
                   fontWeight: FontWeight.w900,
                   fontSize: 12,
-                  color: Colors.grey,
+                  color: AppColors.textHint,
                   letterSpacing: 1,
                 ),
               ),
@@ -311,7 +312,7 @@ class _ManagerClientDetailScreenState extends State<ManagerClientDetailScreen> {
                         width: 20,
                         height: 20,
                         child: CircularProgressIndicator(
-                          color: Color(0xFFF01D2C),
+                          color: AppColors.brandRed,
                           strokeWidth: 2,
                         ),
                       )
@@ -320,7 +321,7 @@ class _ManagerClientDetailScreenState extends State<ManagerClientDetailScreen> {
                         child: Text(
                           'ПОКАЗАТЬ ЕЩЁ (${_history.length} ИЗ $_historyTotal)',
                           style: const TextStyle(
-                            color: Color(0xFFF01D2C),
+                            color: AppColors.brandRed,
                             fontWeight: FontWeight.w900,
                             fontSize: 11,
                             letterSpacing: 0.5,
@@ -355,7 +356,7 @@ class _InfoRow extends StatelessWidget {
               style: const TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w700,
-                color: Colors.grey,
+                color: AppColors.textHint,
                 letterSpacing: 0.5,
               ),
             ),
@@ -366,7 +367,7 @@ class _InfoRow extends StatelessWidget {
               style: const TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w700,
-                color: Color(0xFF171717),
+                color: AppColors.brandBlack,
               ),
             ),
           ),
@@ -397,7 +398,7 @@ class _HistoryEntry extends StatelessWidget {
       decoration: const ShapeDecoration(
         color: Colors.white,
         shape: BeveledRectangleBorder(
-          side: BorderSide(color: Color(0xFFE0E0E0)),
+          side: BorderSide(color: AppColors.border),
           borderRadius: BorderRadius.only(topRight: Radius.circular(10)),
         ),
       ),
@@ -409,7 +410,7 @@ class _HistoryEntry extends StatelessWidget {
             Container(
               width: 36,
               height: 36,
-              color: const Color(0xFF171717),
+              color: AppColors.brandBlack,
               child: Icon(_icon, color: Colors.white, size: 18),
             ),
             const SizedBox(width: 12),
@@ -425,25 +426,25 @@ class _HistoryEntry extends StatelessWidget {
                         style: const TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w900,
-                          color: Color(0xFF171717),
+                          color: AppColors.brandBlack,
                           letterSpacing: 0.5,
                         ),
                       ),
                       Text(
                         fmt.format(entry.date),
-                        style: const TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.bold),
+                        style: const TextStyle(fontSize: 11, color: AppColors.textHint, fontWeight: FontWeight.bold),
                       ),
                     ],
                   ),
                   const SizedBox(height: 4),
                   Text(
                     entry.result,
-                    style: const TextStyle(fontSize: 12, color: Color(0xFF171717), height: 1.4),
+                    style: const TextStyle(fontSize: 12, color: AppColors.brandBlack, height: 1.4),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     entry.authorName,
-                    style: const TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold),
+                    style: const TextStyle(fontSize: 10, color: AppColors.textHint, fontWeight: FontWeight.bold),
                   ),
                 ],
               ),
@@ -487,7 +488,7 @@ class _StatusSheet extends StatelessWidget {
                 fontWeight: FontWeight.w900,
                 fontSize: 13,
                 letterSpacing: 1,
-                color: Color(0xFF171717),
+                color: AppColors.brandBlack,
               ),
             ),
           ),
@@ -499,19 +500,19 @@ class _StatusSheet extends StatelessWidget {
               leading: Container(
                 width: 8,
                 height: 8,
-                color: isSelected ? const Color(0xFFF01D2C) : Colors.transparent,
+                color: isSelected ? AppColors.brandRed : Colors.transparent,
               ),
               title: Text(
                 s.$2,
                 style: TextStyle(
                   fontWeight: FontWeight.w900,
                   fontSize: 13,
-                  color: isSelected ? const Color(0xFFF01D2C) : const Color(0xFF171717),
+                  color: isSelected ? AppColors.brandRed : AppColors.brandBlack,
                   letterSpacing: 0.5,
                 ),
               ),
               trailing: isSelected
-                  ? const Icon(Icons.check, color: Color(0xFFF01D2C))
+                  ? const Icon(Icons.check, color: AppColors.brandRed)
                   : null,
             );
           }),
@@ -588,18 +589,18 @@ class _AddHistorySheetState extends State<_AddHistorySheet> {
             child: Container(
               width: 40,
               height: 4,
-              decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2)),
+              decoration: BoxDecoration(color: AppColors.border, borderRadius: BorderRadius.zero),
             ),
           ),
           const SizedBox(height: 16),
           const Text(
             'ДОБАВИТЬ КОНТАКТ',
-            style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14, letterSpacing: 1, color: Color(0xFF171717)),
+            style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14, letterSpacing: 1, color: AppColors.brandBlack),
           ),
           const SizedBox(height: 16),
           const Text(
             'ТИП КОНТАКТА',
-            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 1, color: Colors.grey),
+            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 1, color: AppColors.textHint),
           ),
           const SizedBox(height: 8),
           Row(
@@ -611,7 +612,7 @@ class _AddHistorySheetState extends State<_AddHistorySheet> {
                   child: Container(
                     margin: const EdgeInsets.only(right: 6),
                     padding: const EdgeInsets.symmetric(vertical: 8),
-                    color: sel ? const Color(0xFF171717) : const Color(0xFFF5F5F5),
+                    color: sel ? AppColors.brandBlack : AppColors.brandWhite,
                     child: Text(
                       t.$2,
                       textAlign: TextAlign.center,
@@ -619,7 +620,7 @@ class _AddHistorySheetState extends State<_AddHistorySheet> {
                         fontSize: 9,
                         fontWeight: FontWeight.w900,
                         letterSpacing: 0.5,
-                        color: sel ? Colors.white : const Color(0xFF171717),
+                        color: sel ? Colors.white : AppColors.brandBlack,
                       ),
                     ),
                   ),
@@ -630,7 +631,7 @@ class _AddHistorySheetState extends State<_AddHistorySheet> {
           const SizedBox(height: 16),
           const Text(
             'РЕЗУЛЬТАТ',
-            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 1, color: Colors.grey),
+            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 1, color: AppColors.textHint),
           ),
           const SizedBox(height: 8),
           TextFormField(
@@ -639,17 +640,17 @@ class _AddHistorySheetState extends State<_AddHistorySheet> {
             style: const TextStyle(fontSize: 13),
             decoration: const InputDecoration(
               hintText: 'Опишите результат контакта...',
-              hintStyle: TextStyle(fontSize: 12, color: Colors.grey),
+              hintStyle: TextStyle(fontSize: 12, color: AppColors.textHint),
               contentPadding: EdgeInsets.all(12),
               filled: true,
-              fillColor: Color(0xFFF5F5F5),
+              fillColor: AppColors.brandWhite,
               border: InputBorder.none,
               enabledBorder: OutlineInputBorder(
-                borderSide: BorderSide(color: Color(0xFFE0E0E0)),
+                borderSide: BorderSide(color: AppColors.border),
                 borderRadius: BorderRadius.zero,
               ),
               focusedBorder: OutlineInputBorder(
-                borderSide: BorderSide(color: Color(0xFF171717), width: 1.5),
+                borderSide: BorderSide(color: AppColors.brandBlack, width: 1.5),
                 borderRadius: BorderRadius.zero,
               ),
             ),
@@ -661,7 +662,7 @@ class _AddHistorySheetState extends State<_AddHistorySheet> {
             child: ElevatedButton(
               onPressed: _submitting ? null : _submit,
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF171717),
+                backgroundColor: AppColors.brandBlack,
                 foregroundColor: Colors.white,
                 elevation: 0,
                 shape: const BeveledRectangleBorder(

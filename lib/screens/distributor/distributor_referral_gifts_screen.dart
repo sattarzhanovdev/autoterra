@@ -65,7 +65,7 @@ class _DistributorReferralGiftsScreenState
     return showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: const RoundedRectangleBorder(),
+        shape: AppShapes.border(size: AppShapes.chamferSm),
         title: Text(
           approved ? 'СОГЛАСОВАТЬ ПОДАРОК' : 'ОТКЛОНИТЬ ПОДАРОК',
           style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15),

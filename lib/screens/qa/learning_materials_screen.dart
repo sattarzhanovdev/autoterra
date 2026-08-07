@@ -211,7 +211,7 @@ class _MaterialCard extends StatelessWidget {
       isScrollControlled: true,
       useSafeArea: true,
       backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(),
+      shape: AppShapes.border(size: AppShapes.chamferSm),
       builder: (_) => _MaterialSheet(material: material),
     );
   }

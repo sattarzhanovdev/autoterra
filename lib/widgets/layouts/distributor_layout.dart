@@ -9,6 +9,7 @@ import '../common/paginated_list_view.dart';
 import '../../widgets/common/app_logo.dart';
 import '../../screens/distributor/distributor_clients_screen.dart';
 import '../../screens/distributor/distributor_stock_screen.dart';
+import '../../widgets/common/brand_icon.dart';
 
 class DistributorLayout extends StatefulWidget {
   final Widget child;
@@ -34,17 +35,17 @@ class _DistributorLayoutState extends State<DistributorLayout> {
       body: _screens[_currentIndex],
       bottomNavigationBar: Container(
         decoration: const BoxDecoration(
-          border: Border(top: BorderSide(color: Color(0xFF171717), width: 2)),
+          border: Border(top: BorderSide(color: AppColors.brandBlack, width: 2)),
         ),
         child: BottomNavigationBar(
           currentIndex: _currentIndex,
           onTap: (index) => setState(() => _currentIndex = index),
-          backgroundColor: const Color(0xFF171717),
-          selectedItemColor: const Color(0xFFF01D2C),
+          backgroundColor: AppColors.brandBlack,
+          selectedItemColor: AppColors.brandRed,
           unselectedItemColor: Colors.white.withValues(alpha: 0.5),
           type: BottomNavigationBarType.fixed,
           items: const [
-            BottomNavigationBarItem(icon: Icon(Icons.shopping_cart), label: 'ЗАКАЗЫ'),
+            BottomNavigationBarItem(icon: BrandIcon(BrandIcons.cart), label: 'ЗАКАЗЫ'),
             BottomNavigationBarItem(icon: Icon(Icons.people), label: 'КЛИЕНТЫ'),
             BottomNavigationBarItem(icon: Icon(Icons.inventory_2), label: 'СКЛАД'),
             BottomNavigationBarItem(icon: Icon(Icons.bar_chart), label: 'ОТЧЕТЫ'),
@@ -64,12 +65,12 @@ class DistributorOrdersTabsScreen extends StatelessWidget {
       length: 2,
       child: Scaffold(
         appBar: AppBar(
-          backgroundColor: const Color(0xFF171717),
+          backgroundColor: AppColors.brandBlack,
           title: const Text('УПРАВЛЕНИЕ ЗАКАЗАМИ', style: TextStyle(fontWeight: FontWeight.w900)),
           bottom: const TabBar(
-            indicatorColor: Color(0xFFF01D2C),
+            indicatorColor: AppColors.brandRed,
             indicatorWeight: 4,
-            labelColor: Color(0xFFF01D2C),
+            labelColor: AppColors.brandRed,
             unselectedLabelColor: Colors.white70,
             tabs: [
               Tab(text: 'ПОКУПКИ (ЧЕКИ)'),
@@ -140,7 +141,7 @@ class PurchaseVerificationCard extends StatelessWidget {
       decoration: const ShapeDecoration(
         color: Colors.white,
         shape: BeveledRectangleBorder(
-          side: BorderSide(color: Color(0xFF171717), width: 1),
+          side: BorderSide(color: AppColors.brandBlack, width: 1),
           borderRadius: BorderRadius.zero,
         ),
       ),
@@ -151,7 +152,7 @@ class PurchaseVerificationCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(purchase.documentNumber, style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFFF01D2C))),
+              Text(purchase.documentNumber, style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.brandRed)),
               Text('${purchase.totalAmount} ₽', style: const TextStyle(fontWeight: FontWeight.w900)),
             ],
           ),
@@ -177,8 +178,8 @@ class PurchaseVerificationCard extends StatelessWidget {
                 child: OutlinedButton(
                   onPressed: () => _handle(context, false),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: const Color(0xFFF01D2C),
-                    side: const BorderSide(color: Color(0xFFF01D2C)),
+                    foregroundColor: AppColors.brandRed,
+                    side: const BorderSide(color: AppColors.brandRed),
                     shape: const BeveledRectangleBorder(),
                   ),
                   child: const Text('ОТКЛОНИТЬ'),
@@ -274,7 +275,7 @@ class OrderProcessCard extends StatelessWidget {
       decoration: const ShapeDecoration(
         color: Colors.white,
         shape: BeveledRectangleBorder(
-          side: BorderSide(color: Color(0xFF171717), width: 1),
+          side: BorderSide(color: AppColors.brandBlack, width: 1),
           borderRadius: BorderRadius.zero,
         ),
       ),
@@ -285,14 +286,14 @@ class OrderProcessCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('ЗАКАЗ #${order.id}', style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFFF01D2C))),
+              Text('ЗАКАЗ #${order.id}', style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.brandRed)),
               Text('${order.totalAmount} ₽', style: const TextStyle(fontWeight: FontWeight.w900)),
             ],
           ),
           const SizedBox(height: 8),
           Text((order.clientName ?? '').toUpperCase(), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12)),
           if (order.storeName.isNotEmpty)
-            Text('ВЫДАЧА: ${order.storeName.toUpperCase()}', style: const TextStyle(color: Color(0xFF171717), fontSize: 10, fontWeight: FontWeight.bold)),
+            Text('ВЫДАЧА: ${order.storeName.toUpperCase()}', style: const TextStyle(color: AppColors.brandBlack, fontSize: 10, fontWeight: FontWeight.bold)),
           const Divider(),
           ...order.items.map((it) => Text('• ${it.name} x ${it.quantity}', style: const TextStyle(fontSize: 12))),
           const SizedBox(height: 16),
@@ -304,7 +305,7 @@ class OrderProcessCard extends StatelessWidget {
               child: ElevatedButton(
                 onPressed: () => _openReview(context),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFF01D2C),
+                  backgroundColor: AppColors.brandRed,
                   shape: const BeveledRectangleBorder(),
                 ),
                 child: const Text('РАЗОБРАТЬ ЗАКАЗ'),
@@ -343,7 +344,7 @@ class DistributorReportsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: const Color(0xFF171717),
+        backgroundColor: AppColors.brandBlack,
         title: const Text('ОТЧЕТЫ И ЭКСПОРТ', style: TextStyle(fontWeight: FontWeight.w900)),
       ),
       body: ListView(

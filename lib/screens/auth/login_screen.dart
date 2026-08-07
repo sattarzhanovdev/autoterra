@@ -5,6 +5,7 @@ import '../../core/constants.dart';
 import '../../services/api_client.dart';
 import '../../services/auth_service.dart';
 import '../../widgets/common/app_logo.dart';
+import '../../widgets/common/brand_icon.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -117,9 +118,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
             return AlertDialog(
               backgroundColor: AppColors.brandWhite,
-              shape: const RoundedRectangleBorder(
-                borderRadius: BorderRadius.zero,
-              ),
+              shape: AppShapes.border(size: AppShapes.chamferSm),
               title: const Text(
                 'ВОССТАНОВЛЕНИЕ ПАРОЛЯ',
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
@@ -135,7 +134,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         keyboardType: TextInputType.text,
                         decoration: const InputDecoration(
                           labelText: 'Телефон или Логин',
-                          prefixIcon: Icon(Icons.person_outline),
+                          prefixIcon: BrandIcon(BrandIcons.person),
                         ),
                         validator: (v) => v == null || v.trim().isEmpty
                             ? 'Введите телефон или логин'
@@ -251,10 +250,11 @@ class _LoginScreenState extends State<LoginScreen> {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const AppLogo(height: 32, darkMode: true),
+                        const AppLogo(height: 32, onDarkBackground: true),
                         const SizedBox(height: 12),
                         Text(
-                          'Федеральная B2B-платформа ЛКМ',
+                          // Официальный дескриптор из гайдбука (стр. 06-07).
+                          'ТЕХНОМАРКЕТ С ЛАБОРАТОРИЕЙ ЦВЕТА',
                           style: TextStyle(
                             color: Colors.white.withValues(alpha: 0.45),
                             fontSize: 12,
@@ -303,8 +303,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           keyboardType: TextInputType.text,
                           decoration: const InputDecoration(
                             labelText: 'Телефон или Логин',
-                            prefixIcon: Icon(
-                              Icons.person_outline,
+                            prefixIcon: BrandIcon(BrandIcons.person,
                               color: AppColors.brandBlack,
                             ),
                           ),

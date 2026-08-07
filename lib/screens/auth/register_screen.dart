@@ -6,6 +6,7 @@ import '../../models/models.dart';
 import '../../models/paginated.dart';
 import '../../services/api_client.dart';
 import '../../services/data_repository.dart';
+import '../../widgets/common/brand_icon.dart';
 
 class RegisterScreen extends StatefulWidget {
   /// Код из ссылки-приглашения `?ref=CODE`. Пусто — код вводят вручную.
@@ -216,7 +217,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       barrierDismissible: false,
       builder: (dialogContext) => AlertDialog(
         backgroundColor: AppColors.brandBlack,
-        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+        shape: AppShapes.border(size: AppShapes.chamferSm),
         title: const Text(
           'ВАС ПРИГЛАСИЛИ?',
           style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
@@ -247,7 +248,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             style: TextButton.styleFrom(
               backgroundColor: AppColors.brandRed,
               foregroundColor: Colors.white,
-              shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+              shape: AppShapes.border(size: AppShapes.chamferSm),
             ),
             child: const Text('ДА, ПРИГЛАСИЛИ'),
           ),
@@ -274,7 +275,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       barrierDismissible: false,
       builder: (_) => AlertDialog(
         backgroundColor: AppColors.brandBlack,
-        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+        shape: AppShapes.border(size: AppShapes.chamferSm),
         title: const Text(
           'РЕГИСТРАЦИЯ',
           style: TextStyle(
@@ -312,9 +313,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             style: TextButton.styleFrom(
               backgroundColor: AppColors.brandRed,
               foregroundColor: Colors.white,
-              shape: const RoundedRectangleBorder(
-                borderRadius: BorderRadius.zero,
-              ),
+              shape: AppShapes.border(size: AppShapes.chamferSm),
             ),
             child: const Text('ВОЙТИ'),
           ),
@@ -330,7 +329,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       appBar: AppBar(
         title: const Text('РЕГИСТРАЦИЯ'),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: const BrandIcon(BrandIcons.arrowLeft),
           onPressed: () => _currentPage == 0
               ? context.pop()
               : (() {
@@ -465,7 +464,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               decoration: const InputDecoration(
                 labelText: 'АДРЕС МАГАЗИНА/ТОЧКИ *',
                 border: OutlineInputBorder(borderRadius: BorderRadius.zero),
-                prefixIcon: Icon(Icons.location_on_outlined, size: 20),
+                prefixIcon: BrandIcon(BrandIcons.location, size: 20),
               ),
               validator: (v) => v!.isEmpty ? 'Введите адрес' : null,
             ),
@@ -495,16 +494,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 onPressed: _nextPage,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.brandBlack,
-                  shape: const RoundedRectangleBorder(
-                    borderRadius: BorderRadius.zero,
-                  ),
+                  shape: AppShapes.border(size: AppShapes.chamferSm),
                 ),
                 child: const Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text('ДАЛЕЕ'),
                     SizedBox(width: 8),
-                    Icon(Icons.arrow_forward, size: 18),
+                    BrandIcon(BrandIcons.arrowRight, size: 18),
                   ],
                 ),
               ),
@@ -590,9 +587,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 onPressed: _loading ? null : _register,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.brandRed,
-                  shape: const RoundedRectangleBorder(
-                    borderRadius: BorderRadius.zero,
-                  ),
+                  shape: AppShapes.border(size: AppShapes.chamferSm),
                 ),
                 child: _loading
                     ? const SizedBox(

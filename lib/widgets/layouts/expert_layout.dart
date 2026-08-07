@@ -4,6 +4,7 @@ import '../../screens/ai/ai_assistant_screen.dart';
 import '../../screens/expert/expert_knowledge_base_screen.dart';
 import '../../screens/profile/profile_screen.dart';
 import '../../screens/qa/qa_screen.dart';
+import '../../core/theme.dart';
 
 class ExpertLayout extends StatefulWidget {
   const ExpertLayout({super.key});
@@ -28,13 +29,13 @@ class _ExpertLayoutState extends State<ExpertLayout> {
       body: _screens[_currentIndex],
       bottomNavigationBar: Container(
         decoration: const BoxDecoration(
-          border: Border(top: BorderSide(color: Color(0xFF171717), width: 2)),
+          border: Border(top: BorderSide(color: AppColors.brandBlack, width: 2)),
         ),
         child: BottomNavigationBar(
           currentIndex: _currentIndex,
           onTap: (index) => setState(() => _currentIndex = index),
-          backgroundColor: const Color(0xFF171717),
-          selectedItemColor: const Color(0xFFF01D2C),
+          backgroundColor: AppColors.brandBlack,
+          selectedItemColor: AppColors.brandRed,
           unselectedItemColor: Colors.white.withValues(alpha: 0.5),
           selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
           unselectedLabelStyle: const TextStyle(fontSize: 12),

@@ -5,6 +5,7 @@ import '../../screens/admin/admin_integration_screen.dart';
 import '../../screens/admin/admin_manager_tasks_screen.dart';
 import '../../screens/manager/manager_clients_screen.dart';
 import '../../screens/profile/profile_screen.dart';
+import '../../widgets/common/brand_icon.dart';
 
 final GlobalKey<AdminLayoutState> adminLayoutKey = GlobalKey<AdminLayoutState>();
 
@@ -39,13 +40,13 @@ class AdminLayoutState extends State<AdminLayout> {
       body: _screens[_currentIndex],
       bottomNavigationBar: Container(
         decoration: const BoxDecoration(
-          border: Border(top: BorderSide(color: Color(0xFF171717), width: 2)),
+          border: Border(top: BorderSide(color: AppColors.brandBlack, width: 2)),
         ),
         child: BottomNavigationBar(
           currentIndex: _currentIndex,
           onTap: (index) => setState(() => _currentIndex = index),
-          backgroundColor: const Color(0xFF171717),
-          selectedItemColor: const Color(0xFFF01D2C),
+          backgroundColor: AppColors.brandBlack,
+          selectedItemColor: AppColors.brandRed,
           unselectedItemColor: Colors.white.withValues(alpha: 0.5),
           type: BottomNavigationBarType.fixed,
           items: const [
@@ -53,7 +54,7 @@ class AdminLayoutState extends State<AdminLayout> {
             BottomNavigationBarItem(icon: Icon(Icons.people_outline), activeIcon: Icon(Icons.people), label: 'КЛИЕНТЫ'),
             BottomNavigationBarItem(icon: Icon(Icons.sync_alt_outlined), activeIcon: Icon(Icons.sync_alt), label: 'ИНТЕГРАЦИИ 1С'),
             BottomNavigationBarItem(icon: Icon(Icons.task_outlined), activeIcon: Icon(Icons.task), label: 'ЗАДАЧИ'),
-            BottomNavigationBarItem(icon: Icon(Icons.person_outline), activeIcon: Icon(Icons.person), label: 'ПРОФИЛЬ'),
+            BottomNavigationBarItem(icon: BrandIcon(BrandIcons.person), activeIcon: BrandIcon(BrandIcons.person), label: 'ПРОФИЛЬ'),
           ],
         ),
       ),

@@ -363,7 +363,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   }
 
   Widget _buildCategoryChart(List<Map<String, dynamic>> stats) {
-    final colors = [AppColors.brandRed, AppColors.brandBlack, const Color(0xFF5A5A5A)];
+    final colors = [AppColors.brandRed, AppColors.brandBlack, AppColors.textSecondary];
     final total = stats.fold<double>(0, (prev, element) => prev + element['value']);
     
     if (total == 0) {

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../models/models.dart';
 import '../../services/auth_service.dart';
 import '../../core/constants.dart';
+import '../../core/theme.dart';
 
 class RoleSwitcherWrapper extends StatelessWidget {
   final Widget child;
@@ -45,9 +46,9 @@ class _RoleSwitcherButtonState extends State<_RoleSwitcherButton> {
         if (_isOpen)
           Card(
             margin: const EdgeInsets.only(bottom: 8),
-            color: const Color(0xFF171717),
+            color: AppColors.brandBlack,
             shape: const BeveledRectangleBorder(
-              side: BorderSide(color: Color(0xFFF01D2C), width: 0.5),
+              side: BorderSide(color: AppColors.brandRed, width: 0.5),
             ),
             child: Container(
               width: 200,
@@ -72,7 +73,7 @@ class _RoleSwitcherButtonState extends State<_RoleSwitcherButton> {
                         role.label.toUpperCase(),
                         style: TextStyle(
                           color: isSelected
-                              ? const Color(0xFFF01D2C)
+                              ? AppColors.brandRed
                               : Colors.white,
                           fontWeight: FontWeight.w900,
                           fontSize: 11,
@@ -94,12 +95,12 @@ class _RoleSwitcherButtonState extends State<_RoleSwitcherButton> {
             width: 40,
             height: 40,
             decoration: const ShapeDecoration(
-              color: Color(0xFF171717),
+              color: AppColors.brandBlack,
               shape: BeveledRectangleBorder(),
             ),
             child: const Icon(
               Icons.admin_panel_settings,
-              color: Color(0xFFF01D2C),
+              color: AppColors.brandRed,
               size: 20,
             ),
           ),

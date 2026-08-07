@@ -44,6 +44,7 @@ import 'screens/distributor/distributor_deliveries_screen.dart';
 import 'screens/distributor/distributor_orders_screen.dart';
 import 'screens/distributor/distributor_purchases_screen.dart';
 import 'screens/manager/manager_client_detail_screen.dart';
+import 'widgets/common/brand_icon.dart';
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>();
 final GlobalKey<NavigatorState> _shellNavigatorKey = GlobalKey<NavigatorState>();
@@ -266,8 +267,8 @@ class _MainShellState extends State<_MainShell> {
                         label: 'Панель',
                       ),
                       BottomNavigationBarItem(
-                        icon: Icon(Icons.shopping_bag_outlined),
-                        activeIcon: Icon(Icons.shopping_bag),
+                        icon: BrandIcon(BrandIcons.cart),
+                        activeIcon: BrandIcon(BrandIcons.cart),
                         label: 'Заказы',
                       ),
                       BottomNavigationBarItem(
@@ -281,8 +282,8 @@ class _MainShellState extends State<_MainShell> {
                         label: 'Проверка',
                       ),
                       BottomNavigationBarItem(
-                        icon: Icon(Icons.person_outline),
-                        activeIcon: Icon(Icons.person),
+                        icon: BrandIcon(BrandIcons.person),
+                        activeIcon: BrandIcon(BrandIcons.person),
                         label: 'Профиль',
                       ),
                     ]
@@ -308,8 +309,8 @@ class _MainShellState extends State<_MainShell> {
                         label: 'AI',
                       ),
                       BottomNavigationBarItem(
-                        icon: Icon(Icons.person_outline),
-                        activeIcon: Icon(Icons.person),
+                        icon: BrandIcon(BrandIcons.person),
+                        activeIcon: BrandIcon(BrandIcons.person),
                         label: 'Профиль',
                       ),
                     ],

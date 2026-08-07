@@ -5,6 +5,7 @@ import '../../core/constants.dart';
 import '../../services/data_repository.dart';
 import '../../widgets/common/section_header.dart';
 import '../../widgets/common/premium_icon_badge.dart';
+import '../../widgets/common/brand_icon.dart';
 
 class DistributorScreen extends StatefulWidget {
   const DistributorScreen({super.key});
@@ -92,7 +93,7 @@ class _DistributorScreenState extends State<DistributorScreen> {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => context.push(AppRoutes.order),
         backgroundColor: AppColors.primary,
-        icon: const Icon(Icons.shopping_cart_outlined, color: Colors.white),
+        icon: const BrandIcon(BrandIcons.cart, color: Colors.white),
         label: const Text(
           'Сделать заказ',
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
@@ -151,7 +152,7 @@ class _DistributorScreenState extends State<DistributorScreen> {
                   ),
                   decoration: BoxDecoration(
                     color: AppColors.success.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(6),
+                    borderRadius: AppShapes.cut(AppShapes.chamferSm),
                   ),
                   child: const Text(
                     'Активен',

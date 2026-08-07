@@ -178,7 +178,7 @@ class _AdminIntegrationScreenState extends State<AdminIntegrationScreen> {
                 onPressed: () => _generate(id.toString()),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.brandRed,
-                  shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero), // Strict corners
+                  shape: AppShapes.border(size: AppShapes.chamferSm), // Strict corners
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                 ),
                 child: const Text('СГЕНЕРИРОВАТЬ', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 11)),

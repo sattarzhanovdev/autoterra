@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../screens/manager/manager_clients_screen.dart';
 import '../../screens/manager/manager_tasks_screen.dart';
 import '../../screens/profile/profile_screen.dart';
+import '../../core/theme.dart';
 
 class ManagerLayout extends StatefulWidget {
   const ManagerLayout({super.key});
@@ -23,17 +24,17 @@ class _ManagerLayoutState extends State<ManagerLayout> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
+      backgroundColor: AppColors.brandWhite,
       body: _screens[_currentIndex],
       bottomNavigationBar: Container(
         decoration: const BoxDecoration(
-          border: Border(top: BorderSide(color: Color(0xFF171717), width: 2)),
+          border: Border(top: BorderSide(color: AppColors.brandBlack, width: 2)),
         ),
         child: BottomNavigationBar(
           currentIndex: _currentIndex,
           onTap: (index) => setState(() => _currentIndex = index),
-          backgroundColor: const Color(0xFF171717),
-          selectedItemColor: const Color(0xFFF01D2C),
+          backgroundColor: AppColors.brandBlack,
+          selectedItemColor: AppColors.brandRed,
           unselectedItemColor: Colors.white.withOpacity(0.5),
           selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
           unselectedLabelStyle: const TextStyle(fontSize: 12),

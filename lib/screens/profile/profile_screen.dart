@@ -12,6 +12,7 @@ import '../../widgets/common/premium_icon_badge.dart';
 import '../../widgets/common/section_header.dart';
 
 import 'expert_profile_screen.dart';
+import '../../widgets/common/brand_icon.dart';
 
 class _StoreFormSheet extends StatefulWidget {
   final Store? store;
@@ -229,7 +230,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(),
+      shape: AppShapes.border(size: AppShapes.chamferSm),
       useSafeArea: true,
       builder: (_) => _StoreFormSheet(
         store: store,
@@ -442,7 +443,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               height: 38,
               decoration: BoxDecoration(
                 color: AppColors.primary.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: AppShapes.cut(AppShapes.chamferSm),
               ),
               child: const Icon(Icons.groups_outlined, color: AppColors.primary, size: 20),
             ),
@@ -514,9 +515,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     height: 36,
                     decoration: BoxDecoration(
                       color: AppColors.canvas,
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: AppShapes.cut(AppShapes.chamferSm),
                     ),
-                    child: const Icon(Icons.location_on_outlined, size: 18, color: AppColors.textSecondary),
+                    child: const BrandIcon(BrandIcons.location, size: 18, color: AppColors.textSecondary),
                   ),
                   title: Text(store.name, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
                   subtitle: Text(store.address, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
@@ -588,7 +589,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 height: 64,
                 decoration: BoxDecoration(
                   color: AppColors.primary.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: AppShapes.cut(AppShapes.chamferSm),
                 ),
                 child: Icon(icon, color: AppColors.primary, size: 34),
               ),
@@ -707,7 +708,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           width: 40,
           height: 40,
           margin: const EdgeInsets.all(12),
-          decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
+          decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: AppShapes.cut(AppShapes.chamferSm)),
           child: Icon(icon, color: color),
         ),
         title: Text(title, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
@@ -765,7 +766,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             height: 6,
                             decoration: BoxDecoration(
                               color: active ? AppColors.primary : AppColors.border,
-                              borderRadius: BorderRadius.circular(3),
+                              borderRadius: BorderRadius.zero,
                             ),
                           ),
                           const SizedBox(height: 6),
@@ -869,7 +870,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             leading: Container(
               width: 38,
               height: 38,
-              decoration: BoxDecoration(color: AppColors.error.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(10)),
+              decoration: BoxDecoration(color: AppColors.error.withValues(alpha: 0.08), borderRadius: AppShapes.cut(AppShapes.chamferSm)),
               child: const Icon(Icons.logout, color: AppColors.error, size: 20),
             ),
             title: const Text('Выйти из аккаунта', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.error)),
@@ -887,7 +888,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       leading: Container(
         width: 38,
         height: 38,
-        decoration: BoxDecoration(color: AppColors.primary.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(10)),
+        decoration: BoxDecoration(color: AppColors.primary.withValues(alpha: 0.08), borderRadius: AppShapes.cut(AppShapes.chamferSm)),
         child: Icon(icon, color: AppColors.primary, size: 20),
       ),
       title: Text(label, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),

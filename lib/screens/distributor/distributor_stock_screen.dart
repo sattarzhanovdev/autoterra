@@ -141,12 +141,12 @@ class _DistributorStockScreenState extends State<DistributorStockScreen> {
               onChanged: _onSearchChanged,
               decoration: InputDecoration(
                 hintText: 'ПОИСК ПО SKU ИЛИ НАЗВАНИЮ',
-                prefixIcon: const Icon(Icons.search, color: Color(0xFF171717)),
+                prefixIcon: const Icon(Icons.search, color: AppColors.brandBlack),
                 filled: true,
-                fillColor: const Color(0xFFF5F5F5),
+                fillColor: AppColors.brandWhite,
                 border: const OutlineInputBorder(borderSide: BorderSide.none),
                 hintStyle: TextStyle(
-                  color: const Color(0xFF171717).withValues(alpha: 0.4),
+                  color: AppColors.brandBlack.withValues(alpha: 0.4),
                   fontSize: 12,
                   fontWeight: FontWeight.w800,
                 ),
@@ -180,7 +180,7 @@ class _ProductStockCard extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: isOutOfStock ? const Color(0xFFF5F5F5) : Colors.white,
+        color: isOutOfStock ? AppColors.brandWhite : Colors.white,
         border: Border.all(color: AppColors.brandBlack, width: 1),
       ),
       child: Opacity(

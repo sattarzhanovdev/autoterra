@@ -6,6 +6,7 @@ import '../../core/theme.dart';
 import '../../services/data_repository.dart';
 import '../../services/api_client.dart';
 import '../../widgets/common/section_header.dart';
+import '../../widgets/common/brand_icon.dart';
 
 class DistributorIntegrationScreen extends StatefulWidget {
   const DistributorIntegrationScreen({super.key});
@@ -208,7 +209,7 @@ class _DistributorIntegrationScreenState extends State<DistributorIntegrationScr
         children: [
           const Row(
             children: [
-              Icon(Icons.flash_on, color: AppColors.brandRed, size: 18),
+              BrandIcon(BrandIcons.bolt, color: AppColors.brandRed, size: 18),
               const SizedBox(width: 8),
               const Text('БЕЗ ПРОГРАММИРОВАНИЯ (1С)', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12)),
             ],

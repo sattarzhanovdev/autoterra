@@ -4,6 +4,7 @@ import '../../models/models.dart';
 import '../../services/data_repository.dart';
 import '../../services/pagination_controller.dart';
 import '../../widgets/common/paginated_list_view.dart';
+import '../../core/theme.dart';
 
 class ManagerTasksScreen extends StatefulWidget {
   const ManagerTasksScreen({super.key});
@@ -71,9 +72,9 @@ class _ManagerTasksScreenState extends State<ManagerTasksScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
+      backgroundColor: AppColors.brandWhite,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF171717),
+        backgroundColor: AppColors.brandBlack,
         title: const Text(
           'ЗАДАЧИ МЕНЕДЖЕРА',
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, letterSpacing: 2),
@@ -87,7 +88,7 @@ class _ManagerTasksScreenState extends State<ManagerTasksScreen> {
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(44),
           child: Container(
-            color: const Color(0xFF171717),
+            color: AppColors.brandBlack,
             child: Row(
               children: [
                 _TabBtn(
@@ -148,7 +149,7 @@ class _TabBtn extends StatelessWidget {
           decoration: BoxDecoration(
             border: Border(
               bottom: BorderSide(
-                color: selected ? const Color(0xFFF01D2C) : Colors.transparent,
+                color: selected ? AppColors.brandRed : Colors.transparent,
                 width: 3,
               ),
             ),
@@ -156,7 +157,7 @@ class _TabBtn extends StatelessWidget {
           child: Text(
             label,
             style: TextStyle(
-              color: selected ? const Color(0xFFF01D2C) : Colors.white60,
+              color: selected ? AppColors.brandRed : Colors.white60,
               fontWeight: FontWeight.w900,
               fontSize: 11,
               letterSpacing: 0.5,
@@ -199,7 +200,7 @@ class _TaskCardState extends State<_TaskCard> {
         color: Colors.white,
         shape: BeveledRectangleBorder(
           side: BorderSide(
-            color: _isOverdue ? const Color(0xFFF01D2C) : const Color(0xFF171717),
+            color: _isOverdue ? AppColors.brandRed : AppColors.brandBlack,
             width: _isOverdue ? 2 : 1,
           ),
           borderRadius: const BorderRadius.only(topRight: Radius.circular(15)),
@@ -225,7 +226,7 @@ class _TaskCardState extends State<_TaskCard> {
                   style: const TextStyle(
                     fontWeight: FontWeight.w900,
                     fontSize: 12,
-                    color: Color(0xFFF01D2C),
+                    color: AppColors.brandRed,
                     letterSpacing: 0.5,
                   ),
                 ),
@@ -233,14 +234,14 @@ class _TaskCardState extends State<_TaskCard> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     color: _isOverdue
-                        ? const Color(0xFFF01D2C)
-                        : const Color(0xFFF5F5F5),
+                        ? AppColors.brandRed
+                        : AppColors.brandWhite,
                     child: Text(
                       fmt.format(task.deadline!),
                       style: TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.w900,
-                        color: _isOverdue ? Colors.white : const Color(0xFF171717),
+                        color: _isOverdue ? Colors.white : AppColors.brandBlack,
                         letterSpacing: 0.5,
                       ),
                     ),
@@ -253,7 +254,7 @@ class _TaskCardState extends State<_TaskCard> {
               style: const TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
-                color: Color(0xFF171717),
+                color: AppColors.brandBlack,
                 height: 1.4,
               ),
             ),
@@ -261,7 +262,7 @@ class _TaskCardState extends State<_TaskCard> {
               const SizedBox(height: 6),
               Text(
                 task.comment,
-                style: const TextStyle(fontSize: 11, color: Colors.grey, height: 1.3),
+                style: const TextStyle(fontSize: 11, color: AppColors.textHint, height: 1.3),
               ),
             ],
             if (widget.onMarkDone != null) ...[
@@ -277,7 +278,7 @@ class _TaskCardState extends State<_TaskCard> {
                           await Future.microtask(() => widget.onMarkDone?.call());
                         },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF171717),
+                    backgroundColor: AppColors.brandBlack,
                     foregroundColor: Colors.white,
                     elevation: 0,
                     shape: const BeveledRectangleBorder(
@@ -301,13 +302,12 @@ class _TaskCardState extends State<_TaskCard> {
               const SizedBox(height: 10),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                color: const Color(0xFF2E7D32).withOpacity(0.1),
+                color: AppColors.statusActive.withValues(alpha: 0.08),
                 child: const Text(
                   'ВЫПОЛНЕНО',
                   style: TextStyle(
                     fontSize: 10,
-                    fontWeight: FontWeight.w900,
-                    color: Color(0xFF2E7D32),
+                    color: AppColors.statusActive,
                     letterSpacing: 1,
                   ),
                 ),

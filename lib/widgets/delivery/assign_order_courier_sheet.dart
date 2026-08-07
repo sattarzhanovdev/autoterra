@@ -91,7 +91,7 @@ class _AssignOrderCourierSheetState extends State<AssignOrderCourierSheet> {
                 height: 4,
                 decoration: BoxDecoration(
                   color: AppColors.border,
-                  borderRadius: BorderRadius.circular(2),
+                  borderRadius: BorderRadius.zero,
                 ),
               ),
             ),
@@ -210,7 +210,7 @@ class _AssignOrderCourierSheetState extends State<AssignOrderCourierSheet> {
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
                   decoration: BoxDecoration(
                     border: Border.all(color: AppColors.border),
-                    borderRadius: BorderRadius.circular(4),
+                    borderRadius: BorderRadius.zero,
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,

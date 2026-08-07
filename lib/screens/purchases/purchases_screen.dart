@@ -786,7 +786,7 @@ class PurchaseDetailsSheet extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         ClipRRect(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: AppShapes.cut(AppShapes.chamferSm),
           child: Image.network(
             imageUrl,
             fit: BoxFit.cover,
@@ -796,7 +796,7 @@ class PurchaseDetailsSheet extends StatelessWidget {
               decoration: BoxDecoration(
                 color: AppColors.canvas,
                 border: Border.all(color: AppColors.border),
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: AppShapes.cut(AppShapes.chamferSm),
               ),
               child: const Column(
                 mainAxisAlignment: MainAxisAlignment.center,

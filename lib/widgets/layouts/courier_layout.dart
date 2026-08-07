@@ -70,17 +70,17 @@ class _CourierLayoutState extends State<CourierLayout> {
     ];
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
+      backgroundColor: AppColors.brandWhite,
       body: screens[_currentIndex],
       bottomNavigationBar: Container(
         decoration: const BoxDecoration(
-          border: Border(top: BorderSide(color: Color(0xFF171717), width: 2)),
+          border: Border(top: BorderSide(color: AppColors.brandBlack, width: 2)),
         ),
         child: BottomNavigationBar(
           currentIndex: _currentIndex,
           onTap: (index) => setState(() => _currentIndex = index),
-          backgroundColor: const Color(0xFF171717),
-          selectedItemColor: const Color(0xFFF01D2C),
+          backgroundColor: AppColors.brandBlack,
+          selectedItemColor: AppColors.brandRed,
           unselectedItemColor: Colors.white.withOpacity(0.5),
           selectedLabelStyle: const TextStyle(
             fontWeight: FontWeight.bold,
@@ -125,9 +125,9 @@ class CourierTasksScreen extends StatelessWidget {
     return DefaultTabController(
       length: 2,
       child: Scaffold(
-        backgroundColor: const Color(0xFFF5F5F5),
+        backgroundColor: AppColors.brandWhite,
         appBar: AppBar(
-          backgroundColor: const Color(0xFF171717),
+          backgroundColor: AppColors.brandBlack,
           title: const Text('ЛОГИСТИКА / КУРЬЕР'),
           actions: [
             IconButton(
@@ -136,9 +136,9 @@ class CourierTasksScreen extends StatelessWidget {
             ),
           ],
           bottom: const TabBar(
-            indicatorColor: Color(0xFFF01D2C),
+            indicatorColor: AppColors.brandRed,
             indicatorWeight: 4,
-            labelColor: Color(0xFFF01D2C),
+            labelColor: AppColors.brandRed,
             unselectedLabelColor: Colors.white70,
             labelStyle: TextStyle(
               fontWeight: FontWeight.bold,
@@ -210,7 +210,7 @@ class _CourierTaskCardState extends State<CourierTaskCard> {
         final source = await showModalBottomSheet<ImageSource>(
           context: context,
           backgroundColor: Colors.white,
-          shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+          shape: AppShapes.border(size: AppShapes.chamferSm),
           builder: (ctx) => SafeArea(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -280,7 +280,7 @@ class _CourierTaskCardState extends State<CourierTaskCard> {
       decoration: ShapeDecoration(
         color: Colors.white,
         shape: const BeveledRectangleBorder(
-          side: BorderSide(color: Color(0xFF171717), width: 1),
+          side: BorderSide(color: AppColors.brandBlack, width: 1),
           borderRadius: BorderRadius.only(topRight: Radius.circular(15)),
         ),
         shadows: [
@@ -305,8 +305,8 @@ class _CourierTaskCardState extends State<CourierTaskCard> {
                     vertical: 5,
                   ),
                   color: isColorLab
-                      ? const Color(0xFFF01D2C)
-                      : const Color(0xFF171717),
+                      ? AppColors.brandRed
+                      : AppColors.brandBlack,
                   child: Text(
                     widget.task.typeDisplay.toUpperCase(),
                     style: const TextStyle(
@@ -322,7 +322,7 @@ class _CourierTaskCardState extends State<CourierTaskCard> {
                   style: const TextStyle(
                     fontWeight: FontWeight.w900,
                     fontSize: 13,
-                    color: Color(0xFF171717),
+                    color: AppColors.brandBlack,
                   ),
                 ),
               ],
@@ -333,7 +333,7 @@ class _CourierTaskCardState extends State<CourierTaskCard> {
               style: const TextStyle(
                 fontWeight: FontWeight.w900,
                 fontSize: 12,
-                color: Color(0xFFF01D2C),
+                color: AppColors.brandRed,
               ),
             ),
             const SizedBox(height: 8),
@@ -343,7 +343,7 @@ class _CourierTaskCardState extends State<CourierTaskCard> {
                 const Icon(
                   CupertinoIcons.location_solid,
                   size: 20,
-                  color: Color(0xFFF01D2C),
+                  color: AppColors.brandRed,
                 ),
                 const SizedBox(width: 10),
                 Expanded(
@@ -352,7 +352,7 @@ class _CourierTaskCardState extends State<CourierTaskCard> {
                     style: const TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w800,
-                      color: Color(0xFF171717),
+                      color: AppColors.brandBlack,
                       height: 1.3,
                     ),
                   ),
@@ -365,7 +365,7 @@ class _CourierTaskCardState extends State<CourierTaskCard> {
                 'КОММЕНТАРИЙ: ${widget.task.comment}',
                 style: const TextStyle(
                   fontSize: 11,
-                  color: Colors.grey,
+                  color: AppColors.textHint,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -379,8 +379,8 @@ class _CourierTaskCardState extends State<CourierTaskCard> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor:
                       widget.task.status == CourierTaskStatus.assigned
-                      ? const Color(0xFFF01D2C)
-                      : const Color(0xFF171717),
+                      ? AppColors.brandRed
+                      : AppColors.brandBlack,
                   foregroundColor: Colors.white,
                   elevation: 0,
                   shape: const BeveledRectangleBorder(
@@ -429,9 +429,9 @@ class _CourierRouteScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
+      backgroundColor: AppColors.brandWhite,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF171717),
+        backgroundColor: AppColors.brandBlack,
         title: const Text('ЛОГИСТИКА / КУРЬЕР'),
         actions: [
           IconButton(
@@ -448,7 +448,7 @@ class _CourierRouteScreen extends StatelessWidget {
           decoration: const BoxDecoration(
             color: Colors.white,
             border: Border(
-              left: BorderSide(color: Color(0xFFF01D2C), width: 5),
+              left: BorderSide(color: AppColors.brandRed, width: 5),
             ),
           ),
           child: ListTile(

@@ -27,8 +27,8 @@ class PremiumIconBadge extends StatelessWidget {
           end: Alignment.bottomRight,
           colors: [Color(0xFFFFFFFF), Color(0xFFF1F1F1)],
         ),
-        border: Border.all(color: const Color(0xFFE3E3E3), width: 1),
-        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.border, width: 1),
+        borderRadius: AppShapes.cut(AppShapes.chamferSm),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.06),
@@ -47,7 +47,7 @@ class PremiumIconBadge extends StatelessWidget {
               height: 2,
               decoration: BoxDecoration(
                 color: AppColors.brandRed.withValues(alpha: 0.85),
-                borderRadius: BorderRadius.circular(2),
+                borderRadius: BorderRadius.zero,
               ),
             ),
           ),

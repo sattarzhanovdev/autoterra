@@ -8,6 +8,7 @@ import '../../services/pagination_controller.dart';
 import '../../widgets/common/paginated_list_view.dart';
 import '../../widgets/common/premium_icon_badge.dart';
 import '../../widgets/common/status_badge.dart';
+import '../../widgets/common/brand_icon.dart';
 
 class DeliveryScreen extends StatefulWidget {
   /// Подменяется в тестах; в приложении создаётся сам.
@@ -301,7 +302,7 @@ class _DeliveryRequestSheetState extends State<_DeliveryRequestSheet> {
                 controller: _addrCtrl,
                 decoration: const InputDecoration(
                   labelText: 'АДРЕС *',
-                  prefixIcon: Icon(Icons.location_on_outlined, size: 20),
+                  prefixIcon: BrandIcon(BrandIcons.location, size: 20),
                 ),
               ),
               const SizedBox(height: 12),

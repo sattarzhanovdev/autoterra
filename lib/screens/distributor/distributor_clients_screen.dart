@@ -57,7 +57,7 @@ class _DistributorClientsScreenState extends State<DistributorClientsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: const Color(0xFF171717),
+        backgroundColor: AppColors.brandBlack,
         title: const Text('КЛИЕНТЫ РЕГИОНА', style: TextStyle(letterSpacing: 1.5, fontWeight: FontWeight.w900)),
         actions: [
           IconButton(
@@ -84,7 +84,7 @@ class _DistributorClientsScreenState extends State<DistributorClientsScreen> {
 
   Widget _buildSearch() {
     return Container(
-      color: const Color(0xFF171717),
+      color: AppColors.brandBlack,
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
       child: TextField(
         controller: _searchCtrl,
@@ -92,7 +92,7 @@ class _DistributorClientsScreenState extends State<DistributorClientsScreen> {
         decoration: InputDecoration(
           hintText: 'ПОИСК ПО НАЗВАНИЮ ИЛИ ИНН',
           hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.3), fontSize: 12, fontWeight: FontWeight.bold),
-          prefixIcon: const Icon(Icons.search, color: Color(0xFFF01D2C)),
+          prefixIcon: const Icon(Icons.search, color: AppColors.brandRed),
           filled: true,
           fillColor: Colors.white.withValues(alpha: 0.05),
           border: const OutlineInputBorder(borderSide: BorderSide.none),
@@ -131,7 +131,7 @@ class ClientListCard extends StatelessWidget {
         child: ExpansionTile(
           title: Text(
             client.name.toUpperCase(),
-            style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13, color: Color(0xFF171717)),
+            style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13, color: AppColors.brandBlack),
           ),
           subtitle: Row(
             children: [
@@ -146,7 +146,7 @@ class ClientListCard extends StatelessWidget {
             iconSize: 20,
           ),
           children: [
-            const Divider(height: 1, color: Color(0xFF171717)),
+            const Divider(height: 1, color: AppColors.brandBlack),
             Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
@@ -169,27 +169,27 @@ class ClientListCard extends StatelessWidget {
   }
 
   Widget _statusBadge(ClientStatus status) {
-    Color color = Colors.grey;
+    Color color = AppColors.statusNew;
     String label = 'НОВЫЙ';
-    
+
     switch (status) {
       case ClientStatus.active:
-        color = const Color(0xFF25D366);
+        color = AppColors.statusActive;
         label = 'АКТИВЕН';
       case ClientStatus.underReview:
-        color = Colors.orange;
+        color = AppColors.statusPending;
         label = 'ПРОВЕРКА';
       case ClientStatus.blocked:
-        color = const Color(0xFFF01D2C);
+        color = AppColors.statusBlocked;
         label = 'БЛОК';
       default:
-        color = Colors.grey;
+        color = AppColors.statusNew;
         label = 'НОВЫЙ';
     }
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-      decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(2)),
+      decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.zero),
       child: Text(label, style: TextStyle(color: color, fontSize: 8, fontWeight: FontWeight.w900)),
     );
   }
@@ -201,7 +201,7 @@ class ClientListCard extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(label, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: AppColors.textHint)),
-          Text(value.toUpperCase(), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF171717))),
+          Text(value.toUpperCase(), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.brandBlack)),
         ],
       ),
     );

@@ -40,9 +40,9 @@ class _KnowledgeBaseScreenState extends State<KnowledgeBaseScreen> {
     final isExpert = authService.currentRole == UserRole.aiExpert;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
+      backgroundColor: AppColors.brandWhite,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF171717),
+        backgroundColor: AppColors.brandBlack,
         title: const Text(
           'БАЗА ЗНАНИЙ',
           style: TextStyle(letterSpacing: 1.5, fontWeight: FontWeight.w900),

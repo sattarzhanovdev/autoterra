@@ -7,6 +7,7 @@ import '../../models/models.dart';
 import '../../services/data_repository.dart';
 import '../../services/pagination_controller.dart';
 import '../../widgets/common/paginated_list_view.dart';
+import '../../widgets/common/brand_icon.dart';
 
 class ReferralScreen extends StatefulWidget {
   const ReferralScreen({super.key});
@@ -121,8 +122,10 @@ class _ReferralScreenState extends State<ReferralScreen> {
                     padding: const EdgeInsets.all(12),
                     color: AppColors.canvas,
                     child: const Text(
-                      'Запись закрепит за вами это СТО по ИНН: бонус зачтётся, '
-                      'даже если оно зарегистрируется без вашего кода.\n\n'
+                      'Запись закрепит за вами это СТО по ИНН — вас свяжут, '
+                      'даже если оно зарегистрируется без вашей ссылки.\n\n'
+                      'Бонус начислится после того, как СТО при регистрации '
+                      'подтвердит, что пригласили его вы.\n\n'
                       'Само приглашение отправите вы — после сохранения '
                       'откроется «Поделиться» с готовой ссылкой.',
                       style: TextStyle(fontSize: 11, height: 1.4, color: AppColors.textSecondary),
@@ -258,18 +261,30 @@ class _ReferralScreenState extends State<ReferralScreen> {
         itemBuilder: (context, referral, _) => _ReferralCard(
           referral: referral,
           fmt: fmt,
-          threshold: (_stats['bonusThreshold'] as num?)?.toDouble(),
           onResend: () => _sendInvite(forName: referral.inviteeName),
         ),
       ),
     );
   }
 
+  /// Ступени ставки приходят с сервера — в приложении их не зашиваем, иначе
+  /// после смены условий экран будет обещать не те проценты.
+  List<({double from, double rate})> get _tiers {
+    final raw = _stats['bonusTiers'];
+    if (raw is! List) return const [];
+    return raw
+        .whereType<Map<String, dynamic>>()
+        .map((item) => (
+              from: (item['from'] as num? ?? 0).toDouble(),
+              rate: (item['rate'] as num? ?? 0).toDouble(),
+            ))
+        .toList();
+  }
+
+  double? get _activityMin => (_stats['activityMin'] as num?)?.toDouble();
+
   Widget _buildHowItWorks(NumberFormat fmt) {
-    // Порог и подарок настраиваются на сервере — в тексте показываем то, что
-    // действует сейчас, а не зашитые в приложение цифры.
-    final threshold = (_stats['bonusThreshold'] as num?)?.toInt();
-    final gift = (_stats['bonusGift'] as String?)?.trim();
+    final tiers = _tiers;
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -281,21 +296,45 @@ class _ReferralScreenState extends State<ReferralScreen> {
           const SizedBox(height: 16),
           _step('1', 'ОТПРАВЬТЕ ССЫЛКУ ИЛИ КОД ДРУГОМУ СТО'),
           _step('2', 'СТО РЕГИСТРИРУЕТСЯ ПО НЕЙ И ДЕЛАЕТ ЗАКАЗЫ'),
-          // Бонус считается по выполненным заказам и подтверждённым закупкам —
-          // см. Referral.sync_from_invitee на бэкенде. «Подтверждён» заказ ещё
-          // не значит «выполнен», поэтому в тексте именно выполненные.
-          _step(
-            '3',
-            threshold == null
-                ? 'СУММА ВЫПОЛНЕННЫХ ЗАКАЗОВ ДОСТИГАЕТ ПОРОГА'
-                : 'СУММА ВЫПОЛНЕННЫХ ЗАКАЗОВ ДОСТИГАЕТ ${fmt.format(threshold)} ₽',
-          ),
-          _step(
-            '4',
-            (gift == null || gift.isEmpty)
-                ? 'ВЫ ПОЛУЧАЕТЕ ПОДАРОК'
-                : 'ВЫ ПОЛУЧАЕТЕ: ${gift.toUpperCase()}',
-          ),
+          // Бонус — процент от подтверждённых закупок и выполненных заказов
+          // приглашённого, см. api/services/referral_bonus.py.
+          _step('3', 'ПРОЦЕНТ ОТ ЕГО ЗАКУПОК КАПАЕТ НА ВАШ БОНУСНЫЙ СЧЁТ'),
+          _step('4', 'ЧЕМ БОЛЬШЕ ОН ЗАКУПАЕТ, ТЕМ ВЫШЕ ВАША СТАВКА'),
+          if (tiers.isNotEmpty) ...[
+            const Divider(height: 24),
+            const Text('СТАВКА ПО ОБОРОТУ СТО', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 11)),
+            const SizedBox(height: 8),
+            ...tiers.map(
+              (tier) => Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      tier.from == 0 ? 'ДО ${fmt.format(tiers.length > 1 ? tiers[1].from : 0)} ₽' : 'ОТ ${fmt.format(tier.from)} ₽',
+                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.textSecondary),
+                    ),
+                    Text(
+                      '${tier.rate}%',
+                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: AppColors.brandRed),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+          if (_activityMin != null) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(8),
+              color: AppColors.canvas,
+              child: Text(
+                'ЗАКУПАЙТЕСЬ САМИ ОТ ${fmt.format(_activityMin)} ₽ В МЕСЯЦ — '
+                'ИНАЧЕ НАКОПЛЕННЫЕ БОНУСЫ СГОРАЮТ',
+                style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: AppColors.textSecondary),
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -420,10 +459,6 @@ class _ReferralCard extends StatelessWidget {
   final Referral referral;
   final NumberFormat fmt;
 
-  /// Порог бонуса приходит с сервера. Пока он не загружен, прогресс до бонуса
-  /// не показываем — иначе он врал бы про зашитую в приложение сумму.
-  final double? threshold;
-
   /// Повторная отправка ссылки: пока СТО не зарегистрировалось, запись живёт
   /// только в ЛК пригласившего, и её нужно чем-то «дожать».
   final VoidCallback onResend;
@@ -432,7 +467,6 @@ class _ReferralCard extends StatelessWidget {
     required this.referral,
     required this.fmt,
     required this.onResend,
-    this.threshold,
   });
 
   @override
@@ -525,18 +559,22 @@ class _ReferralCard extends StatelessWidget {
               ),
             ),
           ],
-          if (referral.hasPurchase && !referral.conditionMet && threshold != null && threshold! > 0) ...[
+          // Сколько этот СТО принёс и по какой ставке — иначе сумма на
+          // бонусном счёте выглядит взявшейся ниоткуда.
+          if (referral.hasPurchase) ...[
             const SizedBox(height: 12),
-            LinearProgressIndicator(
-              value: (referral.purchaseAmount / threshold!).clamp(0.0, 1.0),
-              backgroundColor: AppColors.canvas,
-              color: AppColors.brandRed,
-              minHeight: 4,
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'ДО БОНУСА: ${fmt.format((threshold! - referral.purchaseAmount).clamp(0, double.infinity))} ₽',
-              style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: AppColors.textSecondary),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'ЗАКУПИЛ: ${fmt.format(referral.purchaseAmount)} ₽ · СТАВКА ${referral.bonusRate}%',
+                  style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.textSecondary),
+                ),
+                Text(
+                  '+${fmt.format(referral.bonusEarned)} ₽',
+                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: AppColors.brandRed),
+                ),
+              ],
             ),
           ],
           // Подарок проходит согласование у дистрибьютора: до его решения
@@ -607,6 +645,6 @@ class _ReferralCard extends StatelessWidget {
     );
   }
 
-  Widget _arrow() => const Padding(padding: EdgeInsets.symmetric(horizontal: 4), child: Icon(Icons.arrow_forward, size: 10, color: AppColors.border));
+  Widget _arrow() => const Padding(padding: EdgeInsets.symmetric(horizontal: 4), child: BrandIcon(BrandIcons.arrowRight, size: 10, color: AppColors.border));
 }
 

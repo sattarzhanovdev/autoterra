@@ -140,7 +140,7 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
                       ),
                       decoration: BoxDecoration(
                         color: Colors.white,
-                        borderRadius: BorderRadius.circular(20),
+                        borderRadius: AppShapes.cut(AppShapes.chamferSm),
                         border: Border.all(
                           color: AppColors.primary.withValues(alpha: 0.3),
                         ),
@@ -183,15 +183,15 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
               decoration: InputDecoration(
                 hintText: 'Задайте вопрос...',
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(24),
+                  borderRadius: AppShapes.cut(AppShapes.chamferSm),
                   borderSide: BorderSide(color: AppColors.border),
                 ),
                 enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(24),
+                  borderRadius: AppShapes.cut(AppShapes.chamferSm),
                   borderSide: BorderSide(color: AppColors.border),
                 ),
                 focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(24),
+                  borderRadius: AppShapes.cut(AppShapes.chamferSm),
                   borderSide: const BorderSide(color: AppColors.primary),
                 ),
                 contentPadding: const EdgeInsets.symmetric(
@@ -265,7 +265,7 @@ class _MessageBubble extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
-                color: message.isAi ? const Color(0xFFF5F5F5) : AppColors.brandBlack,
+                color: message.isAi ? AppColors.brandWhite : AppColors.brandBlack,
                 borderRadius: BorderRadius.zero,
                 border: message.isAi
                     ? Border.all(color: AppColors.border.withValues(alpha: 0.5))
@@ -300,7 +300,7 @@ class _TypingBubble extends StatelessWidget {
             height: 30,
             decoration: BoxDecoration(
               color: AppColors.accent,
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: AppShapes.cut(AppShapes.chamferSm),
             ),
             child: const Icon(
               Icons.smart_toy_outlined,

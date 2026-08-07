@@ -80,9 +80,7 @@ class _AdminManagerTasksScreenState extends State<AdminManagerTasksScreen> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(0)),
-      ),
+      shape: AppShapes.border(size: AppShapes.chamferLg),
       useSafeArea: true,
       builder: (ctx) => _CreateTaskSheet(
         managers: _managers,
@@ -323,7 +321,8 @@ class _TaskCard extends StatelessWidget {
                     _metaRow(
                       Icons.calendar_today_outlined,
                       'Срок: ${df.format(task.deadline!)}',
-                      color: overdue ? const Color(0xFFD97706) : null,
+                      // Гайдбук, стр. 16: важное выделяем фирменным красным.
+                      color: overdue ? AppColors.brandRed : null,
                     ),
                   ],
                   if (task.comment.isNotEmpty) ...[
@@ -338,7 +337,7 @@ class _TaskCard extends StatelessWidget {
             ),
             InkWell(
               onTap: onDelete,
-              borderRadius: BorderRadius.circular(4),
+              borderRadius: BorderRadius.zero,
               child: const Padding(
                 padding: EdgeInsets.all(4),
                 child: Icon(Icons.delete_outline, size: 18, color: AppColors.textHint),

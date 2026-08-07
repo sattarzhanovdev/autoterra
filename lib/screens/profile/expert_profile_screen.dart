@@ -32,9 +32,9 @@ class _ExpertProfileScreenState extends State<ExpertProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
+      backgroundColor: AppColors.brandWhite,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF171717),
+        backgroundColor: AppColors.brandBlack,
         title: const Text(
           'ПРОФИЛЬ ЭКСПЕРТА',
           style: TextStyle(letterSpacing: 1.5, fontWeight: FontWeight.w900),
@@ -89,7 +89,7 @@ class _ExpertProfileScreenState extends State<ExpertProfileScreen> {
       decoration: const ShapeDecoration(
         color: Colors.white,
         shape: BeveledRectangleBorder(
-          side: BorderSide(color: Color(0xFF171717), width: 1),
+          side: BorderSide(color: AppColors.brandBlack, width: 1),
           borderRadius: BorderRadius.zero,
         ),
       ),
@@ -99,10 +99,10 @@ class _ExpertProfileScreenState extends State<ExpertProfileScreen> {
             width: 80,
             height: 80,
             decoration: const ShapeDecoration(
-              color: Color(0xFF171717),
+              color: AppColors.brandBlack,
               shape: BeveledRectangleBorder(),
             ),
-            child: const Icon(Icons.psychology, color: Color(0xFFF01D2C), size: 48),
+            child: const Icon(Icons.psychology, color: AppColors.brandRed, size: 48),
           ),
           const SizedBox(width: 20),
           Expanded(
@@ -120,7 +120,7 @@ class _ExpertProfileScreenState extends State<ExpertProfileScreen> {
                 const SizedBox(height: 4),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  color: const Color(0xFFF01D2C),
+                  color: AppColors.brandRed,
                   child: const Text(
                     'AI ТЕХНОЛОГ / ЭКСПЕРТ',
                     style: TextStyle(
@@ -134,7 +134,7 @@ class _ExpertProfileScreenState extends State<ExpertProfileScreen> {
                 Text(
                   'Специализация: ${data['specialty'] ?? 'ЛКМ и кузовной ремонт'}',
                   style: const TextStyle(
-                    color: Colors.grey,
+                    color: AppColors.textHint,
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
                   ),
@@ -163,7 +163,7 @@ class _ExpertProfileScreenState extends State<ExpertProfileScreen> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: const ShapeDecoration(
-        color: Color(0xFF171717),
+        color: AppColors.brandBlack,
         shape: BeveledRectangleBorder(),
       ),
       child: Column(
@@ -181,7 +181,7 @@ class _ExpertProfileScreenState extends State<ExpertProfileScreen> {
           Text(
             label,
             style: const TextStyle(
-              color: Colors.grey,
+              color: AppColors.textHint,
               fontSize: 8,
               fontWeight: FontWeight.w900,
             ),
@@ -346,7 +346,7 @@ class _ExpertProfileScreenState extends State<ExpertProfileScreen> {
   }
 
   Widget _actionTile(IconData icon, String label, VoidCallback onTap, {bool isDestructive = false}) {
-    final color = isDestructive ? const Color(0xFFF01D2C) : const Color(0xFF171717);
+    final color = isDestructive ? AppColors.brandRed : AppColors.brandBlack;
     return ListTile(
       leading: Icon(icon, color: color, size: 20),
       title: Text(

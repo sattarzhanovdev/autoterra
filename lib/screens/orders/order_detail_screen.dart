@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../core/theme.dart';
 import '../../models/models.dart';
 import '../../services/data_repository.dart';
+import '../../widgets/common/brand_icon.dart';
 
 /// Заказ глазами клиента.
 ///
@@ -128,7 +129,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     return showDialog<double>(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+        shape: AppShapes.border(size: AppShapes.chamferSm),
         title: const Text(
           'ИСПОЛЬЗОВАТЬ БОНУСЫ?',
           style: TextStyle(fontWeight: FontWeight.w900, fontSize: 15),
@@ -176,7 +177,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+        shape: AppShapes.border(size: AppShapes.chamferSm),
         title: const Text(
           'ОТМЕНИТЬ ЗАКАЗ?',
           style: TextStyle(fontWeight: FontWeight.w900, fontSize: 15, letterSpacing: 0.5),
@@ -242,7 +243,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
             style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1, fontSize: 15),
           ),
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back),
+            icon: const BrandIcon(BrandIcons.arrowLeft),
             onPressed: () => Navigator.of(context).pop(_changed),
           ),
         ),
@@ -400,7 +401,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
           backgroundColor: AppColors.brandRed,
           disabledBackgroundColor: AppColors.border,
           foregroundColor: Colors.white,
-          shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+          shape: AppShapes.border(size: AppShapes.chamferSm),
         ),
         child: Text(
           label,
@@ -572,7 +573,7 @@ class _AdjustmentDiff extends StatelessWidget {
                       ),
                       const Padding(
                         padding: EdgeInsets.symmetric(horizontal: 6),
-                        child: Icon(Icons.arrow_forward, size: 12, color: AppColors.textHint),
+                        child: BrandIcon(BrandIcons.arrowRight, size: 12, color: AppColors.textHint),
                       ),
                       Text(
                         newQty == 0 ? 'убрано' : '$newQty шт',

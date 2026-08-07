@@ -634,11 +634,9 @@ class _OrderScreenState extends State<OrderScreen> {
 
     return Card(
       margin: EdgeInsets.zero,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(12),
-          topRight: Radius.circular(12),
-        ),
+      // Верхняя половина составной формы (гайдбук, стр. 16).
+      shape: BeveledRectangleBorder(
+        borderRadius: AppShapes.cut(AppShapes.chamferMd),
       ),
       child: Padding(
         padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
@@ -837,11 +835,9 @@ class _OrderScreenState extends State<OrderScreen> {
 
         return Card(
           margin: EdgeInsets.zero,
-          shape: const RoundedRectangleBorder(
-            borderRadius: BorderRadius.only(
-              bottomLeft: Radius.circular(12),
-              bottomRight: Radius.circular(12),
-            ),
+          // Ответная нижняя половина — срез уходит в другой угол.
+          shape: BeveledRectangleBorder(
+            borderRadius: AppShapes.cutPaired(AppShapes.chamferMd),
           ),
           child: _catalog.hasMore
               ? Padding(
@@ -907,10 +903,10 @@ class _OrderScreenState extends State<OrderScreen> {
       decoration: ShapeDecoration(
         color: isOutOfStock 
             ? AppColors.border.withValues(alpha: 0.2) 
-            : (qty > 0 ? const Color(0xFFF01D2C).withValues(alpha: 0.05) : Colors.white),
+            : (qty > 0 ? AppColors.brandRed.withValues(alpha: 0.05) : Colors.white),
         shape: BeveledRectangleBorder(
           side: BorderSide(
-            color: isOutOfStock ? AppColors.border : (qty > 0 ? const Color(0xFFF01D2C) : AppColors.border)
+            color: isOutOfStock ? AppColors.border : (qty > 0 ? AppColors.brandRed : AppColors.border)
           ),
           borderRadius: BorderRadius.zero,
         ),
@@ -971,7 +967,7 @@ class _OrderScreenState extends State<OrderScreen> {
                 children: [
                   Text(
                     '${_formatPrice(item.price)} ₽',
-                    style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: Color(0xFF171717)),
+                    style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: AppColors.brandBlack),
                   ),
                   const Spacer(),
                   if (isOutOfStock)
@@ -980,7 +976,7 @@ class _OrderScreenState extends State<OrderScreen> {
                     ElevatedButton(
                       onPressed: () => _changeQty(item, 1),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF171717),
+                        backgroundColor: AppColors.brandBlack,
                         padding: const EdgeInsets.symmetric(horizontal: 16),
                         minimumSize: const Size(100, 36),
                       ),

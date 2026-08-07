@@ -43,21 +43,26 @@ flutter:
   uses-material-design: true
   assets:
     - assets/
+    - assets/icons/
     - .env
-  # fonts:
-  #   - family: TTOctosquares
-  #     fonts:
-  #       - asset: assets/fonts/TTOctosquares-Bold.ttf
-  #         weight: 700
-  #   - family: TTNeoris
-  #     fonts:
-  #       - asset: assets/fonts/TTNeoris-Regular.ttf
-  #         weight: 400
-  #       - asset: assets/fonts/TTNeoris-Bold.ttf
-  #         weight: 700
+  # Начертания — по гайдбуку, стр. 13: из Octosquares используется только
+  # Medium (заголовки), из Neoris — Regular (основной текст) и DemiBold
+  # (акценты). Веса указаны реальные, из метрик файлов.
+  fonts:
+    - family: TTOctosquares
+      fonts:
+        - asset: assets/fonts/TTOctosquares-Medium.ttf
+          weight: 500
+    - family: TTNeoris
+      fonts:
+        # TODO: положить TTNeoris-Regular.ttf (weight 400) — по гайдбуку это
+        # основной текстовый шрифт. Пока его нет, Flutter подставляет в body
+        # ближайшее доступное начертание, то есть DemiBold.
+        - asset: assets/fonts/TTNeoris-DemiBold.ttf
+          weight: 600
 
-# Ярлык приложения — по гайдбуку: знак «летящая звезда» красный #F01D2C
-# на фирменном чёрном #171717 (стр. 06, 07 и 12 гайдбука).
+# Ярлык приложения — по гайдбуку стр. 37: белый знак «летящая звезда»
+# на фирменном красном #F01D2C.
 # После правки этого блока обязательно перегенерировать:
 #   dart run flutter_launcher_icons
 flutter_launcher_icons:
@@ -66,8 +71,8 @@ flutter_launcher_icons:
   image_path: assets/icon-1024.png
   remove_alpha_ios: true
   # Без adaptive-иконки Android 8+ подставляет знак на белую подложку и
-  # уменьшает его — фирменный чёрный фон пропадает.
-  adaptive_icon_background: "#171717"
+  # уменьшает его — фирменный красный фон пропадает.
+  adaptive_icon_background: "#F01D2C"
   adaptive_icon_foreground: assets/icon-foreground-1024.png
   # Themed icons (Android 13+): система красит силуэт в цвета обоев.
   adaptive_icon_monochrome: assets/icon-monochrome-1024.png

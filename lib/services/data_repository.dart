@@ -1155,6 +1155,8 @@ class DataRepository {
       giftStatus: json['giftStatus'] as String? ?? 'none',
       giftComment: json['giftComment'] as String?,
       confirmation: json['confirmation'] as String? ?? 'auto',
+      bonusRate: (json['bonusRate'] as num? ?? 0).toDouble(),
+      bonusEarned: (json['bonusEarned'] as num? ?? 0).toDouble(),
       createdAt: DateTime.parse(json['createdAt'] as String),
     );
   }

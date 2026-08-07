@@ -463,7 +463,7 @@ class _NewTicketSheetState extends State<_NewTicketSheet> {
     final source = await showModalBottomSheet<ImageSource>(
       context: context,
       backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+      shape: AppShapes.border(size: AppShapes.chamferSm),
       builder: (ctx) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,

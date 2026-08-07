@@ -237,7 +237,7 @@ class _OrderReviewScreenState extends State<OrderReviewScreen> {
     showDialog<void>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+        shape: AppShapes.border(size: AppShapes.chamferSm),
         title: const Text(
           'НЕ ХВАТАЕТ ОСТАТКОВ',
           style: TextStyle(fontWeight: FontWeight.w900, fontSize: 15, letterSpacing: 0.5),
@@ -328,7 +328,7 @@ class _OrderReviewScreenState extends State<OrderReviewScreen> {
           builder: (context, setDialogState) {
             final canSubmit = !requireText || controller.text.trim().isNotEmpty;
             return AlertDialog(
-              shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+              shape: AppShapes.border(size: AppShapes.chamferSm),
               title: Text(
                 title.toUpperCase(),
                 style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15, letterSpacing: 0.5),
@@ -495,7 +495,7 @@ class _OrderReviewScreenState extends State<OrderReviewScreen> {
                 style: OutlinedButton.styleFrom(
                   foregroundColor: AppColors.brandBlack,
                   side: const BorderSide(color: AppColors.brandBlack, width: 2),
-                  shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+                  shape: AppShapes.border(size: AppShapes.chamferSm),
                 ),
                 label: const Text(
                   'ДОБАВИТЬ ТОВАР',
@@ -773,7 +773,7 @@ class _OrderReviewScreenState extends State<OrderReviewScreen> {
           backgroundColor: AppColors.brandRed,
           disabledBackgroundColor: AppColors.border,
           foregroundColor: Colors.white,
-          shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+          shape: AppShapes.border(size: AppShapes.chamferSm),
         ),
         child: Text(
           label,

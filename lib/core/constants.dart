@@ -1,5 +1,6 @@
 class AppConstants {
-  static const appName = 'AutoTerra';
+  // Кириллицей — как в логотипе, AndroidManifest и Info.plist.
+  static const appName = 'АвтоТерра';
   static const appTagline = 'B2B платформа ЛКМ';
 
   static const regions = [
