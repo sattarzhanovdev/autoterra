@@ -1,61 +1,45 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 
-import '../../core/theme.dart';
-
-/// Фирменный иконпак — гайдбук, стр. 14.
+/// Иконки приложения.
 ///
-/// Иконки построены на толстых линиях с характерными разрезами, поэтому рядом
-/// с Material-набором они заметно выбиваются. Там, где нужная иконка есть
-/// в паке, берём её; для остального Material остаётся допустимым запасом.
+/// Раньше здесь был фирменный иконпак из гайдбука (стр. 14): SVG собирались
+/// скриптом `tool/build_icon_font.py` в `assets/fonts/AutoTerraIcons.ttf`, а
+/// константы указывали на его глифы. Вернули Material — на экранах пак читался
+/// хуже, чем стандартный набор.
 ///
-/// Исходники — [assets/icons], сняты со стр. 14 гайдбука (там чистый вектор).
-/// Когда придёт архив бренда с Яндекс.Диска, файлы нужно заменить
-/// на официальные — имена и viewBox 24×24 менять не потребуется.
+/// Названия и сигнатуры не изменились: везде это по-прежнему [IconData], и
+/// 25 экранов, которые их используют, править не потребовалось.
+///
+/// Чтобы вернуть фирменный пак, замените значения обратно на глифы — сам
+/// шрифт и скрипт сборки на месте, в pubspec.yaml он тоже остался
+/// зарегистрирован:
+///
+///     static const _family = 'AutoTerraIcons';
+///     static const arrowDown = IconData(0xe900, fontFamily: _family);
+///     static const arrowLeft = IconData(0xe901, fontFamily: _family);
+///     static const arrowRight = IconData(0xe902, fontFamily: _family);
+///     static const arrowUp = IconData(0xe903, fontFamily: _family);
+///     static const bolt = IconData(0xe904, fontFamily: _family);
+///     static const cart = IconData(0xe905, fontFamily: _family);
+///     static const document = IconData(0xe906, fontFamily: _family);
+///     static const heart = IconData(0xe907, fontFamily: _family);
+///     static const list = IconData(0xe908, fontFamily: _family);
+///     static const location = IconData(0xe909, fontFamily: _family);
+///     static const person = IconData(0xe90a, fontFamily: _family);
+///     static const star = IconData(0xe90b, fontFamily: _family);
+///     static const tools = IconData(0xe90c, fontFamily: _family);
 abstract final class BrandIcons {
-  static const person = 'assets/icons/person.svg';
-  static const location = 'assets/icons/location.svg';
-  static const cart = 'assets/icons/cart.svg';
-  static const heart = 'assets/icons/heart.svg';
-  static const tools = 'assets/icons/tools.svg';
-  static const bolt = 'assets/icons/bolt.svg';
-  static const arrowUp = 'assets/icons/arrow-up.svg';
-  static const arrowDown = 'assets/icons/arrow-down.svg';
-  static const arrowLeft = 'assets/icons/arrow-left.svg';
-  static const arrowRight = 'assets/icons/arrow-right.svg';
-  static const document = 'assets/icons/document.svg';
-  static const list = 'assets/icons/list.svg';
-  static const star = 'assets/icons/star.svg';
-}
-
-/// Рисует иконку из фирменного пака. По умолчанию наследует цвет и размер
-/// от [IconTheme], как это делает обычный [Icon].
-class BrandIcon extends StatelessWidget {
-  final String asset;
-  final double? size;
-  final Color? color;
-  final String? semanticLabel;
-
-  const BrandIcon(
-    this.asset, {
-    super.key,
-    this.size,
-    this.color,
-    this.semanticLabel,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final iconTheme = IconTheme.of(context);
-    final resolved = color ?? iconTheme.color ?? AppColors.brandBlack;
-    final side = size ?? iconTheme.size ?? 24;
-
-    return SvgPicture.asset(
-      asset,
-      width: side,
-      height: side,
-      colorFilter: ColorFilter.mode(resolved, BlendMode.srcIn),
-      semanticsLabel: semanticLabel,
-    );
-  }
+  static const arrowDown = Icons.arrow_downward;
+  static const arrowLeft = Icons.arrow_back;
+  static const arrowRight = Icons.arrow_forward;
+  static const arrowUp = Icons.arrow_upward;
+  static const bolt = Icons.bolt;
+  static const cart = Icons.shopping_cart_outlined;
+  static const document = Icons.description_outlined;
+  static const heart = Icons.favorite_border;
+  static const list = Icons.list;
+  static const location = Icons.location_on_outlined;
+  static const person = Icons.person_outline;
+  static const star = Icons.star_border;
+  static const tools = Icons.build_outlined;
 }

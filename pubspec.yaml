@@ -43,8 +43,9 @@ flutter:
   uses-material-design: true
   assets:
     - assets/
-    - assets/icons/
     - .env
+  # assets/icons/*.svg в бандл не идут: это исходники фирменного иконпака,
+  # из них собирается AutoTerraIcons.ttf (tool/build_icon_font.py).
   # Начертания — по гайдбуку, стр. 13: из Octosquares используется только
   # Medium (заголовки), из Neoris — Regular (основной текст) и DemiBold
   # (акценты). Веса указаны реальные, из метрик файлов.
@@ -60,6 +61,10 @@ flutter:
         # ближайшее доступное начертание, то есть DemiBold.
         - asset: assets/fonts/TTNeoris-DemiBold.ttf
           weight: 600
+    # Фирменный иконпак, стр. 14. Пересобирается tool/build_icon_font.py.
+    - family: AutoTerraIcons
+      fonts:
+        - asset: assets/fonts/AutoTerraIcons.ttf
 
 # Ярлык приложения — по гайдбуку стр. 37: белый знак «летящая звезда»
 # на фирменном красном #F01D2C.

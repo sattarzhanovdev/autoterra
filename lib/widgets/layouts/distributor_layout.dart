@@ -45,8 +45,8 @@ class _DistributorLayoutState extends State<DistributorLayout> {
           unselectedItemColor: Colors.white.withValues(alpha: 0.5),
           type: BottomNavigationBarType.fixed,
           items: const [
-            BottomNavigationBarItem(icon: BrandIcon(BrandIcons.cart), label: 'ЗАКАЗЫ'),
-            BottomNavigationBarItem(icon: Icon(Icons.people), label: 'КЛИЕНТЫ'),
+            BottomNavigationBarItem(icon: Icon(BrandIcons.cart), label: 'ЗАКАЗЫ'),
+            BottomNavigationBarItem(icon: Icon(BrandIcons.person), label: 'КЛИЕНТЫ'),
             BottomNavigationBarItem(icon: Icon(Icons.inventory_2), label: 'СКЛАД'),
             BottomNavigationBarItem(icon: Icon(Icons.bar_chart), label: 'ОТЧЕТЫ'),
           ],

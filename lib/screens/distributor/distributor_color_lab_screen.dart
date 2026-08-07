@@ -8,6 +8,7 @@ import '../../widgets/common/paginated_list_view.dart';
 import '../../widgets/common/premium_icon_badge.dart';
 import '../../widgets/common/status_badge.dart';
 import '../../widgets/delivery/assign_courier_sheet.dart';
+import '../../widgets/common/brand_icon.dart';
 
 class DistributorColorLabScreen extends StatefulWidget {
   /// Подменяется в тестах; в приложении создаётся сам.
@@ -170,7 +171,7 @@ class _ColorLabCard extends StatelessWidget {
             value: request.transferMethod == 'self_delivery' ? 'Сам привезу' : 'Курьер',
           ),
           if (request.pickupAddress != null && request.pickupAddress!.isNotEmpty)
-            _DetailRow(icon: Icons.location_on_outlined, label: 'Адрес забора', value: request.pickupAddress!),
+            _DetailRow(icon: BrandIcons.location, label: 'Адрес забора', value: request.pickupAddress!),
           if (request.pickupTime != null)
             _DetailRow(
               icon: Icons.schedule_outlined,
@@ -187,7 +188,7 @@ class _ColorLabCard extends StatelessWidget {
               highlight: true,
             ),
           if (request.contactPerson != null && request.contactPerson!.isNotEmpty)
-            _DetailRow(icon: Icons.person_outline, label: 'Контакт', value: request.contactPerson!),
+            _DetailRow(icon: BrandIcons.person, label: 'Контакт', value: request.contactPerson!),
           if (request.contactPhone != null && request.contactPhone!.isNotEmpty)
             _DetailRow(icon: Icons.phone_outlined, label: 'Телефон', value: request.contactPhone!),
           if (request.comment != null && request.comment!.isNotEmpty)

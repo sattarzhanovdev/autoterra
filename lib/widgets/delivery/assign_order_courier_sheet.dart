@@ -4,6 +4,7 @@ import '../../core/theme.dart';
 import '../../models/models.dart';
 import '../../services/data_repository.dart';
 import '../common/premium_icon_badge.dart';
+import '../../widgets/common/brand_icon.dart';
 
 /// Opens the styled order-acceptance sheet for [order] and returns `true` if
 /// the order was accepted (with a courier + delivery date for courier orders,
@@ -127,7 +128,7 @@ class _AssignOrderCourierSheetState extends State<AssignOrderCourierSheet> {
             ),
             const SizedBox(height: 8),
             _DetailRow(
-              icon: Icons.person_outline,
+              icon: BrandIcons.person,
               label: 'Клиент',
               value: order.clientName ?? 'ID: ${order.clientId}',
             ),

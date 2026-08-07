@@ -6,6 +6,7 @@ import '../../services/pagination_controller.dart';
 import '../../widgets/common/paginated_list_view.dart';
 import '../../widgets/common/premium_icon_badge.dart';
 import '../purchases/purchases_screen.dart';
+import '../../widgets/common/brand_icon.dart';
 
 class DistributorOrdersScreen extends StatefulWidget {
   const DistributorOrdersScreen({super.key});
@@ -44,7 +45,7 @@ class _DistributorOrdersScreenState extends State<DistributorOrdersScreen> {
         emptyBuilder: Column(
           children: const [
             PremiumIconBadge(
-              icon: Icons.shopping_bag_outlined,
+              icon: BrandIcons.cart,
               size: 56,
               iconSize: 28,
             ),

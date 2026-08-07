@@ -8,6 +8,7 @@ import '../../services/pagination_controller.dart';
 import '../common/paginated_list_view.dart';
 
 import '../../screens/profile/profile_screen.dart';
+import '../../widgets/common/brand_icon.dart';
 
 class CourierLayout extends StatefulWidget {
   final Widget? child;
@@ -98,7 +99,7 @@ class _CourierLayoutState extends State<CourierLayout> {
               label: 'МАРШРУТ',
             ),
             BottomNavigationBarItem(
-              icon: Icon(CupertinoIcons.person_fill, size: 24),
+              icon: Icon(BrandIcons.person, size: 24),
               label: 'ПРОФИЛЬ',
             ),
           ],

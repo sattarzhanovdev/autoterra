@@ -120,55 +120,96 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
   }
 
   /// Сколько бонусов потратить. null — платить передумали.
+  ///
+  /// Списать можно любую часть, а не только всё сразу: бонусы сгорают при
+  /// месяце без закупок, и клиент может захотеть придержать остаток под
+  /// следующий заказ, а не высадить весь баланс здесь.
   Future<double?> _askAboutBonus(Order order) {
     final fmt = NumberFormat('#,##0', 'ru_RU');
     final maxBonus =
         order.bonusAvailable < order.totalAmount ? order.bonusAvailable : order.totalAmount;
-    final rest = order.totalAmount - maxBonus;
+    var chosen = maxBonus;
 
     return showDialog<double>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape: AppShapes.border(size: AppShapes.chamferSm),
-        title: const Text(
-          'ИСПОЛЬЗОВАТЬ БОНУСЫ?',
-          style: TextStyle(fontWeight: FontWeight.w900, fontSize: 15),
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'На счёте ${fmt.format(order.bonusAvailable)} ₽.',
-              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) {
+          final rest = order.totalAmount - chosen;
+          return AlertDialog(
+            shape: AppShapes.border(size: AppShapes.chamferSm),
+            title: const Text(
+              'СПИСАТЬ БОНУСЫ',
+              style: TextStyle(fontWeight: FontWeight.w900, fontSize: 15),
             ),
-            const SizedBox(height: 8),
-            Text(
-              rest > 0
-                  ? 'Спишем ${fmt.format(maxBonus)} ₽, останется доплатить '
-                      '${fmt.format(rest)} ₽.'
-                  : 'Бонусов хватает на весь заказ — доплачивать не придётся.',
-              style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'На счёте ${fmt.format(order.bonusAvailable)} ₽ · '
+                  'заказ ${fmt.format(order.totalAmount)} ₽',
+                  style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  '${fmt.format(chosen)} ₽',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w900,
+                    fontSize: 26,
+                    color: AppColors.brandRed,
+                  ),
+                ),
+                // Шаг в рубль: суммы небольшие, дробить копейки незачем.
+                Slider(
+                  value: chosen,
+                  max: maxBonus,
+                  divisions: maxBonus >= 1 ? maxBonus.round() : null,
+                  activeColor: AppColors.brandRed,
+                  onChanged: (value) => setDialogState(() => chosen = value.roundToDouble()),
+                ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    TextButton(
+                      onPressed: () => setDialogState(() => chosen = 0),
+                      child: const Text('НИСКОЛЬКО',
+                          style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: AppColors.textSecondary)),
+                    ),
+                    TextButton(
+                      onPressed: () => setDialogState(() => chosen = maxBonus),
+                      child: const Text('МАКСИМУМ',
+                          style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: AppColors.brandRed)),
+                    ),
+                  ],
+                ),
+                const Divider(height: 20),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('К оплате картой',
+                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
+                    Text(
+                      rest > 0 ? '${fmt.format(rest)} ₽' : 'ничего',
+                      style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14),
+                    ),
+                  ],
+                ),
+              ],
             ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('ОТМЕНА',
-                style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: AppColors.textSecondary)),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, 0.0),
-            child: const Text('БЕЗ БОНУСОВ',
-                style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: AppColors.textSecondary)),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, maxBonus),
-            child: const Text('СПИСАТЬ',
-                style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: AppColors.brandRed)),
-          ),
-        ],
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('ОТМЕНА',
+                    style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: AppColors.textSecondary)),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, chosen),
+                child: const Text('ОПЛАТИТЬ',
+                    style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: AppColors.brandRed)),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -243,7 +284,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
             style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1, fontSize: 15),
           ),
           leading: IconButton(
-            icon: const BrandIcon(BrandIcons.arrowLeft),
+            icon: const Icon(BrandIcons.arrowLeft),
             onPressed: () => Navigator.of(context).pop(_changed),
           ),
         ),
@@ -573,7 +614,7 @@ class _AdjustmentDiff extends StatelessWidget {
                       ),
                       const Padding(
                         padding: EdgeInsets.symmetric(horizontal: 6),
-                        child: BrandIcon(BrandIcons.arrowRight, size: 12, color: AppColors.textHint),
+                        child: Icon(BrandIcons.arrowRight, size: 12, color: AppColors.textHint),
                       ),
                       Text(
                         newQty == 0 ? 'убрано' : '$newQty шт',

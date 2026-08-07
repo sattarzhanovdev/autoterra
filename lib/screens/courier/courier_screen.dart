@@ -86,7 +86,7 @@ class _CourierTaskTile extends StatelessWidget {
           const SizedBox(height: 4),
           Row(
             children: [
-              const BrandIcon(BrandIcons.location, size: 14, color: AppColors.textSecondary),
+              const Icon(BrandIcons.location, size: 14, color: AppColors.textSecondary),
               const SizedBox(width: 4),
               Expanded(
                 child: Text(

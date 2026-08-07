@@ -267,8 +267,8 @@ class _MainShellState extends State<_MainShell> {
                         label: 'Панель',
                       ),
                       BottomNavigationBarItem(
-                        icon: BrandIcon(BrandIcons.cart),
-                        activeIcon: BrandIcon(BrandIcons.cart),
+                        icon: Icon(BrandIcons.cart),
+                        activeIcon: Icon(BrandIcons.cart),
                         label: 'Заказы',
                       ),
                       BottomNavigationBarItem(
@@ -282,8 +282,8 @@ class _MainShellState extends State<_MainShell> {
                         label: 'Проверка',
                       ),
                       BottomNavigationBarItem(
-                        icon: BrandIcon(BrandIcons.person),
-                        activeIcon: BrandIcon(BrandIcons.person),
+                        icon: Icon(BrandIcons.person),
+                        activeIcon: Icon(BrandIcons.person),
                         label: 'Профиль',
                       ),
                     ]
@@ -309,8 +309,8 @@ class _MainShellState extends State<_MainShell> {
                         label: 'AI',
                       ),
                       BottomNavigationBarItem(
-                        icon: BrandIcon(BrandIcons.person),
-                        activeIcon: BrandIcon(BrandIcons.person),
+                        icon: Icon(BrandIcons.person),
+                        activeIcon: Icon(BrandIcons.person),
                         label: 'Профиль',
                       ),
                     ],

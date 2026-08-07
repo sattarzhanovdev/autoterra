@@ -302,7 +302,7 @@ class _DeliveryRequestSheetState extends State<_DeliveryRequestSheet> {
                 controller: _addrCtrl,
                 decoration: const InputDecoration(
                   labelText: 'АДРЕС *',
-                  prefixIcon: BrandIcon(BrandIcons.location, size: 20),
+                  prefixIcon: Icon(BrandIcons.location, size: 20),
                 ),
               ),
               const SizedBox(height: 12),
@@ -509,10 +509,10 @@ class _CourierTaskCard extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 8),
-              _infoRow(Icons.location_on_outlined, task.address),
+              _infoRow(BrandIcons.location, task.address),
               if (task.timeSlot.isNotEmpty) _infoRow(Icons.access_time, _whenText()),
               if (task.contactName != null && task.contactName!.isNotEmpty)
-                _infoRow(Icons.person_outline, 'Получатель: ${task.contactName}'),
+                _infoRow(BrandIcons.person, 'Получатель: ${task.contactName}'),
               const SizedBox(height: 14),
               if (_isCancelled)
                 _banner(Icons.cancel_outlined, _hint, AppColors.textSecondary)

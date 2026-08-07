@@ -64,7 +64,7 @@ class _DistributorScreenState extends State<DistributorScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: const [
                           PremiumIconBadge(
-                            icon: Icons.shopping_bag_outlined,
+                            icon: BrandIcons.cart,
                             size: 40,
                             iconSize: 20,
                           ),
@@ -93,7 +93,7 @@ class _DistributorScreenState extends State<DistributorScreen> {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => context.push(AppRoutes.order),
         backgroundColor: AppColors.primary,
-        icon: const BrandIcon(BrandIcons.cart, color: Colors.white),
+        icon: const Icon(BrandIcons.cart, color: Colors.white),
         label: const Text(
           'Сделать заказ',
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),

@@ -329,7 +329,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       appBar: AppBar(
         title: const Text('РЕГИСТРАЦИЯ'),
         leading: IconButton(
-          icon: const BrandIcon(BrandIcons.arrowLeft),
+          icon: const Icon(BrandIcons.arrowLeft),
           onPressed: () => _currentPage == 0
               ? context.pop()
               : (() {
@@ -464,7 +464,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               decoration: const InputDecoration(
                 labelText: 'АДРЕС МАГАЗИНА/ТОЧКИ *',
                 border: OutlineInputBorder(borderRadius: BorderRadius.zero),
-                prefixIcon: BrandIcon(BrandIcons.location, size: 20),
+                prefixIcon: Icon(BrandIcons.location, size: 20),
               ),
               validator: (v) => v!.isEmpty ? 'Введите адрес' : null,
             ),
@@ -501,7 +501,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   children: [
                     Text('ДАЛЕЕ'),
                     SizedBox(width: 8),
-                    BrandIcon(BrandIcons.arrowRight, size: 18),
+                    Icon(BrandIcons.arrowRight, size: 18),
                   ],
                 ),
               ),

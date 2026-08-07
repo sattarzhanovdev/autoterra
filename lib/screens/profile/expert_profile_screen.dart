@@ -6,6 +6,7 @@ import '../../services/data_repository.dart';
 import '../../services/auth_service.dart';
 import '../../widgets/common/section_header.dart';
 import '../../widgets/common/premium_icon_badge.dart';
+import '../../widgets/common/brand_icon.dart';
 
 class ExpertProfileScreen extends StatefulWidget {
   const ExpertProfileScreen({super.key});
@@ -154,7 +155,7 @@ class _ExpertProfileScreenState extends State<ExpertProfileScreen> {
         const SizedBox(width: 12),
         Expanded(child: _statCard('ОТВЕТОВ', stats['answeredTickets']?.toString() ?? '0', Icons.question_answer)),
         const SizedBox(width: 12),
-        Expanded(child: _statCard('РЕЙТИНГ', stats['rating']?.toString() ?? '0', Icons.star)),
+        Expanded(child: _statCard('РЕЙТИНГ', stats['rating']?.toString() ?? '0', BrandIcons.star)),
       ],
     );
   }

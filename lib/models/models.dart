@@ -520,11 +520,11 @@ class ColorRequest {
   /// Что показывать в заголовке заявки. Модель больше не спрашиваем, но в
   /// старых заявках она есть — там показываем «Марка Модель».
   String get carLabel =>
-      carModel.isEmpty ? carBrand : '\$carBrand \$carModel';
+      carModel.isEmpty ? carBrand : '$carBrand $carModel';
 
   /// Тип покрытия вместе с уточнением маляра, если оно было.
   String get paintTypeLabel =>
-      paintTypeNote == null ? paintType.label : '\${paintType.label} · \$paintTypeNote';
+      paintTypeNote == null ? paintType.label : '${paintType.label} · $paintTypeNote';
   final bool urgent;
   final ColorRequestStatus status;
   final String transferMethod;

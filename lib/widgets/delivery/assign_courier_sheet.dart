@@ -3,6 +3,7 @@ import '../../core/theme.dart';
 import '../../models/models.dart';
 import '../../services/data_repository.dart';
 import '../common/premium_icon_badge.dart';
+import '../../widgets/common/brand_icon.dart';
 
 /// Opens the styled courier-assignment sheet for [task] and returns `true`
 /// if a courier was successfully assigned.
@@ -108,8 +109,8 @@ class _AssignCourierSheetState extends State<AssignCourierSheet> {
           ),
           const Divider(height: 24),
 
-          _SheetRow(icon: Icons.person_outline, label: 'Клиент', value: task.clientName),
-          _SheetRow(icon: Icons.location_on_outlined, label: 'Адрес', value: task.address),
+          _SheetRow(icon: BrandIcons.person, label: 'Клиент', value: task.clientName),
+          _SheetRow(icon: BrandIcons.location, label: 'Адрес', value: task.address),
           if (task.timeSlot.isNotEmpty)
             _SheetRow(icon: Icons.schedule_outlined, label: 'Время', value: task.timeSlot),
 

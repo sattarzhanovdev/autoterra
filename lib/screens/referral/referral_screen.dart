@@ -645,6 +645,6 @@ class _ReferralCard extends StatelessWidget {
     );
   }
 
-  Widget _arrow() => const Padding(padding: EdgeInsets.symmetric(horizontal: 4), child: BrandIcon(BrandIcons.arrowRight, size: 10, color: AppColors.border));
+  Widget _arrow() => const Padding(padding: EdgeInsets.symmetric(horizontal: 4), child: Icon(BrandIcons.arrowRight, size: 10, color: AppColors.border));
 }
 

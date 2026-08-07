@@ -7,6 +7,7 @@ import '../../widgets/common/paginated_list_view.dart';
 import '../../widgets/common/premium_icon_badge.dart';
 import '../../widgets/common/status_badge.dart';
 import '../../widgets/delivery/assign_courier_sheet.dart';
+import '../../widgets/common/brand_icon.dart';
 
 class DistributorDeliveriesScreen extends StatefulWidget {
   const DistributorDeliveriesScreen({super.key});
@@ -160,12 +161,12 @@ class _DeliveryDetailSheet extends StatelessWidget {
             ],
           ),
           const Divider(height: 24),
-          _DetailRow(icon: Icons.person_outline, label: 'Клиент', value: task.clientName),
+          _DetailRow(icon: BrandIcons.person, label: 'Клиент', value: task.clientName),
           if (task.contactName != null)
             _DetailRow(icon: Icons.badge_outlined, label: 'Контакт', value: task.contactName!),
           if (task.contactPhone != null)
             _DetailRow(icon: Icons.phone_outlined, label: 'Телефон', value: task.contactPhone!),
-          _DetailRow(icon: Icons.location_on_outlined, label: 'Адрес', value: task.address),
+          _DetailRow(icon: BrandIcons.location, label: 'Адрес', value: task.address),
           if (task.timeSlot.isNotEmpty)
             _DetailRow(icon: Icons.schedule_outlined, label: 'Время', value: task.timeSlot),
           if (task.courierName != null)

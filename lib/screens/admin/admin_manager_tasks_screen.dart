@@ -4,6 +4,7 @@ import '../../core/theme.dart';
 import '../../services/data_repository.dart';
 import '../../models/models.dart';
 import '../../widgets/common/section_header.dart';
+import '../../widgets/common/brand_icon.dart';
 
 class AdminManagerTasksScreen extends StatefulWidget {
   const AdminManagerTasksScreen({super.key});
@@ -313,7 +314,7 @@ class _TaskCard extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  _metaRow(Icons.person_outline, task.managerName),
+                  _metaRow(BrandIcons.person, task.managerName),
                   const SizedBox(height: 2),
                   _metaRow(Icons.business_outlined, task.clientName),
                   if (task.deadline != null) ...[

@@ -4,6 +4,7 @@ import 'package:share_plus/share_plus.dart';
 import '../../core/theme.dart';
 import '../../services/api_client.dart';
 import '../../services/file_download_service.dart';
+import '../../widgets/common/brand_icon.dart';
 
 /// Формат выгрузки: что показать в списке и как назвать файл.
 class ExportFormat {
@@ -34,7 +35,7 @@ const kExportFormats = <ExportFormat>[
     code: 'docx',
     label: 'Word',
     hint: 'Документ с таблицей — для печати и отправки',
-    icon: Icons.description_outlined,
+    icon: BrandIcons.document,
     color: Color(0xFF2B579A),
   ),
   ExportFormat(
@@ -48,7 +49,7 @@ const kExportFormats = <ExportFormat>[
     code: 'csv',
     label: 'CSV',
     hint: 'Для загрузки в 1С и другие системы',
-    icon: Icons.list_alt_outlined,
+    icon: BrandIcons.list,
     color: AppColors.textSecondary,
   ),
 ];

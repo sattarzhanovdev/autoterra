@@ -9,6 +9,7 @@ import '../../models/models.dart';
 import '../../models/paginated.dart';
 import '../../widgets/common/section_header.dart';
 import '../../widgets/common/app_logo.dart';
+import '../../widgets/common/brand_icon.dart';
 
 class AdminDashboardScreen extends StatefulWidget {
   const AdminDashboardScreen({super.key});
@@ -136,9 +137,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 crossAxisSpacing: 12,
                 childAspectRatio: 1.4,
                 children: [
-                  _buildKpiCard('Клиенты', clients.toString(), Icons.people, highlight: isGlobal),
+                  _buildKpiCard('Клиенты', clients.toString(), BrandIcons.person, highlight: isGlobal),
                   _buildKpiCard('Выручка', '${fmt.format(turnover)} ₽', Icons.payments, highlight: isGlobal),
-                  _buildKpiCard('Заказы', orders.toString(), Icons.shopping_cart),
+                  _buildKpiCard('Заказы', orders.toString(), BrandIcons.cart),
                   _buildKpiCard('Тикеты (актив)', tickets.toString(), Icons.support_agent),
                 ],
               ),

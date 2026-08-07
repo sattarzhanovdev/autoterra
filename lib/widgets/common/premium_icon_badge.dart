@@ -28,7 +28,9 @@ class PremiumIconBadge extends StatelessWidget {
           colors: [Color(0xFFFFFFFF), Color(0xFFF1F1F1)],
         ),
         border: Border.all(color: AppColors.border, width: 1),
-        borderRadius: AppShapes.cut(AppShapes.chamferSm),
+        // Ровное скругление по всем углам. Фирменный срез (AppShapes.cut)
+        // на подложке иконки не прижился — вернули как было.
+        borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.06),
@@ -47,7 +49,7 @@ class PremiumIconBadge extends StatelessWidget {
               height: 2,
               decoration: BoxDecoration(
                 color: AppColors.brandRed.withValues(alpha: 0.85),
-                borderRadius: BorderRadius.zero,
+                borderRadius: BorderRadius.circular(2),
               ),
             ),
           ),

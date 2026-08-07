@@ -12,6 +12,7 @@ import '../../widgets/common/section_header.dart';
 
 import '../distributor/distributor_home_screen.dart';
 import '../../services/auth_service.dart';
+import '../../widgets/common/brand_icon.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -264,7 +265,7 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
   Widget _buildQuickActions(BuildContext context) {
     final actions = [
       _QuickAction(
-        Icons.shopping_bag_outlined,
+        BrandIcons.cart,
         'Заказ и ассортимент',
         () => context.push(AppRoutes.order),
       ),

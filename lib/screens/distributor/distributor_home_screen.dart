@@ -6,6 +6,7 @@ import '../../models/models.dart';
 import '../../services/data_repository.dart';
 import '../../widgets/common/app_logo.dart';
 import '../../widgets/common/section_header.dart';
+import '../../widgets/common/brand_icon.dart';
 
 class DistributorHomeScreen extends StatefulWidget {
   const DistributorHomeScreen({super.key});
@@ -127,7 +128,7 @@ class _DistributorHomeScreenState extends State<DistributorHomeScreen> {
             _metricCard(
               'Заказы',
               metrics.ordersToProcess.toString(),
-              Icons.shopping_bag_outlined,
+              BrandIcons.cart,
               AppColors.brandRed,
               () => context.push(AppRoutes.distributorOrders),
             ),
@@ -148,7 +149,7 @@ class _DistributorHomeScreenState extends State<DistributorHomeScreen> {
             _metricCard(
               'Клиенты',
               metrics.clients.toString(),
-              Icons.people_outline,
+              BrandIcons.person,
               AppColors.textPrimary,
               () => context.push(AppRoutes.distributorClients),
             ),

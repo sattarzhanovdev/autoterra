@@ -5,6 +5,7 @@ import '../../screens/expert/expert_knowledge_base_screen.dart';
 import '../../screens/profile/profile_screen.dart';
 import '../../screens/qa/qa_screen.dart';
 import '../../core/theme.dart';
+import '../../widgets/common/brand_icon.dart';
 
 class ExpertLayout extends StatefulWidget {
   const ExpertLayout({super.key});
@@ -54,7 +55,7 @@ class _ExpertLayoutState extends State<ExpertLayout> {
               label: 'БАЗА ЗНАНИЙ',
             ),
             BottomNavigationBarItem(
-              icon: Icon(CupertinoIcons.person_fill, size: 24),
+              icon: Icon(BrandIcons.person, size: 24),
               label: 'ПРОФИЛЬ',
             ),
           ],

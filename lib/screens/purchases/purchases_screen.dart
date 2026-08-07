@@ -13,6 +13,7 @@ import '../../widgets/common/section_header.dart';
 import '../../widgets/common/premium_icon_badge.dart';
 import '../../widgets/delivery/assign_courier_sheet.dart';
 import '../../services/auth_service.dart';
+import '../../widgets/common/brand_icon.dart';
 
 class PurchasesScreen extends StatefulWidget {
   const PurchasesScreen({super.key});
@@ -257,7 +258,7 @@ class OrderCard extends StatelessWidget {
           Row(
             children: [
               PremiumIconBadge(
-                icon: Icons.shopping_bag_outlined,
+                icon: BrandIcons.cart,
                 size: 42,
                 iconSize: 22,
                 iconColor: isDone ? AppColors.textHint : AppColors.brandRed,

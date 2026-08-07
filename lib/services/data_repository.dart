@@ -83,12 +83,17 @@ class OrderConfigData {
   final List<String> categories;
   final List<String> brands;
 
+  /// Бонусный счёт в рублях. Нужен прямо в корзине: клиент должен видеть,
+  /// сколько бонусов закроет собираемый заказ, ещё до шага оплаты.
+  final double bonusBalance;
+
   const OrderConfigData({
     required this.client,
     required this.distributor,
     required this.stores,
     this.categories = const [],
     this.brands = const [],
+    this.bonusBalance = 0,
   });
 }
 
@@ -232,6 +237,7 @@ class DataRepository {
       stores: _list(data['stores']).map(_storeFromJson).toList(),
       categories: _stringList(data['categories']),
       brands: _stringList(data['brands']),
+      bonusBalance: _toDouble(data['bonusBalance']),
     );
   }
 

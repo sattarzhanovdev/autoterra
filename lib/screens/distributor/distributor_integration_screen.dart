@@ -209,7 +209,7 @@ class _DistributorIntegrationScreenState extends State<DistributorIntegrationScr
         children: [
           const Row(
             children: [
-              BrandIcon(BrandIcons.bolt, color: AppColors.brandRed, size: 18),
+              Icon(BrandIcons.bolt, color: AppColors.brandRed, size: 18),
               const SizedBox(width: 8),
               const Text('БЕЗ ПРОГРАММИРОВАНИЯ (1С)', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12)),
             ],

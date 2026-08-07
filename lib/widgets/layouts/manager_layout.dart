@@ -4,6 +4,7 @@ import '../../screens/manager/manager_clients_screen.dart';
 import '../../screens/manager/manager_tasks_screen.dart';
 import '../../screens/profile/profile_screen.dart';
 import '../../core/theme.dart';
+import '../../widgets/common/brand_icon.dart';
 
 class ManagerLayout extends StatefulWidget {
   const ManagerLayout({super.key});
@@ -40,8 +41,10 @@ class _ManagerLayoutState extends State<ManagerLayout> {
           unselectedLabelStyle: const TextStyle(fontSize: 12),
           type: BottomNavigationBarType.fixed,
           items: const [
+            // «Клиенты» — группа людей, такой иконки в фирменном паке нет,
+            // а одиночная фигура уже занята «Профилем» ниже.
             BottomNavigationBarItem(
-              icon: Icon(CupertinoIcons.person_2_fill, size: 24),
+              icon: Icon(Icons.people_outline, size: 24),
               label: 'КЛИЕНТЫ',
             ),
             BottomNavigationBarItem(
@@ -49,7 +52,7 @@ class _ManagerLayoutState extends State<ManagerLayout> {
               label: 'ЗАДАЧИ',
             ),
             BottomNavigationBarItem(
-              icon: Icon(CupertinoIcons.person_fill, size: 24),
+              icon: Icon(BrandIcons.person, size: 24),
               label: 'ПРОФИЛЬ',
             ),
           ],

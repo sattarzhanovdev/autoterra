@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 import '../../core/theme.dart';
 import '../../models/models.dart';
@@ -531,6 +532,66 @@ class _OrderScreenState extends State<OrderScreen> {
     );
   }
 
+  /// Сколько бонусов закроет собираемый заказ.
+  ///
+  /// Именно прикидка, а не списание: бонус уходит со счёта на шаге оплаты, а
+  /// до неё дистрибьютор ещё может скорректировать состав заказа. Обещать
+  /// точную сумму здесь нельзя — но и молчать про бонусы до самой оплаты тоже.
+  Widget _bonusPreview(double balance, double totalAmount) {
+    final fmt = NumberFormat('#,##0', 'ru_RU');
+    final covers = balance < totalAmount ? balance : totalAmount;
+    final rest = totalAmount - covers;
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.canvas,
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.savings_outlined, size: 18, color: AppColors.brandRed),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Бонусов на счёте: ${fmt.format(balance)} ₽',
+                  style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text('Спишется с этого заказа',
+                  style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+              Text('−${fmt.format(covers)} ₽',
+                  style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13, color: AppColors.brandRed)),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text('К оплате', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+              Text('${fmt.format(rest)} ₽',
+                  style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13)),
+            ],
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Списание произойдёт при оплате — сумму можно будет уменьшить.',
+            style: TextStyle(fontSize: 10, color: AppColors.textSecondary),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _requestForm(OrderConfigData data) {
     final disabled = _sending || !_hasChanges || _totalQty == 0 || (data.stores.isNotEmpty && _selectedStoreId == null);
     final store = _selectedStore(data.stores);
@@ -566,6 +627,10 @@ class _OrderScreenState extends State<OrderScreen> {
                 ),
               ),
             ),
+            if (data.bonusBalance > 0 && totalAmount > 0) ...[
+              const SizedBox(height: 16),
+              _bonusPreview(data.bonusBalance, totalAmount),
+            ],
             const SizedBox(height: 20),
             if (widget.initialOrder != null)
               Row(

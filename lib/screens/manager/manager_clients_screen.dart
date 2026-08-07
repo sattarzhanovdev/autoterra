@@ -336,7 +336,7 @@ class _ClientCard extends StatelessWidget {
               const SizedBox(height: 6),
               Row(
                 children: [
-                  const BrandIcon(BrandIcons.location, size: 13, color: AppColors.brandRed),
+                  const Icon(BrandIcons.location, size: 13, color: AppColors.brandRed),
                   const SizedBox(width: 4),
                   Text(
                     '${client.city}, ${client.region}',
@@ -680,7 +680,7 @@ class _RegistrationSheetState extends State<_RegistrationSheet> {
                           color: AppColors.brandWhite,
                           child: const Row(
                             children: [
-                              BrandIcon(BrandIcons.person, size: 14, color: AppColors.textHint),
+                              Icon(BrandIcons.person, size: 14, color: AppColors.textHint),
                               SizedBox(width: 8),
                               Text(
                                 'Менеджер будет назначен автоматически (вы)',

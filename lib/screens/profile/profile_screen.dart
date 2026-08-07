@@ -517,7 +517,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       color: AppColors.canvas,
                       borderRadius: AppShapes.cut(AppShapes.chamferSm),
                     ),
-                    child: const BrandIcon(BrandIcons.location, size: 18, color: AppColors.textSecondary),
+                    child: const Icon(BrandIcons.location, size: 18, color: AppColors.textSecondary),
                   ),
                   title: Text(store.name, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
                   subtitle: Text(store.address, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
@@ -544,7 +544,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget _buildUnifiedHeader(UserRole role, dynamic data) {
     String name = '';
     String subLabel = '';
-    IconData icon = Icons.person_outline;
+    IconData icon = BrandIcons.person;
     List<Widget> badges = [];
 
     if (role == UserRole.distributor && data != null) {
@@ -666,7 +666,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       return Column(
         children: [
           _buildActionCard(
-            Icons.people_outline,
+            BrandIcons.person,
             'Мои клиенты',
             'Список всех автосервисов региона',
             () => context.push(AppRoutes.distributorClients),
@@ -690,7 +690,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           const SizedBox(width: 12),
           Expanded(child: _expertStatCard('ОТВЕТОВ', stats['answeredTickets']?.toString() ?? '0', Icons.question_answer_outlined)),
           const SizedBox(width: 12),
-          Expanded(child: _expertStatCard('РЕЙТИНГ', stats['rating']?.toString() ?? '0', Icons.star_outline)),
+          Expanded(child: _expertStatCard('РЕЙТИНГ', stats['rating']?.toString() ?? '0', BrandIcons.star)),
         ],
       );
     } else if (role == UserRole.client && data is DashboardData) {
@@ -745,7 +745,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         children: [
           Row(
             children: [
-              const Icon(Icons.stars_rounded, color: AppColors.brandRed, size: 20),
+              const Icon(BrandIcons.star, color: AppColors.brandRed, size: 20),
               const SizedBox(width: 8),
               const Text('Статус партнёра', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
               const Spacer(),

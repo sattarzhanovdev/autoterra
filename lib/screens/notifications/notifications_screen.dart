@@ -6,6 +6,7 @@ import '../../services/data_repository.dart';
 import '../../services/pagination_controller.dart';
 import '../../widgets/common/paginated_list_view.dart';
 import '../../widgets/common/premium_icon_badge.dart';
+import '../../widgets/common/brand_icon.dart';
 
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
@@ -176,7 +177,7 @@ class _NotifCard extends StatelessWidget {
       case 'NotificationType.color':
         return _NotifConfig(Icons.palette_outlined, AppColors.brandBlack);
       case 'NotificationType.referral':
-        return _NotifConfig(Icons.people_outline, AppColors.brandBlack);
+        return _NotifConfig(BrandIcons.person, AppColors.brandBlack);
       case 'NotificationType.order':
         return _NotifConfig(Icons.receipt_outlined, AppColors.brandBlack);
       case 'NotificationType.delivery':

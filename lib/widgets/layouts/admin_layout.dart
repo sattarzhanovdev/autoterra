@@ -51,10 +51,12 @@ class AdminLayoutState extends State<AdminLayout> {
           type: BottomNavigationBarType.fixed,
           items: const [
             BottomNavigationBarItem(icon: Icon(Icons.dashboard_outlined), activeIcon: Icon(Icons.dashboard), label: 'ДАШБОРД'),
+            // «Клиенты» — группа людей, такой иконки в фирменном паке нет,
+            // а одиночная фигура уже занята «Профилем» и стояла бы рядом.
             BottomNavigationBarItem(icon: Icon(Icons.people_outline), activeIcon: Icon(Icons.people), label: 'КЛИЕНТЫ'),
             BottomNavigationBarItem(icon: Icon(Icons.sync_alt_outlined), activeIcon: Icon(Icons.sync_alt), label: 'ИНТЕГРАЦИИ 1С'),
             BottomNavigationBarItem(icon: Icon(Icons.task_outlined), activeIcon: Icon(Icons.task), label: 'ЗАДАЧИ'),
-            BottomNavigationBarItem(icon: BrandIcon(BrandIcons.person), activeIcon: BrandIcon(BrandIcons.person), label: 'ПРОФИЛЬ'),
+            BottomNavigationBarItem(icon: Icon(BrandIcons.person), activeIcon: Icon(BrandIcons.person), label: 'ПРОФИЛЬ'),
           ],
         ),
       ),

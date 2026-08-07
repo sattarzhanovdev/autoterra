@@ -134,7 +134,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         keyboardType: TextInputType.text,
                         decoration: const InputDecoration(
                           labelText: 'Телефон или Логин',
-                          prefixIcon: BrandIcon(BrandIcons.person),
+                          prefixIcon: Icon(BrandIcons.person),
                         ),
                         validator: (v) => v == null || v.trim().isEmpty
                             ? 'Введите телефон или логин'
@@ -303,7 +303,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           keyboardType: TextInputType.text,
                           decoration: const InputDecoration(
                             labelText: 'Телефон или Логин',
-                            prefixIcon: BrandIcon(BrandIcons.person,
+                            prefixIcon: Icon(BrandIcons.person,
                               color: AppColors.brandBlack,
                             ),
                           ),
