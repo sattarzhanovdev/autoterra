@@ -8,7 +8,23 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../models/paginated.dart';
 
 class ApiClient {
-  static String get baseUrl => dotenv.env['API_BASE_URL'] ?? 'http://127.0.0.1:8000/api';
+  /// Адрес API, вкомпилированный в сборку: `--dart-define=API_BASE_URL=...`.
+  /// Пусто, если флаг не передавали.
+  static const _compiledBaseUrl = String.fromEnvironment('API_BASE_URL');
+
+  /// Куда стучится приложение.
+  ///
+  /// Порядок намеренный. Первым идёт `--dart-define`: релизная сборка на CI
+  /// не должна зависеть от файла `.env`, которого в чистом клоне нет. Затем
+  /// `.env` — им пользуются локально, чтобы смотреть на свой бэкенд. И только
+  /// потом боевой адрес: раньше здесь стоял `http://127.0.0.1:8000/api`, и
+  /// сборка без `.env` молча уходила в никуда по незашифрованному http.
+  static String get baseUrl {
+    if (_compiledBaseUrl.isNotEmpty) return _compiledBaseUrl;
+    final fromEnv = dotenv.isInitialized ? dotenv.env['API_BASE_URL'] : null;
+    if (fromEnv != null && fromEnv.isNotEmpty) return fromEnv;
+    return 'https://autoterra.shop/api/';
+  }
 
   /// Размер страницы по умолчанию — совпадает с бэкендом (`DEFAULT_PAGE_SIZE`).
   static const int defaultPageSize = 20;
@@ -112,6 +128,15 @@ class ApiClient {
       'inn': inn,
       'new_password': newPassword,
     });
+  }
+
+  /// Удаление аккаунта по требованию пользователя.
+  ///
+  /// Сервер обезличивает профиль и гасит все токены, поэтому после успешного
+  /// ответа текущий токен уже недействителен — вызывающий обязан сразу
+  /// разлогинить приложение, иначе следующий же запрос упрётся в 401.
+  Future<Map<String, dynamic>> deleteAccount() {
+    return _post('/auth/delete-account/', {});
   }
 
   Future<Map<String, dynamic>> dashboard() {
@@ -324,22 +349,6 @@ class ApiClient {
       if (raw[key] != null) stats[key] = raw[key];
     }
     return (items, stats);
-  }
-
-  /// Подарки, ждущие согласования дистрибьютором (п. 7 ТЗ).
-  Future<Paginated<Map<String, dynamic>>> pendingReferralGifts({int page = 1, int pageSize = defaultPageSize}) {
-    return _getPage('/referrals/pending-gifts/', page: page, pageSize: pageSize);
-  }
-
-  Future<Map<String, dynamic>> decideReferralGift(
-    String referralId, {
-    required bool approved,
-    String comment = '',
-  }) {
-    return _post('/referrals/$referralId/decide-gift/', {
-      'approved': approved,
-      'comment': comment,
-    });
   }
 
   /// Обучающие материалы (п. 10 ТЗ). Управляются из админки, клиент читает.

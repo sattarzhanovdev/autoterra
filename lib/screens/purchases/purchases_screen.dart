@@ -79,9 +79,6 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(isDistributor ? 'Заказы клиентов' : 'Покупки и заказы'),
-        actions: [
-          IconButton(icon: const Icon(Icons.filter_list), onPressed: () {}),
-        ],
       ),
       body: Column(
         children: [

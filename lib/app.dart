@@ -2,12 +2,14 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'core/constants.dart';
+import 'core/legal_documents.dart';
 import 'core/theme.dart';
 import 'models/models.dart';
 import 'services/api_client.dart';
 import 'services/auth_service.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/auth/register_screen.dart';
+import 'screens/legal/legal_document_screen.dart';
 import 'screens/home/home_screen.dart';
 import 'screens/profile/profile_screen.dart';
 import 'screens/purchases/purchases_screen.dart';
@@ -17,7 +19,6 @@ import 'screens/ai/ai_assistant_screen.dart';
 import 'screens/qa/qa_screen.dart';
 import 'screens/referral/referral_screen.dart';
 import 'screens/qa/learning_materials_screen.dart';
-import 'screens/distributor/distributor_referral_gifts_screen.dart';
 import 'screens/notifications/notifications_screen.dart';
 import 'screens/distributor/distributor_screen.dart';
 import 'screens/distributor/distributor_cabinet_screen.dart';
@@ -57,7 +58,11 @@ final GoRouter _router = GoRouter(
     final isAuthRoute =
         state.matchedLocation == AppRoutes.login ||
         state.matchedLocation == AppRoutes.register;
-    if (!ApiClient.isAuthorized && !isAuthRoute) {
+    // Правовые документы читают до входа и регистрации — пускаем без токена.
+    // В isAuthRoute их не кладём: вошедшего пользователя оттуда выкинуло бы на
+    // главную, а из профиля он открывает их уже авторизованным.
+    final isLegalRoute = state.matchedLocation.startsWith('${AppRoutes.legal}/');
+    if (!ApiClient.isAuthorized && !isAuthRoute && !isLegalRoute) {
       return AppRoutes.login;
     }
     if (ApiClient.isAuthorized && isAuthRoute) {
@@ -88,6 +93,18 @@ final GoRouter _router = GoRouter(
         referralCode: state.uri.queryParameters['ref'],
       ),
     ),
+    GoRoute(
+      path: AppRoutes.privacyPolicy,
+      builder: (ctx, _) => const LegalDocumentScreen(document: LegalDocuments.privacyPolicy),
+    ),
+    GoRoute(
+      path: AppRoutes.termsOfUse,
+      builder: (ctx, _) => const LegalDocumentScreen(document: LegalDocuments.termsOfUse),
+    ),
+    GoRoute(
+      path: AppRoutes.personalDataConsent,
+      builder: (ctx, _) => const LegalDocumentScreen(document: LegalDocuments.personalDataConsent),
+    ),
     ShellRoute(
       navigatorKey: _shellNavigatorKey,
       builder: (context, state, child) => _MainShell(
@@ -107,7 +124,6 @@ final GoRouter _router = GoRouter(
         GoRoute(path: AppRoutes.distributorDeliveries, builder: (ctx, _) => const DistributorDeliveriesScreen()),
         GoRoute(path: AppRoutes.distributorOrders, builder: (ctx, _) => const DistributorOrdersScreen()),
         GoRoute(path: AppRoutes.distributorPurchasesVerification, builder: (ctx, _) => const DistributorPurchasesScreen()),
-        GoRoute(path: AppRoutes.distributorReferralGifts, builder: (ctx, _) => const DistributorReferralGiftsScreen()),
 
         GoRoute(path: '/distributor-cabinet', builder: (ctx, _) => const DistributorCabinetScreen()),
         GoRoute(path: '/courier-cabinet', builder: (ctx, _) => const CourierScreen()),

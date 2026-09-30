@@ -6,7 +6,6 @@ import '../../models/models.dart';
 import '../../services/data_repository.dart';
 import '../../services/pagination_controller.dart';
 import '../common/paginated_list_view.dart';
-import '../../widgets/common/app_logo.dart';
 import '../../screens/distributor/distributor_clients_screen.dart';
 import '../../screens/distributor/distributor_stock_screen.dart';
 import '../../widgets/common/brand_icon.dart';
@@ -357,20 +356,12 @@ class DistributorReportsScreen extends StatelessWidget {
             Icons.file_download_outlined,
             () => DataRepository().downloadReport(),
           ),
-          const SizedBox(height: 16),
-          _reportCard(
-            context,
-            'АКТИВНОСТЬ КЛИЕНТОВ',
-            'Статистика по регистрациям и обороту в вашем регионе.',
-            Icons.analytics_outlined,
-            null,
-          ),
         ],
       ),
     );
   }
 
-  Widget _reportCard(BuildContext context, String title, String desc, IconData icon, VoidCallback? onTap) {
+  Widget _reportCard(BuildContext context, String title, String desc, IconData icon, VoidCallback onTap) {
     return Container(
       decoration: BoxDecoration(color: Colors.white, border: Border.all(color: AppColors.border)),
       child: ListTile(
@@ -379,7 +370,7 @@ class DistributorReportsScreen extends StatelessWidget {
         title: Text(title, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13)),
         subtitle: Text(desc, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.textSecondary)),
         onTap: onTap,
-        trailing: onTap != null ? const Icon(Icons.chevron_right) : const Text('СКОРО', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: AppColors.textHint)),
+        trailing: const Icon(Icons.chevron_right),
       ),
     );
   }

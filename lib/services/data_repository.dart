@@ -97,15 +97,23 @@ class OrderConfigData {
   });
 }
 
-/// Результат запуска оплаты. Ссылки может не быть — тогда бонус покрыл заказ
-/// целиком и платить через ЮKassa уже нечего.
+/// Результат запуска оплаты. Успех определяется статусом провайдера;
+/// отсутствие ссылки также возможно при ожидании или отмене платежа.
 class PaymentStart {
   final String? confirmationUrl;
   final double bonusApplied;
+  final String status;
+  final String provider;
 
-  const PaymentStart({this.confirmationUrl, this.bonusApplied = 0});
+  const PaymentStart({
+    this.confirmationUrl,
+    this.bonusApplied = 0,
+    this.status = 'pending',
+    this.provider = 'yookassa',
+  });
 
-  bool get fullyCoveredByBonus => confirmationUrl == null;
+  bool get fullyCoveredByBonus => provider == 'bonus' && status == 'succeeded';
+  bool get succeeded => status == 'succeeded';
 }
 
 class DashboardData {
@@ -611,22 +619,6 @@ class DataRepository {
     await _api.confirmReferral(referralId, confirmed: confirmed, authToken: authToken);
   }
 
-  /// Подарки, ждущие решения дистрибьютора (п. 7 ТЗ).
-  Future<Paginated<Map<String, dynamic>>> pendingReferralGifts({
-    int page = 1,
-    int pageSize = ApiClient.defaultPageSize,
-  }) {
-    return _api.pendingReferralGifts(page: page, pageSize: pageSize);
-  }
-
-  Future<void> decideReferralGift(
-    String referralId, {
-    required bool approved,
-    String comment = '',
-  }) async {
-    await _api.decideReferralGift(referralId, approved: approved, comment: comment);
-  }
-
   Future<Paginated<LearningMaterial>> learningMaterials({
     int page = 1,
     int pageSize = ApiClient.defaultPageSize,
@@ -892,8 +884,7 @@ class DataRepository {
     return _orderFromJson(Map<String, dynamic>.from(res['order'] as Map));
   }
 
-  /// Инициирует оплату. Возвращает ссылку ЮKassa либо null, если платить
-  /// нечего — бонус покрыл заказ целиком и он уже оплачен.
+  /// Инициирует или продолжает оплату и возвращает проверенный сервером статус.
   Future<PaymentStart> payOrder(String orderId, {double useBonus = 0}) async {
     final res = await _api.payOrder(orderId, useBonus: useBonus);
     final payment = res['payment'];
@@ -902,6 +893,8 @@ class DataRepository {
           ? payment['confirmationUrl'].toString()
           : null,
       bonusApplied: (res['bonusApplied'] as num? ?? 0).toDouble(),
+      status: payment is Map ? payment['status']?.toString() ?? 'pending' : 'pending',
+      provider: payment is Map ? payment['provider']?.toString() ?? 'yookassa' : 'yookassa',
     );
   }
 
@@ -1158,8 +1151,6 @@ class DataRepository {
       purchaseAmount: (json['purchaseAmount'] as num).toDouble(),
       conditionMet: json['conditionMet'] as bool? ?? false,
       gift: json['gift'] as String?,
-      giftStatus: json['giftStatus'] as String? ?? 'none',
-      giftComment: json['giftComment'] as String?,
       confirmation: json['confirmation'] as String? ?? 'auto',
       bonusRate: (json['bonusRate'] as num? ?? 0).toDouble(),
       bonusEarned: (json['bonusEarned'] as num? ?? 0).toDouble(),

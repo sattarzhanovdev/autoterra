@@ -70,6 +70,18 @@ class _PaginatedListViewState<T> extends State<PaginatedListView<T>> {
   }
 
   @override
+  void didUpdateWidget(PaginatedListView<T> oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Экран может подменить контроллер целиком — например при смене фильтра.
+    // initState к этому моменту уже отработал, и без первой загрузки новый
+    // контроллер остаётся пустым: список показывает белый экран, пока его
+    // не потянут вниз руками.
+    if (!identical(oldWidget.controller, widget.controller)) {
+      widget.controller.loadInitial();
+    }
+  }
+
+  @override
   void dispose() {
     if (_ownsScrollController) _scrollController.dispose();
     super.dispose();

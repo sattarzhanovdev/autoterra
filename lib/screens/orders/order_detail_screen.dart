@@ -16,13 +16,18 @@ class OrderDetailScreen extends StatefulWidget {
   final String orderId;
   final Order? initialOrder;
 
-  const OrderDetailScreen({super.key, required this.orderId, this.initialOrder});
+  const OrderDetailScreen({
+    super.key,
+    required this.orderId,
+    this.initialOrder,
+  });
 
   @override
   State<OrderDetailScreen> createState() => _OrderDetailScreenState();
 }
 
-class _OrderDetailScreenState extends State<OrderDetailScreen> {
+class _OrderDetailScreenState extends State<OrderDetailScreen>
+    with WidgetsBindingObserver {
   final _repo = DataRepository();
   final _fmt = NumberFormat('#,##0', 'ru_RU');
 
@@ -30,25 +35,43 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
   String? _loadError;
   bool _busy = false;
   bool _changed = false;
+  bool _loading = false;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _order = widget.initialOrder;
-    if (_order == null) _load();
+    _load();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) _load();
   }
 
   Future<void> _load() async {
+    if (_loading) return;
+    _loading = true;
     try {
       final order = await _repo.orderDetail(widget.orderId);
       if (mounted) {
         setState(() {
+          if (_order?.status != order.status) _changed = true;
           _order = order;
           _loadError = null;
         });
       }
     } catch (e) {
       if (mounted) setState(() => _loadError = e.toString());
+    } finally {
+      _loading = false;
     }
   }
 
@@ -74,17 +97,17 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
 
   Future<void> _pay() async {
     final order = _order;
-    if (order == null) return;
-
-    // Платёж уже создан — ведём на ту же страницу, бонус там учтён.
-    if (order.pendingPaymentUrl != null) {
-      await _openPaymentPage(order.pendingPaymentUrl!);
+    if (order == null || _busy) return;
+    setState(() => _busy = true);
+    // Every entry goes through the server: an old URL may already be canceled.
+    final useBonus = order.pendingPaymentUrl == null && order.bonusAvailable > 0
+        ? await _askAboutBonus(order)
+        : 0.0;
+    if (!mounted) return;
+    if (useBonus == null) {
+      setState(() => _busy = false);
       return;
     }
-
-    // Бонус можно потратить только на ещё не начатую оплату.
-    final useBonus = order.bonusAvailable > 0 ? await _askAboutBonus(order) : 0.0;
-    if (useBonus == null) return; // отменили
 
     setState(() => _busy = true);
     try {
@@ -101,7 +124,18 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
         await _load();
         return;
       }
-      await _openPaymentPage(result.confirmationUrl!);
+      if (result.succeeded) {
+        _toast('Заказ оплачен');
+        await _load();
+      } else if (result.status == 'canceled') {
+        _toast('Платёж отменён. Можно начать новую оплату.', isError: true);
+        await _load();
+      } else if (result.confirmationUrl?.isNotEmpty == true) {
+        await _openPaymentPage(result.confirmationUrl!);
+      } else {
+        _toast('Платёж обрабатывается. Обновите заказ для проверки статуса.');
+        await _load();
+      }
     } catch (e) {
       if (!mounted) return;
       setState(() => _busy = false);
@@ -110,7 +144,11 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
   }
 
   Future<void> _openPaymentPage(String url) async {
-    final opened = await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+    final uri = Uri.tryParse(url);
+    if (uri == null || uri.scheme != 'https' || uri.host.isEmpty) {
+      throw StateError('ЮKassa не вернула корректную ссылку оплаты');
+    }
+    final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
     if (!opened && mounted) {
       _toast('Не удалось открыть страницу оплаты', isError: true);
       return;
@@ -126,8 +164,9 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
   /// следующий заказ, а не высадить весь баланс здесь.
   Future<double?> _askAboutBonus(Order order) {
     final fmt = NumberFormat('#,##0', 'ru_RU');
-    final maxBonus =
-        order.bonusAvailable < order.totalAmount ? order.bonusAvailable : order.totalAmount;
+    final maxBonus = order.bonusAvailable < order.totalAmount
+        ? order.bonusAvailable
+        : order.totalAmount;
     var chosen = maxBonus;
 
     return showDialog<double>(
@@ -148,7 +187,10 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                 Text(
                   'На счёте ${fmt.format(order.bonusAvailable)} ₽ · '
                   'заказ ${fmt.format(order.totalAmount)} ₽',
-                  style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: AppColors.textSecondary,
+                  ),
                 ),
                 const SizedBox(height: 16),
                 Text(
@@ -165,20 +207,33 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                   max: maxBonus,
                   divisions: maxBonus >= 1 ? maxBonus.round() : null,
                   activeColor: AppColors.brandRed,
-                  onChanged: (value) => setDialogState(() => chosen = value.roundToDouble()),
+                  onChanged: (value) =>
+                      setDialogState(() => chosen = value.roundToDouble()),
                 ),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     TextButton(
                       onPressed: () => setDialogState(() => chosen = 0),
-                      child: const Text('НИСКОЛЬКО',
-                          style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: AppColors.textSecondary)),
+                      child: const Text(
+                        'НИСКОЛЬКО',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w900,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
                     ),
                     TextButton(
                       onPressed: () => setDialogState(() => chosen = maxBonus),
-                      child: const Text('МАКСИМУМ',
-                          style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: AppColors.brandRed)),
+                      child: const Text(
+                        'МАКСИМУМ',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w900,
+                          color: AppColors.brandRed,
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -186,11 +241,19 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text('К оплате картой',
-                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
+                    const Text(
+                      'К оплате через ЮKassa',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
                     Text(
                       rest > 0 ? '${fmt.format(rest)} ₽' : 'ничего',
-                      style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w900,
+                        fontSize: 14,
+                      ),
                     ),
                   ],
                 ),
@@ -199,13 +262,25 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(ctx),
-                child: const Text('ОТМЕНА',
-                    style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: AppColors.textSecondary)),
+                child: const Text(
+                  'ОТМЕНА',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w900,
+                    fontSize: 12,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
               ),
               TextButton(
                 onPressed: () => Navigator.pop(ctx, chosen),
-                child: const Text('ОПЛАТИТЬ',
-                    style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: AppColors.brandRed)),
+                child: const Text(
+                  'ОПЛАТИТЬ',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w900,
+                    fontSize: 12,
+                    color: AppColors.brandRed,
+                  ),
+                ),
               ),
             ],
           );
@@ -221,7 +296,11 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
         shape: AppShapes.border(size: AppShapes.chamferSm),
         title: const Text(
           'ОТМЕНИТЬ ЗАКАЗ?',
-          style: TextStyle(fontWeight: FontWeight.w900, fontSize: 15, letterSpacing: 0.5),
+          style: TextStyle(
+            fontWeight: FontWeight.w900,
+            fontSize: 15,
+            letterSpacing: 0.5,
+          ),
         ),
         content: const Text(
           'Заказ будет отменён, товар вернётся на склад. Восстановить его будет нельзя.',
@@ -230,11 +309,25 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text('НАЗАД', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: AppColors.textSecondary)),
+            child: const Text(
+              'НАЗАД',
+              style: TextStyle(
+                fontWeight: FontWeight.w900,
+                fontSize: 12,
+                color: AppColors.textSecondary,
+              ),
+            ),
           ),
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: const Text('ОТМЕНИТЬ ЗАКАЗ', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: AppColors.brandRed)),
+            child: const Text(
+              'ОТМЕНИТЬ ЗАКАЗ',
+              style: TextStyle(
+                fontWeight: FontWeight.w900,
+                fontSize: 12,
+                color: AppColors.brandRed,
+              ),
+            ),
           ),
         ],
       ),
@@ -281,7 +374,11 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
           foregroundColor: Colors.white,
           title: Text(
             order?.documentNumber ?? 'ЗАКАЗ',
-            style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1, fontSize: 15),
+            style: const TextStyle(
+              fontWeight: FontWeight.w900,
+              letterSpacing: 1,
+              fontSize: 15,
+            ),
           ),
           leading: IconButton(
             icon: const Icon(BrandIcons.arrowLeft),
@@ -317,10 +414,14 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
       );
     }
     if (order == null) {
-      return const Center(child: CircularProgressIndicator(color: AppColors.brandRed));
+      return const Center(
+        child: CircularProgressIndicator(color: AppColors.brandRed),
+      );
     }
 
-    final adjustment = order.adjustments.isNotEmpty ? order.adjustments.first : null;
+    final adjustment = order.adjustments.isNotEmpty
+        ? order.adjustments.first
+        : null;
 
     return RefreshIndicator(
       color: AppColors.brandRed,
@@ -338,7 +439,8 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
             const SizedBox(height: 16),
           ],
 
-          if (order.status == OrderStatus.rejected && order.rejectionReason != null) ...[
+          if (order.status == OrderStatus.rejected &&
+              order.rejectionReason != null) ...[
             _Notice(
               title: 'ЗАКАЗ ОТКЛОНЁН',
               body: order.rejectionReason!,
@@ -349,7 +451,11 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
 
           const Text(
             'СОСТАВ ЗАКАЗА',
-            style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 1),
+            style: TextStyle(
+              fontWeight: FontWeight.w900,
+              fontSize: 13,
+              letterSpacing: 1,
+            ),
           ),
           const SizedBox(height: 8),
           ...order.items.map((item) => _ItemRow(item: item, fmt: _fmt)),
@@ -363,11 +469,20 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
               children: [
                 const Text(
                   'ИТОГО',
-                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 11, letterSpacing: 0.5),
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 11,
+                    letterSpacing: 0.5,
+                  ),
                 ),
                 Text(
                   '${_fmt.format(order.totalAmount)} ₽',
-                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 18),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 18,
+                  ),
                 ),
               ],
             ),
@@ -390,20 +505,34 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
 
     switch (order.status) {
       case OrderStatus.newOrder:
-        children.add(const _Hint('Заказ у оператора. Мы сообщим, когда наличие подтвердят.'));
-        children.add(_textButton('ОТМЕНИТЬ ЗАКАЗ', _cancel, isDestructive: true));
+        children.add(
+          const _Hint(
+            'Заказ у оператора. Мы сообщим, когда наличие подтвердят.',
+          ),
+        );
+        children.add(
+          _textButton('ОТМЕНИТЬ ЗАКАЗ', _cancel, isDestructive: true),
+        );
       case OrderStatus.adjusted:
-        children.add(_primaryButton('ПРИНЯТЬ И ПЕРЕЙТИ К ОПЛАТЕ', _acceptAdjustment));
-        children.add(_textButton('ОТКАЗАТЬСЯ ОТ ЗАКАЗА', _cancel, isDestructive: true));
+        children.add(
+          _primaryButton('ПРИНЯТЬ И ПЕРЕЙТИ К ОПЛАТЕ', _acceptAdjustment),
+        );
+        children.add(
+          _textButton('ОТКАЗАТЬСЯ ОТ ЗАКАЗА', _cancel, isDestructive: true),
+        );
       case OrderStatus.confirmed:
       case OrderStatus.accepted:
-        children.add(_primaryButton(
-          order.pendingPaymentUrl != null
-              ? 'ПРОДОЛЖИТЬ ОПЛАТУ · ${_fmt.format(order.totalAmount)} ₽'
-              : 'ОПЛАТИТЬ ${_fmt.format(order.totalAmount)} ₽',
-          _pay,
-        ));
-        children.add(_textButton('ОТМЕНИТЬ ЗАКАЗ', _cancel, isDestructive: true));
+        children.add(
+          _primaryButton(
+            order.pendingPaymentUrl != null
+                ? 'ПРОДОЛЖИТЬ ОПЛАТУ В ЮKASSA'
+                : 'ОПЛАТИТЬ ${_fmt.format(order.totalAmount)} ₽',
+            _pay,
+          ),
+        );
+        children.add(
+          _textButton('ОТМЕНИТЬ ЗАКАЗ', _cancel, isDestructive: true),
+        );
       case OrderStatus.paid:
         children.add(const _Hint('Оплачено. Готовим заказ к отправке.'));
       case OrderStatus.shipped:
@@ -423,7 +552,10 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
         mainAxisSize: MainAxisSize.min,
         children: [
           if (_busy) ...[
-            const LinearProgressIndicator(color: AppColors.brandRed, minHeight: 2),
+            const LinearProgressIndicator(
+              color: AppColors.brandRed,
+              minHeight: 2,
+            ),
             const SizedBox(height: 12),
           ],
           ...children,
@@ -446,13 +578,21 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
         ),
         child: Text(
           label,
-          style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 0.5),
+          style: const TextStyle(
+            fontWeight: FontWeight.w900,
+            fontSize: 13,
+            letterSpacing: 0.5,
+          ),
         ),
       ),
     );
   }
 
-  Widget _textButton(String label, VoidCallback onPressed, {bool isDestructive = false}) {
+  Widget _textButton(
+    String label,
+    VoidCallback onPressed, {
+    bool isDestructive = false,
+  }) {
     return SizedBox(
       width: double.infinity,
       height: 44,
@@ -504,7 +644,12 @@ class _OrderProgress extends StatelessWidget {
         child: Text(
           status.label.toUpperCase(),
           textAlign: TextAlign.center,
-          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 1),
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w900,
+            fontSize: 12,
+            letterSpacing: 1,
+          ),
         ),
       );
     }
@@ -531,7 +676,9 @@ class _OrderProgress extends StatelessWidget {
                       fontSize: 8,
                       fontWeight: FontWeight.w900,
                       letterSpacing: 0.3,
-                      color: i <= current ? AppColors.brandBlack : AppColors.textHint,
+                      color: i <= current
+                          ? AppColors.brandBlack
+                          : AppColors.textHint,
                     ),
                   ),
                 ],
@@ -567,12 +714,21 @@ class _AdjustmentDiff extends StatelessWidget {
         children: [
           const Text(
             'ОПЕРАТОР СКОРРЕКТИРОВАЛ ЗАКАЗ',
-            style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13, color: AppColors.brandRed, letterSpacing: 0.5),
+            style: TextStyle(
+              fontWeight: FontWeight.w900,
+              fontSize: 13,
+              color: AppColors.brandRed,
+              letterSpacing: 0.5,
+            ),
           ),
           const SizedBox(height: 6),
           const Text(
             'Часть позиций недоступна в заказанном количестве. Проверьте изменения — оплата пройдёт только по этому составу.',
-            style: TextStyle(fontSize: 12, color: AppColors.textSecondary, height: 1.4),
+            style: TextStyle(
+              fontSize: 12,
+              color: AppColors.textSecondary,
+              height: 1.4,
+            ),
           ),
           if (adjustment.reason != null && adjustment.reason!.isNotEmpty) ...[
             const SizedBox(height: 10),
@@ -582,7 +738,11 @@ class _AdjustmentDiff extends StatelessWidget {
               color: AppColors.canvas,
               child: Text(
                 adjustment.reason!,
-                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, fontStyle: FontStyle.italic),
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  fontStyle: FontStyle.italic,
+                ),
               ),
             ),
           ],
@@ -598,7 +758,10 @@ class _AdjustmentDiff extends StatelessWidget {
                 children: [
                   Text(
                     original.name.toUpperCase(),
-                    style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w900,
+                      fontSize: 12,
+                    ),
                   ),
                   const SizedBox(height: 2),
                   Row(
@@ -614,11 +777,19 @@ class _AdjustmentDiff extends StatelessWidget {
                       ),
                       const Padding(
                         padding: EdgeInsets.symmetric(horizontal: 6),
-                        child: Icon(BrandIcons.arrowRight, size: 12, color: AppColors.textHint),
+                        child: Icon(
+                          BrandIcons.arrowRight,
+                          size: 12,
+                          color: AppColors.textHint,
+                        ),
                       ),
                       Text(
                         newQty == 0 ? 'убрано' : '$newQty шт',
-                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: AppColors.brandRed),
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w900,
+                          color: AppColors.brandRed,
+                        ),
                       ),
                     ],
                   ),
@@ -652,12 +823,19 @@ class _ItemRow extends StatelessWidget {
               children: [
                 Text(
                   item.name.toUpperCase(),
-                  style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w900,
+                    fontSize: 12,
+                  ),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   '${item.sku} · ${fmt.format(item.price)} ₽ × ${item.quantity}',
-                  style: const TextStyle(fontSize: 11, color: AppColors.textSecondary, fontWeight: FontWeight.w600),
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: AppColors.textSecondary,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ],
             ),
@@ -686,7 +864,9 @@ class _Notice extends StatelessWidget {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Colors.white,
-        border: accent == null ? null : Border(left: BorderSide(color: accent!, width: 4)),
+        border: accent == null
+            ? null
+            : Border(left: BorderSide(color: accent!, width: 4)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -701,7 +881,10 @@ class _Notice extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 6),
-          Text(body, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+          Text(
+            body,
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+          ),
         ],
       ),
     );
@@ -722,7 +905,11 @@ class _Hint extends StatelessWidget {
       child: Text(
         text,
         textAlign: TextAlign.center,
-        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.textSecondary),
+        style: const TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w700,
+          color: AppColors.textSecondary,
+        ),
       ),
     );
   }

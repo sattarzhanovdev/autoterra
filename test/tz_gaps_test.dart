@@ -9,11 +9,7 @@ class MockApiClient extends Mock implements ApiClient {}
 
 /// Пункты ТЗ, которых не хватало: согласование подарка (п. 7 шаг 6) и
 /// обучающие материалы (п. 10).
-Map<String, dynamic> _referral({
-  String giftStatus = 'none',
-  String? gift,
-  String? giftComment,
-}) {
+Map<String, dynamic> _referral({String? gift, double bonusEarned = 0}) {
   return {
     'id': '1',
     'inviterId': '1',
@@ -25,8 +21,7 @@ Map<String, dynamic> _referral({
     'purchaseAmount': 35000,
     'conditionMet': true,
     'gift': gift,
-    'giftStatus': giftStatus,
-    'giftComment': giftComment,
+    'bonusEarned': bonusEarned,
     'createdAt': '2026-01-01T00:00:00Z',
   };
 }
@@ -47,7 +42,7 @@ void main() {
     repo = DataRepository(api: api);
   });
 
-  group('Согласование подарка', () {
+  group('Реферальный бонус', () {
     Future<dynamic> firstReferral(Map<String, dynamic> json) async {
       when(() => api.referrals(page: any(named: 'page'), pageSize: any(named: 'pageSize')))
           .thenAnswer((_) async => (_page([json]), <String, dynamic>{}));
@@ -55,51 +50,31 @@ void main() {
       return result.items.first;
     }
 
-    test('до решения дистрибьютора подарок не показывается', () async {
-      // Сервер намеренно не присылает gift, пока решение не принято.
-      final referral = await firstReferral(_referral(giftStatus: 'pending'));
+    test('бонус приходит сам, без согласования дистрибьютором', () async {
+      final referral = await firstReferral(_referral(bonusEarned: 1750));
 
-      expect(referral.giftPending, isTrue);
-      expect(referral.giftApproved, isFalse);
-      expect(referral.gift, isNull);
+      expect(referral.conditionMet, isTrue);
+      expect(referral.bonusEarned, 1750);
     });
 
-    test('после согласования подарок виден', () async {
-      final referral = await firstReferral(
-        _referral(giftStatus: 'approved', gift: 'Отсрочка 14 дней'),
-      );
+    test('пока покупок нет, начисления тоже нет', () async {
+      final referral = await firstReferral(_referral());
 
-      expect(referral.giftApproved, isTrue);
+      expect(referral.bonusEarned, 0);
+    });
+
+    test('плоский подарок старых связок показывается как есть', () async {
+      final referral = await firstReferral(_referral(gift: 'Отсрочка 14 дней'));
+
       expect(referral.gift, 'Отсрочка 14 дней');
     });
 
-    test('отказ доносит причину до клиента', () async {
-      final referral = await firstReferral(
-        _referral(giftStatus: 'declined', giftComment: 'Клиент уже на спеццене'),
-      );
-
-      expect(referral.giftDeclined, isTrue);
-      expect(referral.giftComment, 'Клиент уже на спеццене');
-    });
-
-    test('старый бэкенд без поля не роняет экран', () async {
-      final json = _referral()..remove('giftStatus');
+    test('старый бэкенд без поля bonusEarned не роняет экран', () async {
+      final json = _referral()..remove('bonusEarned');
 
       final referral = await firstReferral(json);
 
-      expect(referral.giftStatus, 'none');
-      expect(referral.giftApproved, isFalse);
-    });
-
-    test('решение уходит на сервер с комментарием', () async {
-      when(() => api.decideReferralGift(any(),
-              approved: any(named: 'approved'), comment: any(named: 'comment')))
-          .thenAnswer((_) async => <String, dynamic>{});
-
-      await repo.decideReferralGift('7', approved: false, comment: 'Нет бюджета');
-
-      verify(() => api.decideReferralGift('7', approved: false, comment: 'Нет бюджета'))
-          .called(1);
+      expect(referral.bonusEarned, 0);
     });
   });
 

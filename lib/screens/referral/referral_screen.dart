@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:share_plus/share_plus.dart';
+import '../../core/share_origin.dart';
 import '../../core/theme.dart';
 import '../../models/models.dart';
 import '../../services/data_repository.dart';
 import '../../services/pagination_controller.dart';
 import '../../widgets/common/paginated_list_view.dart';
 import '../../widgets/common/brand_icon.dart';
+import '../../core/constants.dart';
 
 class ReferralScreen extends StatefulWidget {
   const ReferralScreen({super.key});
@@ -57,11 +59,15 @@ class _ReferralScreenState extends State<ReferralScreen> {
     final link = _inviteLink;
     if (code == null || link == null) return null;
     final greeting = (forName == null || forName.trim().isEmpty)
-        ? 'Приглашаю вас в AutoTerra.'
-        : 'Приглашаю «${forName.trim()}» в AutoTerra.';
+        ? 'Приглашаю вас в ${AppConstants.appName}.'
+        : 'Приглашаю «${forName.trim()}» в ${AppConstants.appName}.';
+    final appLink = AppConstants.appStoreUrl.isEmpty
+        ? ''
+        : 'Приложение для Android:\n${AppConstants.appStoreUrl}\n\n';
     return '$greeting\n\n'
         'Зарегистрируйтесь по ссылке — она сразу свяжет ваш аккаунт с моим:\n'
         '$link\n\n'
+        '$appLink'
         'Если регистрируетесь вручную, введите код приглашения: $code';
   }
 
@@ -74,7 +80,11 @@ class _ReferralScreenState extends State<ReferralScreen> {
       _toast('КОД ЕЩЁ ЗАГРУЖАЕТСЯ, ПОВТОРИТЕ ЧЕРЕЗ СЕКУНДУ');
       return;
     }
-    await Share.share(text, subject: 'Приглашение в AutoTerra');
+    await Share.share(
+      text,
+      subject: 'Приглашение в ${AppConstants.appName}',
+      sharePositionOrigin: shareOriginFrom(context),
+    );
   }
 
   void _toast(String message) {
@@ -494,9 +504,9 @@ class _ReferralCard extends StatelessWidget {
               _arrow(),
               _stepIcon('ЗАКАЗЫ', referral.hasPurchase),
               _arrow(),
-              // Галочка только после согласования — условие выполнено ещё не
-              // значит, что подарок выдан.
-              _stepIcon('БОНУС', referral.giftApproved),
+              // Галочка по факту начисления: согласование убрано, бонус
+              // капает сам, как только у приглашённого прошла покупка.
+              _stepIcon('БОНУС', referral.bonusEarned > 0),
             ],
           ),
           // Приглашённый должен сам подтвердить, что его привели именно вы —
@@ -577,27 +587,9 @@ class _ReferralCard extends StatelessWidget {
               ],
             ),
           ],
-          // Подарок проходит согласование у дистрибьютора: до его решения
-          // конкретную скидку обещать нельзя (п. 7 ТЗ).
-          if (referral.giftPending) ...[
-            const SizedBox(height: 12),
-            _giftBanner(
-              icon: Icons.hourglass_empty,
-              color: AppColors.textSecondary,
-              text: 'ПОДАРОК НА СОГЛАСОВАНИИ У ДИСТРИБЬЮТОРА',
-            ),
-          ],
-          if (referral.giftDeclined) ...[
-            const SizedBox(height: 12),
-            _giftBanner(
-              icon: Icons.block,
-              color: AppColors.brandRed,
-              text: referral.giftComment == null
-                  ? 'ПОДАРОК НЕ СОГЛАСОВАН'
-                  : 'НЕ СОГЛАСОВАН: ${referral.giftComment!.toUpperCase()}',
-            ),
-          ],
-          if (referral.gift != null && referral.giftApproved) ...[
+          // Плоский подарок остался только у старых связок — новые получают
+          // процент на бонусный счёт автоматически, без согласования.
+          if (referral.gift != null) ...[
             const SizedBox(height: 12),
             _giftBanner(
               icon: Icons.card_giftcard,

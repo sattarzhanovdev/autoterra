@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/theme.dart';
@@ -40,6 +41,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _referralCtrl = TextEditingController();
   bool _obscure = true;
 
+  /// Принятие Условий использования и согласие на обработку персональных
+  /// данных — две отдельные галочки. По умолчанию обе сняты: заранее
+  /// проставленная галочка согласием не считается. Пока хотя бы одна не
+  /// отмечена, кнопка регистрации неактивна.
+  bool _termsAccepted = false;
+  bool _consentGiven = false;
+
+  /// Распознаватели живут вместе с экраном, а не создаются в build: иначе
+  /// каждая перерисовка формы плодит новый и течёт память.
+  late final TapGestureRecognizer _termsTap;
+  late final TapGestureRecognizer _consentTap;
+  late final TapGestureRecognizer _policyTap;
+
   bool _loading = false;
   String? _innError;
 
@@ -51,6 +65,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   void initState() {
     super.initState();
+    // push, а не go: форма остаётся под документом, и введённое не пропадёт.
+    _termsTap = TapGestureRecognizer()
+      ..onTap = () => context.push(AppRoutes.termsOfUse);
+    _consentTap = TapGestureRecognizer()
+      ..onTap = () => context.push(AppRoutes.personalDataConsent);
+    _policyTap = TapGestureRecognizer()
+      ..onTap = () => context.push(AppRoutes.privacyPolicy);
     final invite = widget.referralCode?.trim().toUpperCase();
     if (invite != null && invite.isNotEmpty) {
       _referralCtrl.text = invite;
@@ -97,6 +118,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
     _phoneCtrl.dispose();
     _passwordCtrl.dispose();
     _referralCtrl.dispose();
+    _termsTap.dispose();
+    _consentTap.dispose();
+    _policyTap.dispose();
     super.dispose();
   }
 
@@ -117,6 +141,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   void _register() async {
+    if (!_termsAccepted || !_consentGiven) return;
     if (!_formKey2.currentState!.validate()) return;
     setState(() {
       _loading = true;
@@ -580,11 +605,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 return null;
               },
             ),
-            const SizedBox(height: 32),
+            const SizedBox(height: 12),
+            _legalBlock(),
+            const SizedBox(height: 20),
             SizedBox(
               height: 54,
               child: ElevatedButton(
-                onPressed: _loading ? null : _register,
+                onPressed: (_loading || !_termsAccepted || !_consentGiven) ? null : _register,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.brandRed,
                   shape: AppShapes.border(size: AppShapes.chamferSm),
@@ -600,6 +627,108 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       )
                     : const Text('ЗАРЕГИСТРИРОВАТЬСЯ'),
               ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  static const _legalTextStyle = TextStyle(
+    fontSize: 12,
+    height: 1.4,
+    color: AppColors.textSecondary,
+  );
+  static const _linkStyle = TextStyle(
+    color: AppColors.brandRed,
+    decoration: TextDecoration.underline,
+    decorationColor: AppColors.brandRed,
+  );
+
+  /// Принятие Условий использования и согласие на обработку персональных
+  /// данных — двумя отдельными галочками.
+  ///
+  /// Совмещать их нельзя: с 01.09.2025 согласие оформляется отдельно от любых
+  /// других документов (ст. 9 152-ФЗ в редакции 156-ФЗ). Политика
+  /// конфиденциальности — не предмет согласия, а сведения о порядке обработки:
+  /// на неё просто ссылка, без галочки.
+  Widget _legalBlock() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _checkboxRow(
+          value: _termsAccepted,
+          onChanged: (v) => setState(() => _termsAccepted = v),
+          spans: [
+            const TextSpan(text: 'Принимаю '),
+            TextSpan(
+              text: 'Условия использования',
+              style: _linkStyle,
+              recognizer: _termsTap,
+            ),
+          ],
+        ),
+        _checkboxRow(
+          value: _consentGiven,
+          onChanged: (v) => setState(() => _consentGiven = v),
+          spans: [
+            const TextSpan(text: 'Даю '),
+            TextSpan(
+              text: 'согласие на обработку персональных данных',
+              style: _linkStyle,
+              recognizer: _consentTap,
+            ),
+          ],
+        ),
+        Padding(
+          padding: const EdgeInsets.only(left: 36, top: 4),
+          child: Text.rich(
+            TextSpan(
+              style: _legalTextStyle,
+              children: [
+                const TextSpan(text: 'Как мы обрабатываем и защищаем данные — в '),
+                TextSpan(
+                  text: 'Политике конфиденциальности',
+                  style: _linkStyle,
+                  recognizer: _policyTap,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Строка с галочкой. Переключается тапом по всей строке, а не только по
+  /// квадрату 24×24, в который трудно попасть пальцем. Тап по ссылке галочку
+  /// не трогает: распознаватель ссылки глубже и выигрывает жест.
+  Widget _checkboxRow({
+    required bool value,
+    required ValueChanged<bool> onChanged,
+    required List<InlineSpan> spans,
+  }) {
+    return InkWell(
+      onTap: () => onChanged(!value),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(
+              width: 24,
+              height: 24,
+              child: Checkbox(
+                value: value,
+                onChanged: (v) => onChanged(v ?? false),
+                activeColor: AppColors.brandRed,
+                visualDensity: VisualDensity.compact,
+                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text.rich(TextSpan(style: _legalTextStyle, children: spans)),
             ),
           ],
         ),

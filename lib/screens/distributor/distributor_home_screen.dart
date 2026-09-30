@@ -173,17 +173,6 @@ class _DistributorHomeScreenState extends State<DistributorHomeScreen> {
           () => context.push(AppRoutes.distributorStock),
           fullWidth: true,
         ),
-        const SizedBox(height: 12),
-        // Подарок по рекомендации — это скидка или отсрочка, то есть деньги
-        // дистрибьютора. По п. 7 ТЗ он должен согласовать её лично.
-        _metricCard(
-          'Подарки на согласовании',
-          '',
-          Icons.card_giftcard_outlined,
-          AppColors.brandRed,
-          () => context.push(AppRoutes.distributorReferralGifts),
-          fullWidth: true,
-        ),
       ],
     );
   }

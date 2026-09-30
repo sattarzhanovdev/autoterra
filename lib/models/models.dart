@@ -50,7 +50,7 @@ extension OrderStatusExtension on OrderStatus {
 
   /// Клиент может инициировать оплату.
   bool get isPayable =>
-      this == OrderStatus.confirmed || this == OrderStatus.adjusted;
+      this == OrderStatus.confirmed || this == OrderStatus.accepted;
 }
 
 enum StockStatus { inStock, low, onOrder, outOfStock }
@@ -777,13 +777,9 @@ class Referral {
   final double purchaseAmount;
   final bool conditionMet;
 
-  /// Заполнен только после согласования: до решения дистрибьютора обещать
-  /// клиенту скидку или отсрочку нельзя (п. 7 ТЗ).
+  /// Плоский подарок. Остался только у старых связок: согласование убрано,
+  /// новые приглашения приносят процент на бонусный счёт автоматически.
   final String? gift;
-
-  /// none · pending · approved · declined
-  final String giftStatus;
-  final String? giftComment;
 
   /// Подтвердил ли приглашённый, что его действительно привели:
   /// auto (пришёл по коду) · pending · confirmed · declined.
@@ -812,17 +808,11 @@ class Referral {
     this.purchaseAmount = 0,
     this.conditionMet = false,
     this.gift,
-    this.giftStatus = 'none',
-    this.giftComment,
     this.confirmation = 'auto',
     this.bonusRate = 0,
     this.bonusEarned = 0,
     required this.createdAt,
   });
-
-  bool get giftPending => giftStatus == 'pending';
-  bool get giftApproved => giftStatus == 'approved';
-  bool get giftDeclined => giftStatus == 'declined';
 
   /// Заявка подана, но приглашённый её ещё не подтвердил — подарка не будет.
   bool get awaitingConfirmation => confirmation == 'pending';

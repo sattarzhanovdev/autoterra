@@ -20,6 +20,7 @@ class _AdminManagerTasksScreenState extends State<AdminManagerTasksScreen> {
   List<Map<String, dynamic>> _managers = [];
   String? _filterManagerId;
   bool _loading = true;
+  String? _tasksError;
 
   @override
   void initState() {
@@ -28,21 +29,40 @@ class _AdminManagerTasksScreenState extends State<AdminManagerTasksScreen> {
   }
 
   Future<void> _load() async {
-    setState(() => _loading = true);
-    try {
-      final results = await Future.wait([
-        _repo.adminManagerTasks(managerId: _filterManagerId),
-        _repo.adminManagers(),
-      ]);
-      setState(() {
-        _tasks = results[0] as List<ManagerTask>;
-        _managers = results[1] as List<Map<String, dynamic>>;
-        _loading = false;
-      });
-    } catch (e) {
-      debugPrint('AdminManagerTasks load error: $e');
-      if (mounted) setState(() => _loading = false);
-    }
+    setState(() {
+      _loading = true;
+      _tasksError = null;
+    });
+
+    // Раньше оба запроса шли через Future.wait: падал любой — терялись оба,
+    // и список менеджеров оставался пустым. В форме создания это выглядело
+    // как намертво неактивный селект. Грузим независимо.
+    final tasks = _repo
+        .adminManagerTasks(managerId: _filterManagerId)
+        .then<Object?>((v) => v)
+        .catchError((Object e) => e);
+    final managers = _repo
+        .adminManagers()
+        .then<Object?>((v) => v)
+        .catchError((Object e) => e);
+
+    final tasksResult = await tasks;
+    final managersResult = await managers;
+    if (!mounted) return;
+
+    setState(() {
+      if (tasksResult is List<ManagerTask>) {
+        _tasks = tasksResult;
+      } else {
+        // Пустой список без объяснения читается как «задач нет» — а это
+        // не одно и то же с «не смогли загрузить».
+        _tasksError = '$tasksResult';
+      }
+      if (managersResult is List<Map<String, dynamic>>) {
+        _managers = managersResult;
+      }
+      _loading = false;
+    });
   }
 
   Future<void> _delete(ManagerTask task) async {
@@ -139,7 +159,9 @@ class _AdminManagerTasksScreenState extends State<AdminManagerTasksScreen> {
                   const SizedBox(height: 20),
 
                   // Tasks
-                  if (_tasks.isEmpty)
+                  if (_tasksError != null)
+                    _buildError()
+                  else if (_tasks.isEmpty)
                     _buildEmpty()
                   else ...[
                     const SectionHeader(title: 'ВСЕ ЗАДАЧИ'),
@@ -221,6 +243,40 @@ class _AdminManagerTasksScreenState extends State<AdminManagerTasksScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildError() {
+    return Container(
+      padding: const EdgeInsets.all(32),
+      alignment: Alignment.center,
+      decoration: const ShapeDecoration(
+        color: Colors.white,
+        shape: BeveledRectangleBorder(side: BorderSide(color: AppColors.brandRed)),
+      ),
+      child: Column(
+        children: [
+          const Icon(Icons.cloud_off, size: 36, color: AppColors.brandRed),
+          const SizedBox(height: 12),
+          const Text(
+            'НЕ УДАЛОСЬ ЗАГРУЗИТЬ ЗАДАЧИ',
+            style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13, color: AppColors.brandRed, letterSpacing: 1),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 6),
+          Text(
+            _tasksError!,
+            style: const TextStyle(color: AppColors.textHint, fontSize: 11),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 16),
+          ElevatedButton(
+            onPressed: _load,
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.brandBlack),
+            child: const Text('ПОВТОРИТЬ', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1)),
+          ),
+        ],
       ),
     );
   }
@@ -387,11 +443,25 @@ class _CreateTaskSheetState extends State<_CreateTaskSheet> {
   DateTime? _deadline;
   String? _errorMessage;
 
+  late List<Map<String, dynamic>> _managers = widget.managers;
+  bool _loadingManagers = false;
+  String? _managersError;
+
   List<Map<String, dynamic>> _clients = [];
   bool _loadingClients = false;
+  String? _clientsError;
   bool _submitting = false;
 
   final DataRepository _repo = DataRepository();
+
+  @override
+  void initState() {
+    super.initState();
+    // Список приходит снимком с экрана: если там загрузка ещё не прошла или
+    // упала, снимок пустой — и селект менеджеров молча оказывается неактивным.
+    // Догружаем сами, чтобы форма не зависела от чужой удачи.
+    if (_managers.isEmpty) _loadManagers();
+  }
 
   @override
   void dispose() {
@@ -400,20 +470,47 @@ class _CreateTaskSheetState extends State<_CreateTaskSheet> {
     super.dispose();
   }
 
+  Future<void> _loadManagers() async {
+    setState(() {
+      _loadingManagers = true;
+      _managersError = null;
+    });
+    try {
+      final managers = await _repo.adminManagers();
+      if (!mounted) return;
+      setState(() {
+        _managers = managers;
+        _loadingManagers = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _loadingManagers = false;
+        _managersError = '$e';
+      });
+    }
+  }
+
   Future<void> _loadClients(String managerId) async {
     setState(() {
       _loadingClients = true;
+      _clientsError = null;
       _clients = [];
       _selectedClientId = null;
     });
     try {
       final apiClients = await _repo.adminManagerClients(managerId);
+      if (!mounted) return;
       setState(() {
         _clients = apiClients;
         _loadingClients = false;
       });
     } catch (e) {
-      if (mounted) setState(() => _loadingClients = false);
+      if (!mounted) return;
+      setState(() {
+        _loadingClients = false;
+        _clientsError = '$e';
+      });
     }
   }
 
@@ -512,55 +609,13 @@ class _CreateTaskSheetState extends State<_CreateTaskSheet> {
                   // Manager
                   _label('МЕНЕДЖЕР'),
                   const SizedBox(height: 6),
-                  DropdownButtonFormField<String>(
-                    value: _selectedManagerId,
-                    isExpanded: true,
-                    decoration: _fieldDecoration('Выберите менеджера'),
-                    items: widget.managers
-                        .map((m) => DropdownMenuItem(
-                              value: m['id'].toString(),
-                              child: Text(m['name']?.toString() ?? m['username']?.toString() ?? ''),
-                            ))
-                        .toList(),
-                    onChanged: (v) {
-                      setState(() => _selectedManagerId = v);
-                      if (v != null) _loadClients(v);
-                    },
-                  ),
+                  _managerField(),
                   const SizedBox(height: 16),
 
                   // Client
                   _label('КЛИЕНТ'),
                   const SizedBox(height: 6),
-                  if (_loadingClients)
-                    const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 14),
-                      child: Row(
-                        children: [
-                          SizedBox(
-                            width: 16, height: 16,
-                            child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.brandRed),
-                          ),
-                          SizedBox(width: 10),
-                          Text('Загрузка клиентов...', style: TextStyle(color: AppColors.textHint, fontSize: 13)),
-                        ],
-                      ),
-                    )
-                  else
-                    DropdownButtonFormField<String>(
-                      value: _selectedClientId,
-                      isExpanded: true,
-                      decoration: _fieldDecoration(
-                        _selectedManagerId == null ? 'Сначала выберите менеджера' : 'Выберите клиента',
-                      ),
-                      items: _clients
-                          .map((c) => DropdownMenuItem(
-                                value: c['id'].toString(),
-                                child: Text(c['name']?.toString() ?? ''),
-                              ))
-                          .toList(),
-                      onChanged: _selectedManagerId == null ? null : (v) => setState(() => _selectedClientId = v),
-                    ),
+                  _clientField(),
                   const SizedBox(height: 16),
 
                   // Task text
@@ -678,6 +733,127 @@ class _CreateTaskSheetState extends State<_CreateTaskSheet> {
           letterSpacing: 1,
         ),
       );
+
+  /// Заглушка на месте селекта: пустой Dropdown Flutter гасит сам, и без
+  /// подписи поле выглядит просто сломанным.
+  Widget _fieldPlaceholder(String text, {Color? color, VoidCallback? onRetry}) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+      decoration: BoxDecoration(
+        color: AppColors.canvas,
+        border: Border.all(color: color ?? AppColors.border),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(color: color ?? AppColors.textHint, fontSize: 13),
+            ),
+          ),
+          if (onRetry != null)
+            GestureDetector(
+              onTap: onRetry,
+              child: const Text(
+                'ПОВТОРИТЬ',
+                style: TextStyle(
+                  color: AppColors.brandRed,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 0.5,
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _fieldLoading(String text) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 14),
+      child: Row(
+        children: [
+          const SizedBox(
+            width: 16,
+            height: 16,
+            child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.brandRed),
+          ),
+          const SizedBox(width: 10),
+          Text(text, style: const TextStyle(color: AppColors.textHint, fontSize: 13)),
+        ],
+      ),
+    );
+  }
+
+  Widget _managerField() {
+    if (_loadingManagers) return _fieldLoading('Загрузка менеджеров...');
+    if (_managersError != null) {
+      return _fieldPlaceholder(
+        'Не удалось загрузить менеджеров',
+        color: AppColors.brandRed,
+        onRetry: _loadManagers,
+      );
+    }
+    if (_managers.isEmpty) {
+      return _fieldPlaceholder(
+        'Менеджеров нет — заведите пользователя с ролью «менеджер»',
+        onRetry: _loadManagers,
+      );
+    }
+
+    return DropdownButtonFormField<String>(
+      value: _selectedManagerId,
+      isExpanded: true,
+      decoration: _fieldDecoration('Выберите менеджера'),
+      items: _managers
+          .map((m) => DropdownMenuItem(
+                value: m['id'].toString(),
+                child: Text(m['name']?.toString() ?? m['username']?.toString() ?? ''),
+              ))
+          .toList(),
+      onChanged: (v) {
+        setState(() => _selectedManagerId = v);
+        if (v != null) _loadClients(v);
+      },
+    );
+  }
+
+  Widget _clientField() {
+    final managerId = _selectedManagerId;
+    if (managerId == null) {
+      return _fieldPlaceholder('Сначала выберите менеджера');
+    }
+    if (_loadingClients) return _fieldLoading('Загрузка клиентов...');
+    if (_clientsError != null) {
+      return _fieldPlaceholder(
+        'Не удалось загрузить клиентов',
+        color: AppColors.brandRed,
+        onRetry: () => _loadClients(managerId),
+      );
+    }
+    if (_clients.isEmpty) {
+      // Клиент необязателен, поэтому это не ошибка — просто объясняем пустоту.
+      return _fieldPlaceholder(
+        'У менеджера нет клиентов — задачу можно поставить без клиента',
+        onRetry: () => _loadClients(managerId),
+      );
+    }
+
+    return DropdownButtonFormField<String>(
+      value: _selectedClientId,
+      isExpanded: true,
+      decoration: _fieldDecoration('Выберите клиента'),
+      items: _clients
+          .map((c) => DropdownMenuItem(
+                value: c['id'].toString(),
+                child: Text(c['name']?.toString() ?? ''),
+              ))
+          .toList(),
+      onChanged: (v) => setState(() => _selectedClientId = v),
+    );
+  }
 
   InputDecoration _fieldDecoration(String hint) => InputDecoration(
         hintText: hint,

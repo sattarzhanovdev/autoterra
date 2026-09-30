@@ -51,12 +51,11 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions android = FirebaseOptions(
     apiKey: 'AIzaSyAZrviPQAWe_XFs5yLE0XSF2KvxX0j8d_k',
-    appId: '1:322995292087:android:9bdd4b63b08c5e0af78a32',
+    appId: '1:322995292087:android:1030616884395c66f78a32',
     messagingSenderId: '322995292087',
     projectId: 'autoterra-89f12',
     storageBucket: 'autoterra-89f12.firebasestorage.app',
   );
-
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyAZO-V9sCPxbLaG2oWRpu6E2M2ndDfS4lc',
     appId: '1:322995292087:ios:a375a5c5d1cd7d85f78a32',

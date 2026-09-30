@@ -34,11 +34,7 @@ class _LearningMaterialsScreenState extends State<LearningMaterialsScreen> {
   @override
   void initState() {
     super.initState();
-    _controller = _build();
-  }
-
-  PaginationController<LearningMaterial> _build() {
-    return PaginationController<LearningMaterial>(
+    _controller = PaginationController<LearningMaterial>(
       fetchPage: (page) => DataRepository().learningMaterials(
         page: page,
         kind: _kind.isEmpty ? null : _kind,
@@ -46,14 +42,12 @@ class _LearningMaterialsScreenState extends State<LearningMaterialsScreen> {
     );
   }
 
+  /// Смена категории перезапрашивает ленту тем же контроллером: пересоздавать
+  /// его не нужно, [PaginationController.setFilters] для этого и сделан.
   void _selectKind(String kind) {
     if (kind == _kind) return;
-    final previous = _controller;
-    setState(() {
-      _kind = kind;
-      _controller = _build();
-    });
-    previous.dispose();
+    setState(() => _kind = kind);
+    _controller.setFilters(() {});
   }
 
   @override

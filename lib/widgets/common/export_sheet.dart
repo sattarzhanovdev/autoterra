@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../../core/share_origin.dart';
 import '../../core/theme.dart';
 import '../../services/api_client.dart';
 import '../../services/file_download_service.dart';
@@ -158,12 +159,15 @@ class _ClientExportSheetState extends State<_ClientExportSheet> {
     }
   }
 
-  Future<void> _share(String code) async {
+  /// [origin] — прямоугольник кнопки «Отправить». На iPad системный лист
+  /// показывается поповером и без якоря падает, см. [shareOriginFrom].
+  Future<void> _share(String code, Rect? origin) async {
     final saved = _saved[code];
     if (saved?.path == null) return;
     await Share.shareXFiles(
       [XFile(saved!.path!)],
       subject: 'Список клиентов AutoTerra',
+      sharePositionOrigin: origin,
     );
   }
 
@@ -210,7 +214,7 @@ class _ClientExportSheetState extends State<_ClientExportSheet> {
                     error: _errors[format.code],
                     enabled: !_busy,
                     onDownload: () => _download(format),
-                    onShare: () => _share(format.code),
+                    onShare: (origin) => _share(format.code, origin),
                   ),
                   const SizedBox(height: 8),
                 ],
@@ -316,7 +320,7 @@ class _FormatTile extends StatelessWidget {
   final String? error;
   final bool enabled;
   final VoidCallback onDownload;
-  final VoidCallback onShare;
+  final void Function(Rect? origin) onShare;
 
   const _FormatTile({
     required this.format,
@@ -459,14 +463,18 @@ class _FormatTile extends StatelessWidget {
           ),
         ),
         if (saved!.canShare)
-          TextButton.icon(
-            onPressed: onShare,
-            icon: const Icon(Icons.share_outlined, size: 14),
-            label: const Text('ОТПРАВИТЬ', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900)),
-            style: TextButton.styleFrom(
-              minimumSize: const Size(0, 28),
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              visualDensity: VisualDensity.compact,
+          // Builder нужен, чтобы взять контекст самой кнопки: поповер на iPad
+          // должен вырастать из неё, а не из середины листа.
+          Builder(
+            builder: (buttonContext) => TextButton.icon(
+              onPressed: () => onShare(shareOriginFrom(buttonContext)),
+              icon: const Icon(Icons.share_outlined, size: 14),
+              label: const Text('ОТПРАВИТЬ', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900)),
+              style: TextButton.styleFrom(
+                minimumSize: const Size(0, 28),
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                visualDensity: VisualDensity.compact,
+              ),
             ),
           ),
       ],

@@ -227,6 +227,19 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  Widget _legalLink(String label, String route) {
+    return TextButton(
+      onPressed: () => context.push(route),
+      style: TextButton.styleFrom(
+        foregroundColor: AppColors.textSecondary,
+        textStyle: const TextStyle(fontSize: 12, decoration: TextDecoration.underline),
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+        minimumSize: const Size(0, 36),
+      ),
+      child: Text(label),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -380,6 +393,17 @@ class _LoginScreenState extends State<LoginScreen> {
                                 ),
                               ),
                             ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        // Документы доступны до входа: новый пользователь и
+                        // модератор магазина сначала видят только этот экран.
+                        Wrap(
+                          alignment: WrapAlignment.center,
+                          spacing: 12,
+                          children: [
+                            _legalLink('Политика конфиденциальности', AppRoutes.privacyPolicy),
+                            _legalLink('Условия использования', AppRoutes.termsOfUse),
                           ],
                         ),
                       ],

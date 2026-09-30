@@ -214,17 +214,6 @@ class _TicketDetailSheetState extends State<_TicketDetailSheet> {
                       widget.onUpdated?.call();
                     },
                   ),
-                ] else if (_ticket.status == TicketStatus.aiAnswered && !isExpert) ...[
-                  const SizedBox(height: 24),
-                  OutlinedButton(
-                    onPressed: () {}, // Escalation logic
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.brandRed,
-                      side: const BorderSide(color: AppColors.brandRed),
-                      minimumSize: const Size(double.infinity, 50),
-                    ),
-                    child: const Text('ПОЗВАТЬ ЭКСПЕРТА / ТЕХНОЛОГА', style: TextStyle(fontWeight: FontWeight.w900)),
-                  ),
                 ],
               ],
             ),

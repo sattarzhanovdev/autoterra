@@ -3,6 +3,13 @@ class AppConstants {
   static const appName = 'АвтоТерра';
   static const appTagline = 'B2B платформа ЛКМ';
 
+  /// Совпадает с applicationId в android/app/build.gradle.kts.
+  static const androidApplicationId = 'com.autoterra.autoterra';
+
+  /// Адрес опубликованной карточки RuStore задаётся при сборке.
+  /// Пока карточки нет, приглашение содержит только ссылку регистрации.
+  static const appStoreUrl = String.fromEnvironment('RUSTORE_APP_URL');
+
   static const regions = [
     'Москва', 'Санкт-Петербург', 'Новосибирск', 'Екатеринбург',
     'Казань', 'Нижний Новгород', 'Челябинск', 'Самара',
@@ -47,6 +54,15 @@ class AppRoutes {
   static const delivery = '/delivery';
   static const admin = '/admin';
   static const notifications = '/notifications';
+
+  /// Правовые документы: политика конфиденциальности, условия использования и
+  /// текст согласия на обработку персональных данных. Открываются и без входа —
+  /// на них ведут ссылки с экранов входа и регистрации, поэтому роутер
+  /// пропускает весь префикс [legal] мимо проверки токена.
+  static const legal = '/legal';
+  static const privacyPolicy = '$legal/privacy';
+  static const termsOfUse = '$legal/terms';
+  static const personalDataConsent = '$legal/consent';
   static const distributor = '/distributor';
   static const distributorClients = '/distributor/clients';
   static const distributorStock = '/distributor/stock';
@@ -55,7 +71,6 @@ class AppRoutes {
   static const distributorDeliveries = '/distributor/deliveries';
   static const distributorOrders = '/distributor/orders';
   static const distributorPurchasesVerification = '/distributor/purchases-verification';
-  static const distributorReferralGifts = '/distributor/referral-gifts';
   static const managerClients = '/manager/clients';
   static const managerTasks = '/manager/tasks';
 }

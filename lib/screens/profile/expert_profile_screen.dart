@@ -4,6 +4,8 @@ import '../../core/theme.dart';
 import '../../core/constants.dart';
 import '../../services/data_repository.dart';
 import '../../services/auth_service.dart';
+import '../../widgets/common/delete_account_tile.dart';
+import '../../widgets/common/legal_links.dart';
 import '../../widgets/common/section_header.dart';
 import '../../widgets/common/premium_icon_badge.dart';
 import '../../widgets/common/brand_icon.dart';
@@ -44,6 +46,12 @@ class _ExpertProfileScreenState extends State<ExpertProfileScreen> {
           IconButton(
             icon: const Icon(Icons.refresh, color: Colors.white),
             onPressed: _refresh,
+          ),
+          // Как в клиентском профиле: выход доступен сразу, без прокрутки.
+          IconButton(
+            tooltip: 'Выйти из системы',
+            icon: const Icon(Icons.logout, color: Colors.white),
+            onPressed: () => _showLogoutDialog(context),
           ),
         ],
       ),
@@ -223,13 +231,31 @@ class _ExpertProfileScreenState extends State<ExpertProfileScreen> {
             'УВЕДОМЛЕНИЯ',
             () => context.push(AppRoutes.notifications),
           ),
-          const Divider(),
-          _actionTile(
-            Icons.logout,
-            'ВЫЙТИ ИЗ СИСТЕМЫ',
-            () => _showLogoutDialog(context),
-            isDestructive: true,
+          const Divider(height: 1),
+          const LegalLinks(),
+          // Выход оформлен так же, как в профиле остальных ролей
+          // (lib/screens/profile/profile_screen.dart).
+          const Divider(height: 16),
+          ListTile(
+            leading: Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                color: AppColors.error.withValues(alpha: 0.08),
+                borderRadius: AppShapes.cut(AppShapes.chamferSm),
+              ),
+              child: const Icon(Icons.logout, color: AppColors.error, size: 20),
+            ),
+            title: const Text(
+              'Выйти из аккаунта',
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.error),
+            ),
+            onTap: () => _showLogoutDialog(context),
+            contentPadding: EdgeInsets.zero,
+            dense: true,
           ),
+          const Divider(height: 1),
+          const DeleteAccountTile(),
         ],
       ),
     );
@@ -346,8 +372,8 @@ class _ExpertProfileScreenState extends State<ExpertProfileScreen> {
     );
   }
 
-  Widget _actionTile(IconData icon, String label, VoidCallback onTap, {bool isDestructive = false}) {
-    final color = isDestructive ? AppColors.brandRed : AppColors.brandBlack;
+  Widget _actionTile(IconData icon, String label, VoidCallback onTap) {
+    const color = AppColors.brandBlack;
     return ListTile(
       leading: Icon(icon, color: color, size: 20),
       title: Text(

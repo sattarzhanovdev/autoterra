@@ -7,6 +7,8 @@ import '../../core/constants.dart';
 import '../../models/models.dart';
 import '../../services/data_repository.dart';
 import '../../services/auth_service.dart';
+import '../../widgets/common/delete_account_tile.dart';
+import '../../widgets/common/legal_links.dart';
 import '../../widgets/common/status_badge.dart';
 import '../../widgets/common/premium_icon_badge.dart';
 import '../../widgets/common/section_header.dart';
@@ -865,6 +867,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
               () => context.push(AppRoutes.qa),
             ),
           ],
+          const Divider(height: 1),
+          const LegalLinks(),
           const Divider(height: 16),
           ListTile(
             leading: Container(
@@ -878,6 +882,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
             contentPadding: EdgeInsets.zero,
             dense: true,
           ),
+          const Divider(height: 1),
+          const DeleteAccountTile(),
         ],
       ),
     );

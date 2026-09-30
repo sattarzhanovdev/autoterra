@@ -13,7 +13,16 @@ import 'services/push_notification_manager.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await dotenv.load(fileName: '.env');
+
+  // .env лежит только у разработчиков (он в .gitignore). Отсутствие файла не
+  // должно ронять приложение на старте: адрес API всё равно берётся из
+  // --dart-define, а без него — из боевого значения по умолчанию,
+  // см. ApiClient.baseUrl.
+  try {
+    await dotenv.load(fileName: '.env');
+  } catch (e) {
+    debugPrint('.env не загружен, работаем на значениях по умолчанию: $e');
+  }
 
   // Firebase FCM is mobile-only: web platform has no FCM token support here.
   if (!kIsWeb) {

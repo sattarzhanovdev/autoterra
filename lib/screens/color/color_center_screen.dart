@@ -518,7 +518,9 @@ class _NewColorRequestSheetState extends State<_NewColorRequestSheet> {
                   value: _urgent,
                   onChanged: (v) => setState(() => _urgent = v),
                   title: const Text('СРОЧНО', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 0.5)),
-                  subtitle: const Text('Сокращённый срок выполнения (SLA 4 часа)', style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+                  // Конкретный срок клиенту не обещаем: в ТЗ цифры нет,
+                  // а 4 часа в ColorRequest.save() — внутренний дефолт.
+                  subtitle: const Text('Сокращённый срок выполнения', style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
                 ),
                 const SizedBox(height: 12),
                 _sectionTitle('3. ПЕРЕДАЧА ЛЮЧКА'),

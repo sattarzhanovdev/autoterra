@@ -7,6 +7,25 @@
   "client": [
     {
       "client_info": {
+        "mobilesdk_app_id": "1:322995292087:android:1030616884395c66f78a32",
+        "android_client_info": {
+          "package_name": "com.autoterra.autoterra"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAZrviPQAWe_XFs5yLE0XSF2KvxX0j8d_k"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
         "mobilesdk_app_id": "1:322995292087:android:9bdd4b63b08c5e0af78a32",
         "android_client_info": {
           "package_name": "com.example.autoterra"

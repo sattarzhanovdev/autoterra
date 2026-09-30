@@ -1,7 +1,7 @@
 name: autoterra
 description: B2B платформа для управления спросом через дистрибьюторов, колеровкой и AI-поддержкой автосервисов.
 publish_to: 'none'
-version: 1.0.0+1
+version: 1.0.0+2
 
 environment:
   sdk: ^3.11.5

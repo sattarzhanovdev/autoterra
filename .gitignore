@@ -1,9 +1,16 @@
+android/key.properties
+*.jks
+*.keystore
+
 # Miscellaneous
 *.class
 *.log
 *.pyc
 *.swp
-.env
+# .env объявлен ассетом в pubspec.yaml, без него `flutter build` падает на
+# любом чистом клоне. Секретов в нём нет — только публичный адрес API, он и
+# так лежит внутри каждого собранного APK. Всё, что с настоящими секретами
+# (.env.local, .env.production), по-прежнему игнорируется.
 .env.*
 !.env.example
 !backend/.env.example
