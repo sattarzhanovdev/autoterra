@@ -534,7 +534,7 @@ class _NewTicketSheetState extends State<_NewTicketSheet> {
               padding: const EdgeInsets.all(20),
               children: [
                 DropdownButtonFormField<String>(
-                  value: _category,
+                  initialValue: _category,
                   decoration: const InputDecoration(labelText: 'КАТЕГОРИЯ ВОПРОСА *'),
                   items: _cats.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
                   onChanged: (v) => setState(() => _category = v),

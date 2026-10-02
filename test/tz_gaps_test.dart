@@ -174,11 +174,11 @@ void _bonusTests() {
     expect(result.fullyCoveredByBonus, isFalse);
   });
 
-  test('без ссылки заказ считается покрытым бонусом целиком', () async {
+  test('успешный нулевой платёж покрыт бонусом целиком', () async {
     // Сервер не создаёт платёж в ЮKassa, когда платить нечего.
     when(() => api.payOrder(any(), useBonus: any(named: 'useBonus')))
         .thenAnswer((_) async => {
-              'payment': {'confirmationUrl': null},
+              'payment': {'confirmationUrl': null, 'status': 'succeeded', 'amount': 0, 'provider': 'bonus'},
               'bonusApplied': 4000,
             });
 

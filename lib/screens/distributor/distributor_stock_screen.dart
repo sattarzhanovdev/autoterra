@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import '../../services/data_repository.dart';
+import '../../services/api_client.dart';
 import '../../services/pagination_controller.dart';
 import '../../widgets/common/paginated_list_view.dart';
 import '../../widgets/common/product_photo.dart';
@@ -48,7 +49,7 @@ class _DistributorStockScreenState extends State<DistributorStockScreen> {
   Future<void> _pickAndUploadExcel() async {
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
-      allowedExtensions: ['xlsx', 'xls'],
+      allowedExtensions: ['xlsx'],
       withData: true,
     );
 
@@ -89,6 +90,44 @@ class _DistributorStockScreenState extends State<DistributorStockScreen> {
     } finally {
       if (mounted) setState(() => _isUploading = false);
     }
+  }
+
+  Future<void> _editProduct(ProductData product) async {
+    final price = TextEditingController(text: product.price.toString());
+    final quantity = TextEditingController(text: product.quantity.toString());
+    String status = product.status.name;
+    bool saving = false;
+    String? error;
+    await showDialog<void>(context: context, builder: (dialogContext) => StatefulBuilder(builder: (context, update) => AlertDialog(
+      title: Text(product.name),
+      content: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [
+        Text(product.sku),
+        TextField(controller: price, keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(labelText: 'Цена')),
+        TextField(controller: quantity, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Доступный остаток')),
+        DropdownButton<String>(value: status, isExpanded: true, items: [
+          for (final e in const {'inStock':'В наличии', 'low':'Мало', 'onOrder':'Под заказ', 'outOfStock':'Нет в наличии'}.entries)
+            DropdownMenuItem(value: e.key, child: Text(e.value)),
+        ], onChanged: saving ? null : (v) => update(() => status = v!)),
+        if (error != null) Text(error!),
+      ])),
+      actions: [
+        TextButton(onPressed: saving ? null : () => Navigator.pop(dialogContext), child: const Text('ОТМЕНА')),
+        ElevatedButton(onPressed: saving ? null : () async {
+          final p = double.tryParse(price.text.replaceAll(',', '.'));
+          final q = int.tryParse(quantity.text);
+          if (p == null || !p.isFinite || p < 0 || q == null || q < 0) { update(() => error = 'Введите корректную цену и остаток'); return; }
+          update(() { saving = true; error = null; });
+          try {
+            await ApiClient().distributorStockUpload([{'sku': product.sku, 'price': p, 'quantity': q, 'status': status}]);
+            if (dialogContext.mounted) Navigator.pop(dialogContext);
+            if (mounted) _fetch();
+          } catch (e) {
+            if (dialogContext.mounted) update(() { saving = false; error = e.toString(); });
+          }
+        }, child: Text(saving ? 'СОХРАНЕНИЕ…' : 'СОХРАНИТЬ')),
+      ],
+    )));
+    price.dispose(); quantity.dispose();
   }
 
   void _showAddProductSheet() {
@@ -158,7 +197,7 @@ class _DistributorStockScreenState extends State<DistributorStockScreen> {
               controller: _controller,
               emptyMessage: 'ТОВАРЫ НЕ НАЙДЕНЫ',
               itemBuilder: (context, product, _) =>
-                  _ProductStockCard(product: product),
+                  Column(children: [_ProductStockCard(product: product), Align(alignment: Alignment.centerRight, child: TextButton.icon(onPressed: () => _editProduct(product), icon: const Icon(Icons.edit_outlined), label: const Text("ЦЕНА И ОСТАТОК")))]),
             ),
           ),
         ],
@@ -273,7 +312,7 @@ class _ProductStockCard extends StatelessWidget {
 
 class AddProductSheet extends StatefulWidget {
   final VoidCallback onAdded;
-  const AddProductSheet({required this.onAdded});
+  const AddProductSheet({super.key, required this.onAdded});
 
   @override
   State<AddProductSheet> createState() => AddProductSheetState();

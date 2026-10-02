@@ -123,7 +123,7 @@ class _ManagerTasksScreenState extends State<ManagerTasksScreen> {
     return PaginatedListView<ManagerTask>(
       controller: controller,
       emptyMessage: isPending ? 'НЕТ АКТИВНЫХ ЗАДАЧ' : 'НЕТ ВЫПОЛНЕННЫХ ЗАДАЧ',
-      itemBuilder: (_, task, __) => _TaskCard(
+      itemBuilder: (_, task, _) => _TaskCard(
         task: task,
         onMarkDone: isPending ? () => _markDone(task) : null,
       ),
@@ -207,7 +207,7 @@ class _TaskCardState extends State<_TaskCard> {
         ),
         shadows: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.06),
+            color: Colors.black.withValues(alpha: 0.06),
             blurRadius: 6,
             offset: const Offset(2, 2),
           ),

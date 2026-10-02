@@ -8,6 +8,7 @@ import 'models/models.dart';
 import 'services/api_client.dart';
 import 'services/auth_service.dart';
 import 'screens/auth/login_screen.dart';
+import 'screens/auth/account_status_screen.dart';
 import 'screens/auth/register_screen.dart';
 import 'screens/legal/legal_document_screen.dart';
 import 'screens/home/home_screen.dart';
@@ -43,6 +44,7 @@ import 'screens/distributor/distributor_integration_screen.dart';
 import 'screens/distributor/distributor_color_lab_screen.dart';
 import 'screens/distributor/distributor_deliveries_screen.dart';
 import 'screens/distributor/distributor_orders_screen.dart';
+import 'screens/distributor/distributor_reports_screen.dart';
 import 'screens/distributor/distributor_purchases_screen.dart';
 import 'screens/manager/manager_client_detail_screen.dart';
 import 'widgets/common/brand_icon.dart';
@@ -65,6 +67,12 @@ final GoRouter _router = GoRouter(
     if (!ApiClient.isAuthorized && !isAuthRoute && !isLegalRoute) {
       return AppRoutes.login;
     }
+    if (authService.needsApproval && !isLegalRoute) {
+      return state.matchedLocation == '/account-status' ? null : '/account-status';
+    }
+    if (ApiClient.isAuthorized && state.matchedLocation == '/account-status') {
+      return AppRoutes.home;
+    }
     if (ApiClient.isAuthorized && isAuthRoute) {
       return AppRoutes.home;
     }
@@ -85,6 +93,8 @@ final GoRouter _router = GoRouter(
     return null;
   },
   routes: [
+    GoRoute(path: '/account-status', builder: (ctx, _) => const AccountStatusScreen()),
+    GoRoute(path: '/distributor/reports', builder: (ctx, _) => const DistributorReportsScreen()),
     GoRoute(path: AppRoutes.login, builder: (ctx, _) => const LoginScreen()),
     // ?ref=CODE из ссылки-приглашения подставляется в поле кода.
     GoRoute(

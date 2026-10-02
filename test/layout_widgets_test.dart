@@ -6,7 +6,6 @@ import 'package:autoterra/services/pagination_controller.dart';
 import 'package:autoterra/widgets/layouts/courier_layout.dart';
 import 'package:autoterra/widgets/layouts/distributor_layout.dart';
 import 'package:autoterra/core/theme.dart';
-import 'package:autoterra/screens/distributor/distributor_screen.dart';
 
 void main() {
   Widget createTestWidget(Widget child) {

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:autoterra/screens/color/color_center_screen.dart';
 import 'package:autoterra/models/models.dart';
-import 'package:autoterra/services/data_repository.dart';
 import 'package:autoterra/widgets/common/status_badge.dart';
 
 void main() {

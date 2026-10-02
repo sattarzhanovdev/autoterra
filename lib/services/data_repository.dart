@@ -389,11 +389,17 @@ class DataRepository {
     int page = 1,
     int pageSize = ApiClient.defaultPageSize,
     String? status,
+    String? search,
+    String? regionId,
+    String? distributorId,
+    String? dateFrom,
+    String? dateTo,
   }) async {
     final result = await _api.distributorOrders(
       page: page,
       pageSize: pageSize,
       status: status,
+      search: search, regionId: regionId, distributorId: distributorId, dateFrom: dateFrom, dateTo: dateTo,
     );
     return result.map(_orderFromJson);
   }
@@ -805,9 +811,9 @@ class DataRepository {
   Future<KnowledgeCard> updateKnowledgeCard(String id, {bool? isApproved, String? problem, String? solution, String? causes}) async {
     final result = await _api.updateKnowledgeCard(id, {
       if (isApproved != null) 'status': isApproved ? 'approved' : 'draft',
-      if (problem != null) 'problem': problem,
-      if (solution != null) 'solution': solution,
-      if (causes != null) 'causes': causes,
+      'problem': ?problem,
+      'solution': ?solution,
+      'causes': ?causes,
     });
     return _knowledgeCardFromJson(result['card'] as Map<String, dynamic>);
   }
@@ -1283,28 +1289,6 @@ class DataRepository {
       (item) => item.name == value,
       orElse: () => StockStatus.inStock,
     );
-  }
-
-  static ColorRequestStatus _colorRequestStatus(String value) {
-    return ColorRequestStatus.values.firstWhere(
-      (item) => item.name == value,
-      orElse: () => ColorRequestStatus.created,
-    );
-  }
-
-  static CourierTaskStatus _courierTaskStatus(String value) {
-    switch (value) {
-      case 'in_progress':
-        return CourierTaskStatus.inProgress;
-      case 'delivered':
-        return CourierTaskStatus.delivered;
-      case 'returned':
-        return CourierTaskStatus.returned;
-      case 'cancelled':
-        return CourierTaskStatus.cancelled;
-      default:
-        return CourierTaskStatus.assigned;
-    }
   }
 
   static TicketStatus _ticketStatus(String value) {

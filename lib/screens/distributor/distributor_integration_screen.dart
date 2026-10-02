@@ -210,8 +210,8 @@ class _DistributorIntegrationScreenState extends State<DistributorIntegrationScr
           const Row(
             children: [
               Icon(BrandIcons.bolt, color: AppColors.brandRed, size: 18),
-              const SizedBox(width: 8),
-              const Text('БЕЗ ПРОГРАММИРОВАНИЯ (1С)', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12)),
+              SizedBox(width: 8),
+              Text('БЕЗ ПРОГРАММИРОВАНИЯ (1С)', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12)),
             ],
           ),
           const SizedBox(height: 12),
@@ -272,8 +272,8 @@ class _DistributorIntegrationScreenState extends State<DistributorIntegrationScr
           const Row(
             children: [
               Icon(Icons.bug_report, color: AppColors.brandRed, size: 18),
-              const SizedBox(width: 8),
-              const Text('ПЕСОЧНИЦА (ТЕСТ JSON)', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12)),
+              SizedBox(width: 8),
+              Text('ПЕСОЧНИЦА (ТЕСТ JSON)', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12)),
             ],
           ),
           const SizedBox(height: 8),

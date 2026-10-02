@@ -15,6 +15,18 @@ class AuthService extends ChangeNotifier {
   Map<String, dynamic>? _currentUserData;
   Map<String, dynamic>? get currentUserData => _currentUserData;
 
+  bool get needsApproval => isAuthenticated && currentRole == UserRole.client &&
+      _currentUserData?['status'] != 'active';
+
+  Future<void> refreshUser() async {
+    updateFromBackendUser(await ApiClient().me());
+  }
+
+  void restrictAccount(String status) {
+    _currentUserData = {...?_currentUserData, 'status': status};
+    notifyListeners();
+  }
+
   void setRole(UserRole role) {
     _currentRole = role;
     notifyListeners();
@@ -32,6 +44,7 @@ class AuthService extends ChangeNotifier {
         return UserRole.distributor;
       case 'courier':
         return UserRole.courier;
+      case 'ai_expert':
       case 'expert':
         return UserRole.aiExpert;
       case 'manager':
@@ -44,7 +57,10 @@ class AuthService extends ChangeNotifier {
     }
   }
 
+  Future<void> Function()? beforeLogout;
+
   Future<void> logout() async {
+    try { if (ApiClient.isAuthorized) await beforeLogout?.call(); } catch (_) { /* An expired session must still be cleared. */ }
     await ApiClient.clearToken();
     _currentRole = UserRole.client; // Reset to default role
     _currentUserData = null;

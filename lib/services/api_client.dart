@@ -65,6 +65,7 @@ class ApiClient {
   /// Разрывать зависимости иначе нельзя: AuthService уже импортирует ApiClient,
   /// и обратный импорт замкнул бы круг. Подписку ставит main().
   static void Function()? onUnauthorized;
+  static void Function(String)? onAccountRestricted;
   static String? get role => _role;
 
   /// Resolves a (possibly relative) media path returned by the backend into an
@@ -122,11 +123,13 @@ class ApiClient {
     required String phone,
     required String inn,
     required String newPassword,
+    String code = '',
   }) {
     return _post('/auth/password-reset/', {
       'phone': phone,
       'inn': inn,
       'new_password': newPassword,
+      'code': code,
     });
   }
 
@@ -201,8 +204,8 @@ class ApiClient {
     required String comment,
   }) {
     return _post('/orders/create/', {
-      if (storeId != null) 'storeId': storeId,
-      if (deliveryMethod != null) 'deliveryMethod': deliveryMethod,
+      'storeId': ?storeId,
+      'deliveryMethod': ?deliveryMethod,
       'items': items,
       'comment': comment,
     });
@@ -377,13 +380,17 @@ class ApiClient {
     await _post('/notifications/read/', {});
   }
 
+  Future<Map<String, dynamic>> distributorReports() => _get('/distributor/reports/');
+
   Future<void> registerDeviceToken({
     required String token,
     required String platform,
+    bool remove = false,
   }) async {
     await _post('/notifications/token/', {
       'token': token,
       'platform': platform,
+      'remove': remove,
     });
   }
 
@@ -399,7 +406,7 @@ class ApiClient {
       'title': title,
       'body': body,
       'type': type,
-      if (relatedLink != null) 'relatedLink': relatedLink,
+      'relatedLink': ?relatedLink,
     });
   }
 
@@ -559,7 +566,7 @@ class ApiClient {
   }) {
     return _post('/tickets/$ticketId/expert-answer/', {
       'answer': answer,
-      if (causes != null) 'causes': causes,
+      'causes': ?causes,
       'createKnowledgeCard': createKnowledgeCard,
     });
   }
@@ -738,7 +745,7 @@ class ApiClient {
     } else {
       return _patch(path, {
         'status': status,
-        if (courierComment != null) 'courier_comment': courierComment,
+        'courier_comment': ?courierComment,
       });
     }
   }
@@ -759,7 +766,7 @@ class ApiClient {
   Future<Map<String, dynamic>> verifyPurchase(String id, {required String status, String? reason}) {
     return _patch('/distributor/purchases/$id/verify/', {
       'status': status,
-      if (reason != null) 'rejection_reason': reason,
+      'rejection_reason': ?reason,
     });
   }
 
@@ -767,12 +774,17 @@ class ApiClient {
     int page = 1,
     int pageSize = defaultPageSize,
     String? status,
+    String? search,
+    String? regionId,
+    String? distributorId,
+    String? dateFrom,
+    String? dateTo,
   }) {
     return _getPage(
       '/distributor/orders/',
       page: page,
       pageSize: pageSize,
-      filters: {'status': status},
+      filters: {'status': status, 'search': search, 'region': regionId, 'distributor': distributorId, 'dateFrom': dateFrom, 'dateTo': dateTo},
     );
   }
 
@@ -795,9 +807,9 @@ class ApiClient {
 
   Future<Map<String, dynamic>> updateDeliveryStatus(String taskId, {String? status, String? courierId, String? reason}) async {
     return _post('/distributor/delivery-tasks/$taskId/status/', {
-      if (status != null) 'status': status,
-      if (courierId != null) 'courierId': courierId,
-      if (reason != null) 'reason': reason,
+      'status': ?status,
+      'courierId': ?courierId,
+      'reason': ?reason,
     });
   }
 
@@ -831,9 +843,9 @@ class ApiClient {
   Future<Map<String, dynamic>> updateOrderStatus(String id, {required String status, String? reason, String? courierId, String? estimatedDeliveryDate}) {
     return _patch('/distributor/orders/$id/status/', {
       'status': status,
-      if (reason != null) 'rejection_reason': reason,
-      if (courierId != null) 'courier_id': courierId,
-      if (estimatedDeliveryDate != null) 'estimated_delivery_date': estimatedDeliveryDate,
+      'rejection_reason': ?reason,
+      'courier_id': ?courierId,
+      'estimated_delivery_date': ?estimatedDeliveryDate,
     });
   }
 
@@ -1172,6 +1184,9 @@ class ApiClient {
       );
     }
 
+    if (response.statusCode == 403 && decoded is Map && decoded['code'] == 'account_not_active') {
+      onAccountRestricted?.call(decoded['status']?.toString() ?? 'new');
+    }
     if (response.statusCode < 200 || response.statusCode >= 300) {
       final detail = decoded is Map<String, dynamic>
           ? decoded['detail']?.toString()

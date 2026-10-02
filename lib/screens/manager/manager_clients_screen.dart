@@ -23,6 +23,7 @@ class _ManagerClientsScreenState extends State<ManagerClientsScreen> {
   late final DataRepository _repo;
   late final PaginationController<Client> _controller;
 
+  int? _pendingCount;
   String? _filterStatus;
   String? _filterCategory;
 
@@ -33,11 +34,13 @@ class _ManagerClientsScreenState extends State<ManagerClientsScreen> {
     // Фильтры уходят на сервер — отбирать записи внутри загруженной страницы
     // нельзя, подходящие клиенты остались бы на других страницах.
     _controller = PaginationController<Client>(
-      fetchPage: (page) => _repo.managerClientsFiltered(
-        page: page,
-        status: _filterStatus,
-        category: _filterCategory,
-      ),
+      fetchPage: (page) async {
+        final result = await _repo.managerClientsFiltered(
+          page: page, status: _filterStatus, category: _filterCategory,
+        );
+        if (mounted) setState(() => _pendingCount = result.metadata['pendingCount'] as int?);
+        return result;
+      },
     );
   }
 
@@ -102,11 +105,14 @@ class _ManagerClientsScreenState extends State<ManagerClientsScreen> {
             child: PaginatedListView<Client>(
               controller: _controller,
               emptyMessage: 'НЕТ КЛИЕНТОВ',
-              itemBuilder: (_, client, __) => _ClientCard(
+              itemBuilder: (_, client, _) => _ClientCard(
                 client: client,
-                onTap: () => context.push(
+                onTap: () async {
+                  await context.push(
                   '${AppRoutes.managerClients}/${client.id}',
-                ),
+                  );
+                  if (mounted) _load();
+                },
               ),
             ),
           ),
@@ -157,10 +163,10 @@ class _ManagerClientsScreenState extends State<ManagerClientsScreen> {
             ),
             const SizedBox(width: 8),
             _FilterChip(
-              label: 'НОВЫЕ',
-              selected: _filterStatus == 'new',
+              label: 'НОВЫЕ РЕГИСТРАЦИИ${_pendingCount == null ? '' : ' ($_pendingCount)'}',
+              selected: _filterStatus == 'pending',
               onTap: () => setState(() {
-                _filterStatus = 'new';
+                _filterStatus = 'pending';
                 _filterCategory = null;
                 _load();
               }),
@@ -215,7 +221,7 @@ class _FilterChip extends StatelessWidget {
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        color: selected ? AppColors.brandRed : Colors.white.withOpacity(0.1),
+        color: selected ? AppColors.brandRed : Colors.white.withValues(alpha: 0.1),
         child: Text(
           label,
           style: TextStyle(
@@ -270,7 +276,7 @@ class _ClientCard extends StatelessWidget {
           ),
           shadows: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.08),
+              color: Colors.black.withValues(alpha: 0.08),
               blurRadius: 8,
               offset: const Offset(3, 3),
             ),
@@ -299,7 +305,7 @@ class _ClientCard extends StatelessWidget {
                   ),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    color: _statusColor.withOpacity(0.1),
+                    color: _statusColor.withValues(alpha: 0.1),
                     child: Text(
                       _statusLabel,
                       style: TextStyle(
@@ -585,7 +591,7 @@ class _RegistrationSheetState extends State<_RegistrationSheet> {
                         _FieldLabel(label: 'ТИП ОБЪЕКТА / КАТЕГОРИЯ', required: true),
                         const SizedBox(height: 6),
                         DropdownButtonFormField<String>(
-                          value: _category,
+                          initialValue: _category,
                           isExpanded: true,
                           decoration: _inputDecoration('Выберите тип объекта'),
                           items: _kBusinessTypes
@@ -602,7 +608,7 @@ class _RegistrationSheetState extends State<_RegistrationSheet> {
                         _FieldLabel(label: 'РЕГИОН', required: true),
                         const SizedBox(height: 6),
                         DropdownButtonFormField<Map<String, dynamic>>(
-                          value: _selectedRegion,
+                          initialValue: _selectedRegion,
                           isExpanded: true,
                           decoration: _inputDecoration(
                             _regions.isEmpty ? 'Нет доступных регионов' : 'Выберите регион',
@@ -631,7 +637,7 @@ class _RegistrationSheetState extends State<_RegistrationSheet> {
                         ),
                         const SizedBox(height: 6),
                         DropdownButtonFormField<Map<String, dynamic>>(
-                          value: _selectedDistributor,
+                          initialValue: _selectedDistributor,
                           isExpanded: true,
                           decoration: _inputDecoration('Выберите дистрибьютора (необязательно)'),
                           items: [

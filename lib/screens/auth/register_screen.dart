@@ -33,6 +33,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   // Page 2 fields
   final _contactCtrl = TextEditingController();
+  final _emailCtrl = TextEditingController();
   final _phoneCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
 
@@ -116,6 +117,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     _addressCtrl.dispose();
     _contactCtrl.dispose();
     _phoneCtrl.dispose();
+    _emailCtrl.dispose();
     _passwordCtrl.dispose();
     _referralCtrl.dispose();
     _termsTap.dispose();
@@ -151,6 +153,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
     try {
       final result = await _api.register({
         'username': _phoneCtrl.text,
+        'email': _emailCtrl.text.trim(),
+        'termsAccepted': _termsAccepted,
+        'personalDataConsent': _consentGiven,
         'password': _passwordCtrl.text,
         'inn': _innCtrl.text,
         'region_id': int.parse(_selectedRegionId!),
@@ -571,6 +576,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 border: OutlineInputBorder(borderRadius: BorderRadius.zero),
               ),
               validator: (v) => v!.isEmpty ? 'Введите телефон' : null,
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: _emailCtrl,
+              keyboardType: TextInputType.emailAddress,
+              decoration: const InputDecoration(labelText: 'EMAIL *', border: OutlineInputBorder()),
+              validator: (v) => RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(v?.trim() ?? '') ? null : 'Введите корректный email',
             ),
             const SizedBox(height: 16),
             TextFormField(

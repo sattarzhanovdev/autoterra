@@ -742,6 +742,8 @@ class _OrderReviewScreenState extends State<OrderReviewScreen> {
       children.add(const _StatusHint(text: 'Корректировка отправлена. Ждём ответа клиента.'));
     } else if (order.status == OrderStatus.confirmed) {
       children.add(const _StatusHint(text: 'Заказ подтверждён. Ждём оплату от клиента.'));
+    } else if (order.status == OrderStatus.shipped) {
+      children.add(_primaryButton(label: 'ПОДТВЕРДИТЬ ДОСТАВКУ', onPressed: () => _run(() => _repo.updateOrderStatus(widget.orderId, status: 'fulfilled'), 'Заказ доставлен')));
     } else if (order.status == OrderStatus.paid) {
       children.add(_primaryButton(label: 'ОТМЕТИТЬ ОТПРАВКУ', onPressed: _ship));
     }

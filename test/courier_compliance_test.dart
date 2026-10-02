@@ -26,7 +26,8 @@ void main() {
       await tester.pumpAndSettle();
 
       // 3. Verify screen changed
-      expect(find.text('ТЕКУЩИЙ МАРШРУТ'), findsOneWidget);
+      expect(tester.widget<BottomNavigationBar>(find.byType(BottomNavigationBar)).currentIndex, 1);
+      expect(find.text('НОВЫЕ'), findsNothing);
     });
   });
 

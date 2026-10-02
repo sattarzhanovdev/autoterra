@@ -82,7 +82,7 @@ class _CourierLayoutState extends State<CourierLayout> {
           onTap: (index) => setState(() => _currentIndex = index),
           backgroundColor: AppColors.brandBlack,
           selectedItemColor: AppColors.brandRed,
-          unselectedItemColor: Colors.white.withOpacity(0.5),
+          unselectedItemColor: Colors.white.withValues(alpha: 0.5),
           selectedLabelStyle: const TextStyle(
             fontWeight: FontWeight.bold,
             fontSize: 12,

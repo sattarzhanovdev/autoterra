@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../core/theme.dart';
 import '../../screens/admin/admin_dashboard_screen.dart';
+import '../../screens/distributor/distributor_orders_screen.dart';
 import '../../screens/admin/admin_integration_screen.dart';
 import '../../screens/admin/admin_manager_tasks_screen.dart';
 import '../../screens/manager/manager_clients_screen.dart';
@@ -32,6 +33,7 @@ class AdminLayoutState extends State<AdminLayout> {
     const AdminIntegrationScreen(),
     const AdminManagerTasksScreen(),
     const ProfileScreen(),
+    const DistributorOrdersScreen(),
   ];
 
   @override
@@ -57,6 +59,7 @@ class AdminLayoutState extends State<AdminLayout> {
             BottomNavigationBarItem(icon: Icon(Icons.sync_alt_outlined), activeIcon: Icon(Icons.sync_alt), label: 'ИНТЕГРАЦИИ 1С'),
             BottomNavigationBarItem(icon: Icon(Icons.task_outlined), activeIcon: Icon(Icons.task), label: 'ЗАДАЧИ'),
             BottomNavigationBarItem(icon: Icon(BrandIcons.person), activeIcon: Icon(BrandIcons.person), label: 'ПРОФИЛЬ'),
+            BottomNavigationBarItem(icon: Icon(Icons.shopping_bag_outlined), label: 'ЗАКАЗЫ'),
           ],
         ),
       ),

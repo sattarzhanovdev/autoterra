@@ -215,7 +215,7 @@ class _ManagerClientDetailScreenState extends State<ManagerClientDetailScreen> {
                 TextButton(
                   onPressed: _openStatusChange,
                   style: TextButton.styleFrom(
-                    backgroundColor: AppColors.brandRed.withOpacity(0.08),
+                    backgroundColor: AppColors.brandRed.withValues(alpha: 0.08),
                     foregroundColor: AppColors.brandRed,
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     shape: const BeveledRectangleBorder(
@@ -234,6 +234,10 @@ class _ManagerClientDetailScreenState extends State<ManagerClientDetailScreen> {
             _InfoRow(label: 'НАЗВАНИЕ', value: c['name']?.toString() ?? '—'),
             _InfoRow(label: 'СТАТУС', value: _kStatusLabels[c['status']?.toString()] ?? c['statusDisplay']?.toString() ?? c['status']?.toString() ?? '—'),
             _InfoRow(label: 'РЕГИОН', value: c['region']?.toString() ?? '—'),
+            _InfoRow(label: 'EMAIL', value: c['email']?.toString() ?? '—'),
+            _InfoRow(label: 'АДРЕС', value: c['address']?.toString() ?? '—'),
+            _InfoRow(label: 'ДАТА РЕГИСТРАЦИИ', value: c['createdAt']?.toString() ?? '—'),
+            _InfoRow(label: 'ИСТОЧНИК', value: c['registrationSource']?.toString() ?? '—'),
             _InfoRow(label: 'ГОРОД', value: c['city']?.toString() ?? '—'),
             _InfoRow(label: 'ПАРТНЁР', value: c['partnerStatus']?.toString() ?? '—'),
             if (c['distributorName'] != null)

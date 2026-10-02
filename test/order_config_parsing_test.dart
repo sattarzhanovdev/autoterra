@@ -36,8 +36,8 @@ Map<String, dynamic> _response({
       'email': 'd@e.co',
     },
     'stores': <Map<String, dynamic>>[],
-    if (categories != null) 'categories': categories,
-    if (brands != null) 'brands': brands,
+    'categories': ?categories,
+    'brands': ?brands,
     // Старый бэкенд дополнительно присылал весь каталог.
     if (legacyProducts) 'products': <Map<String, dynamic>>[],
   };

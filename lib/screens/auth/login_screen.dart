@@ -62,6 +62,8 @@ class _LoginScreenState extends State<LoginScreen> {
     final resetPhoneCtrl = TextEditingController(text: _phoneCtrl.text);
     final resetInnCtrl = TextEditingController();
     final resetPasswordCtrl = TextEditingController();
+    final resetCodeCtrl = TextEditingController();
+    var codeSent = false;
     var resetObscure = true;
 
     await showDialog<void>(
@@ -74,11 +76,16 @@ class _LoginScreenState extends State<LoginScreen> {
               if (!resetFormKey.currentState!.validate()) return;
               setDialogState(() => _resetLoading = true);
               try {
-                await ApiClient().resetPassword(
+                final result = await ApiClient().resetPassword(
                   phone: resetPhoneCtrl.text.trim(),
                   inn: resetInnCtrl.text.trim(),
                   newPassword: resetPasswordCtrl.text,
+                  code: resetCodeCtrl.text.trim(),
                 );
+                if (result['status'] == 'code_sent') {
+                  if (dialogContext.mounted) setDialogState(() { codeSent = true; _resetLoading = false; });
+                  return;
+                }
               } on ApiException catch (e) {
                 if (!dialogContext.mounted) return;
                 ScaffoldMessenger.of(dialogContext).showSnackBar(
@@ -162,6 +169,12 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       const SizedBox(height: 12),
                       TextFormField(
+                        controller: resetCodeCtrl,
+                        decoration: InputDecoration(labelText: 'Код из письма', helperText: codeSent ? 'Код отправлен на email аккаунта' : 'Сначала запросите код'),
+                        validator: (v) => codeSent && (v == null || v.trim().isEmpty) ? 'Введите код из письма' : null,
+                      ),
+                      const SizedBox(height: 12),
+                      TextFormField(
                         controller: resetPasswordCtrl,
                         obscureText: resetObscure,
                         decoration: InputDecoration(
@@ -208,7 +221,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             strokeWidth: 2,
                           ),
                         )
-                      : const Text('ОБНОВИТЬ'),
+                      : Text(codeSent ? 'ОБНОВИТЬ' : 'ПОЛУЧИТЬ КОД'),
                 ),
               ],
             );
@@ -220,6 +233,7 @@ class _LoginScreenState extends State<LoginScreen> {
     resetPhoneCtrl.dispose();
     resetInnCtrl.dispose();
     resetPasswordCtrl.dispose();
+    resetCodeCtrl.dispose();
     if (mounted && _resetLoading) {
       setState(() => _resetLoading = false);
     } else {

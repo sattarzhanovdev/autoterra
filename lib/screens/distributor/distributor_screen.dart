@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/theme.dart';
+import '../../models/models.dart';
 import '../../core/constants.dart';
 import '../../services/data_repository.dart';
 import '../../widgets/common/section_header.dart';
@@ -102,7 +103,7 @@ class _DistributorScreenState extends State<DistributorScreen> {
     );
   }
 
-  Widget _buildDistCard(dist) {
+  Widget _buildDistCard(Distributor dist) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),

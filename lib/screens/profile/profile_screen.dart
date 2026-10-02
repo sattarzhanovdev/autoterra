@@ -507,7 +507,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               itemCount: _stores.length,
-              separatorBuilder: (_, __) => const Divider(height: 1),
+              separatorBuilder: (_, _) => const Divider(height: 1),
               itemBuilder: (context, index) {
                 final store = _stores[index];
                 return ListTile(

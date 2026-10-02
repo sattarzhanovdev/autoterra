@@ -25,7 +25,7 @@ Map<String, dynamic> _response({
       'distributorId': '1',
       'status': 'active',
       'createdAt': '2026-01-01T00:00:00Z',
-      if (referralCode != null) 'referralCode': referralCode,
+      'referralCode': ?referralCode,
     },
     'distributor': {
       'id': '1',
@@ -38,7 +38,7 @@ Map<String, dynamic> _response({
     'unreadCount': 0,
     'recentPurchases': <Map<String, dynamic>>[],
     'activeColorRequests': <Map<String, dynamic>>[],
-    if (referralSummary != null) 'referralSummary': referralSummary,
+    'referralSummary': ?referralSummary,
   };
 }
 

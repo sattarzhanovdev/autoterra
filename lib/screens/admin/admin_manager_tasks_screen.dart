@@ -198,7 +198,7 @@ class _AdminManagerTasksScreenState extends State<AdminManagerTasksScreen> {
           const Text('ФИЛЬТР', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 11, color: AppColors.brandRed, letterSpacing: 1)),
           const SizedBox(height: 12),
           DropdownButtonFormField<String>(
-            value: _filterManagerId,
+            initialValue: _filterManagerId,
             isExpanded: true,
             decoration: const InputDecoration(
               labelText: 'МЕНЕДЖЕР',
@@ -804,7 +804,7 @@ class _CreateTaskSheetState extends State<_CreateTaskSheet> {
     }
 
     return DropdownButtonFormField<String>(
-      value: _selectedManagerId,
+      initialValue: _selectedManagerId,
       isExpanded: true,
       decoration: _fieldDecoration('Выберите менеджера'),
       items: _managers
@@ -842,7 +842,7 @@ class _CreateTaskSheetState extends State<_CreateTaskSheet> {
     }
 
     return DropdownButtonFormField<String>(
-      value: _selectedClientId,
+      initialValue: _selectedClientId,
       isExpanded: true,
       decoration: _fieldDecoration('Выберите клиента'),
       items: _clients

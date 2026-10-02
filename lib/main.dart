@@ -39,6 +39,15 @@ Future<void> main() async {
   // «Unauthorized» посреди формы: роутер слушает authService и сам сделает
   // редирект, как только токен пропадёт.
   ApiClient.onUnauthorized = () => authService.logout();
+  ApiClient.onAccountRestricted = authService.restrictAccount;
+  if (!kIsWeb) authService.beforeLogout = () => PushNotificationManager().unregisterDevice();
+  if (ApiClient.isAuthorized) {
+    try {
+      await authService.refreshUser();
+    } catch (_) {
+      // Fail closed: the account screen offers a retry when offline.
+    }
+  }
   await initializeDateFormatting('ru_RU');
   SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
   SystemChrome.setSystemUIOverlayStyle(

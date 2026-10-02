@@ -94,6 +94,7 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
         context.pop();
       }
     } on ApiException catch (e) {
+      if (!mounted) return;
       setState(() => _loading = false);
       if (e.details is Map && (e.details as Map)['error'] == 'duplicate_detected') {
         _showDuplicateDialog((e.details as Map)['message'] ?? e.message);
@@ -103,6 +104,7 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
         );
       }
     } catch (e) {
+      if (!mounted) return;
       setState(() => _loading = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(e.toString()), backgroundColor: AppColors.brandRed),
@@ -241,8 +243,9 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
             ),
             validator: (v) {
               if (v!.isEmpty) return 'Введите сумму';
-              if (double.tryParse(v.replaceAll(' ', '').replaceAll(',', '.')) == null)
+              if (double.tryParse(v.replaceAll(' ', '').replaceAll(',', '.')) == null) {
                 return 'Неверный формат';
+              }
               return null;
             },
           ),

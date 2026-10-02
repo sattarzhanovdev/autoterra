@@ -30,7 +30,7 @@ void main() {
       home: Scaffold(
         body: PaginatedListView<String>(
           controller: controller,
-          itemBuilder: (_, item, __) => Text(item),
+          itemBuilder: (_, item, _) => Text(item),
         ),
       ),
     );

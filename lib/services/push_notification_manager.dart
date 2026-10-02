@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 
 import '../core/constants.dart';
 import 'api_client.dart';
+import 'auth_service.dart';
 
 /// Top-level FCM background handler — must NOT be a closure or class method.
 /// The @pragma annotation keeps it from being tree-shaken in release builds.
@@ -38,7 +39,7 @@ class PushNotificationManager {
 
     if (!_listenersRegistered) {
       _listenersRegistered = true;
-      await _setupLocalNotifications();
+      await _setupLocalNotifications(router);
       _listenTokenRefresh();
       _listenForeground();
       _listenBackgroundTap(router);
@@ -70,7 +71,7 @@ class PushNotificationManager {
 
   // ── 2. Local notifications (Android foreground display) ───────────────────
 
-  Future<void> _setupLocalNotifications() async {
+  Future<void> _setupLocalNotifications(GoRouter router) async {
     const androidSettings =
         AndroidInitializationSettings('@drawable/ic_notification');
     const iosSettings = DarwinInitializationSettings();
@@ -95,6 +96,11 @@ class PushNotificationManager {
   }
 
   // ── 3. Token registration ─────────────────────────────────────────────────
+
+  Future<void> unregisterDevice() async {
+    final token = await _fcm.getToken();
+    if (token != null) await ApiClient().registerDeviceToken(token: token, platform: Platform.isIOS ? 'ios' : 'android', remove: true);
+  }
 
   Future<void> _registerToken() async {
     final token = await _fcm.getToken();
@@ -121,6 +127,9 @@ class PushNotificationManager {
 
   void _listenForeground() {
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+      if (ApiClient.isAuthorized) {
+        authService.refreshUser().catchError((Object _) {});
+      }
       final n = message.notification;
       if (n == null) return;
 
@@ -139,6 +148,7 @@ class PushNotificationManager {
           ),
           iOS: DarwinNotificationDetails(),
         ),
+        payload: message.data['relatedLink'] as String?,
       );
     });
   }
@@ -166,7 +176,7 @@ class PushNotificationManager {
 
   void _navigateFromMessage(GoRouter router, RemoteMessage message) {
     final relatedLink = message.data['relatedLink'] as String?;
-    if (relatedLink != null && relatedLink.isNotEmpty) {
+    if (relatedLink != null && relatedLink.startsWith('/') && !relatedLink.startsWith('//')) {
       router.push(relatedLink);
     } else {
       router.push(AppRoutes.notifications);

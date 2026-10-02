@@ -81,12 +81,14 @@ class PageInfo {
 class Paginated<T> {
   final List<T> items;
   final PageInfo pageInfo;
+  final Map<String, dynamic> metadata;
 
-  const Paginated({required this.items, required this.pageInfo});
+  const Paginated({required this.items, required this.pageInfo, this.metadata = const {}});
 
   const Paginated.empty()
       : items = const [],
-        pageInfo = PageInfo.empty;
+        pageInfo = PageInfo.empty,
+        metadata = const {};
 
   int get page => pageInfo.page;
   int get count => pageInfo.count;
@@ -98,6 +100,7 @@ class Paginated<T> {
   Paginated<R> map<R>(R Function(T item) convert) => Paginated<R>(
         items: items.map(convert).toList(),
         pageInfo: pageInfo,
+        metadata: metadata,
       );
 
   /// Собирает страницу из ответа API вида
@@ -110,6 +113,7 @@ class Paginated<T> {
         .toList();
     return Paginated<Map<String, dynamic>>(
       items: items,
+      metadata: {if (json.containsKey('pendingCount')) 'pendingCount': json['pendingCount']},
       pageInfo: PageInfo.fromJson(
         json['pagination'] as Map<String, dynamic>?,
         fallbackCount: items.length,

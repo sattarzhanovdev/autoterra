@@ -50,7 +50,7 @@ extension OrderStatusExtension on OrderStatus {
 
   /// Клиент может инициировать оплату.
   bool get isPayable =>
-      this == OrderStatus.confirmed || this == OrderStatus.accepted;
+      this == OrderStatus.confirmed;
 }
 
 enum StockStatus { inStock, low, onOrder, outOfStock }

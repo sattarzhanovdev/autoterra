@@ -514,7 +514,7 @@ class _NewColorRequestSheetState extends State<_NewColorRequestSheet> {
                 const SizedBox(height: 12),
                 SwitchListTile(
                   contentPadding: EdgeInsets.zero,
-                  activeColor: AppColors.brandRed,
+                  activeThumbColor: AppColors.brandRed,
                   value: _urgent,
                   onChanged: (v) => setState(() => _urgent = v),
                   title: const Text('СРОЧНО', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 0.5)),

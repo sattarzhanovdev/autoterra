@@ -71,7 +71,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       setState(() {
         _analytics = res;
       });
-    } catch (e) {}
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Не удалось обновить данные: $e')));
+    }
   }
 
   @override
@@ -141,6 +143,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                   _buildKpiCard('Выручка', '${fmt.format(turnover)} ₽', Icons.payments, highlight: isGlobal),
                   _buildKpiCard('Заказы', orders.toString(), BrandIcons.cart),
                   _buildKpiCard('Тикеты (актив)', tickets.toString(), Icons.support_agent),
+                  for (final e in const {'pendingRegistrations':'Новые регистрации', 'activeClients':'Активные клиенты', 'paidOrders':'Оплаченные заказы', 'pendingPurchases':'Покупки на проверке', 'colorLab':'Color Lab', 'deliveries':'Доставки'}.entries)
+                    _buildKpiCard(e.value, (_analytics?[e.key] ?? 0).toString(), Icons.analytics_outlined),
                 ],
               ),
               const SizedBox(height: 24),
@@ -445,7 +449,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             children: [
               Expanded(
                 child: DropdownButtonFormField<String>(
-                  value: _selectedRegionId,
+                  initialValue: _selectedRegionId,
                   isExpanded: true,
                   decoration: const InputDecoration(labelText: 'РЕГИОН', contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8)),
                   items: [
@@ -461,7 +465,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               const SizedBox(width: 12),
               Expanded(
                 child: DropdownButtonFormField<String>(
-                  value: _selectedDistributorId,
+                  initialValue: _selectedDistributorId,
                   isExpanded: true,
                   decoration: const InputDecoration(labelText: 'ДИСТРИБЬЮТОР', contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8)),
                   items: [
