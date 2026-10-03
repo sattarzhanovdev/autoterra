@@ -78,6 +78,12 @@ class PushNotificationManager {
 
     await _localNotifications.initialize(
       const InitializationSettings(android: androidSettings, iOS: iosSettings),
+      onDidReceiveNotificationResponse: (response) {
+        final link = response.payload;
+        if (link != null && link.startsWith('/') && !link.startsWith('//')) {
+          router.push(link);
+        }
+      },
     );
 
     // Android 8+ requires an explicit notification channel.

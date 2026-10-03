@@ -113,7 +113,7 @@ class Paginated<T> {
         .toList();
     return Paginated<Map<String, dynamic>>(
       items: items,
-      metadata: {if (json.containsKey('pendingCount')) 'pendingCount': json['pendingCount']},
+      metadata: {if (json.containsKey('pendingCount')) 'pendingCount': json['pendingCount'], if (json.containsKey('categories')) 'categories': json['categories'], if (json.containsKey('unreadCount')) 'unreadCount': json['unreadCount']},
       pageInfo: PageInfo.fromJson(
         json['pagination'] as Map<String, dynamic>?,
         fallbackCount: items.length,

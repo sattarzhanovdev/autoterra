@@ -170,10 +170,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
         // Кто-то мог заявить это СТО вручную ещё до регистрации. Такая заявка
         // не даёт права на подарок, пока клиент сам её не подтвердит, — и
         // спросить об этом лучше сейчас, пока человек помнит, кто его звал.
-        await _askAboutPendingClaim(
+        if (result["requires_approval"] != true) {
+          await _askAboutPendingClaim(
           PendingReferralClaim.fromJson(result['pendingReferral']),
           result['token'] as String?,
         );
+        }
         if (!mounted) return;
         _showSuccessDialog(result['requires_approval'] == true);
       }

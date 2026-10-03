@@ -520,9 +520,12 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
         children.add(
           _textButton('ОТКАЗАТЬСЯ ОТ ЗАКАЗА', _cancel, isDestructive: true),
         );
-      case OrderStatus.confirmed:
       case OrderStatus.accepted:
-        children.add(
+        children.add(const _Hint("Ожидается подтверждение заказа оператором."));
+        children.add(_textButton("ОТМЕНИТЬ ЗАКАЗ", _cancel, isDestructive: true));
+      case OrderStatus.confirmed:
+        if (order.isPayable) {
+          children.add(
           _primaryButton(
             order.pendingPaymentUrl != null
                 ? 'ПРОДОЛЖИТЬ ОПЛАТУ В ЮKASSA'
@@ -530,6 +533,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
             _pay,
           ),
         );
+        }
         children.add(
           _textButton('ОТМЕНИТЬ ЗАКАЗ', _cancel, isDestructive: true),
         );

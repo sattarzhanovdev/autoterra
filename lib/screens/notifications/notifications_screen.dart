@@ -16,6 +16,7 @@ class NotificationsScreen extends StatefulWidget {
 }
 
 class _NotificationsScreenState extends State<NotificationsScreen> {
+  int _unread = 0;
   late final PaginationController<app_models.Notification> _controller;
 
   @override
@@ -25,7 +26,11 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     // «прочитанные» при постраничной подгрузке нельзя — секции перемешались бы
     // по мере догрузки. Непрочитанные подсвечены в самой карточке.
     _controller = PaginationController<app_models.Notification>(
-      fetchPage: (page) => DataRepository().notifications(page: page),
+      fetchPage: (page) async {
+        final result = await DataRepository().notifications(page: page);
+        if (mounted) setState(() => _unread = (result.metadata['unreadCount'] as num?)?.toInt() ?? 0);
+        return result;
+      },
     );
   }
 
@@ -42,13 +47,19 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       await DataRepository().markNotificationsRead();
       await _refresh();
     } catch (e) {
-      //
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Не удалось отметить уведомления: $e')));
     }
   }
 
-  void _handleTap(app_models.Notification n) {
-    if (n.relatedLink != null && n.relatedLink!.isNotEmpty) {
-      context.push(n.relatedLink!);
+  Future<void> _handleTap(app_models.Notification n) async {
+    try {
+      await DataRepository().markNotificationsRead(ids: [n.id]);
+      if (!mounted) return;
+      _refresh();
+      final link = n.relatedLink;
+      if (link != null && link.startsWith('/') && !link.startsWith('//')) context.push(link);
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Не удалось открыть уведомление: $e')));
     }
   }
 
@@ -56,7 +67,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('УВЕДОМЛЕНИЯ'),
+        title: Text('УВЕДОМЛЕНИЯ ($_unread)'),
         actions: [
           TextButton(
             onPressed: _readAll,

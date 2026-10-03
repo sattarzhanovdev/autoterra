@@ -216,7 +216,7 @@ class OrderCard extends StatelessWidget {
     final needsReview = isDistributor && order.status == OrderStatus.newOrder;
     // Клиенту нужно ответить на корректировку или оплатить подтверждённый заказ.
     final needsClientAction = !isDistributor &&
-        (order.status == OrderStatus.adjusted || order.status.isPayable);
+        (order.status == OrderStatus.adjusted || order.isPayable);
 
     final isNew = tier == _OrderTier.fresh;
     final isDone = tier == _OrderTier.processed;

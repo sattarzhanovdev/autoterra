@@ -268,7 +268,7 @@ class DataRepository {
       inStockOnly: inStockOnly,
     );
     final parsed = await compute(_parseProductList, result.items);
-    return Paginated(items: parsed, pageInfo: result.pageInfo);
+    return Paginated(items: parsed, pageInfo: result.pageInfo, metadata: result.metadata);
   }
 
   /// Магазины клиента целиком — список короткий и нужен в выпадающих списках.
@@ -320,7 +320,7 @@ class DataRepository {
         ? await _api.distributorOrders(page: page, pageSize: pageSize)
         : await _api.orders(page: page, pageSize: pageSize);
     final parsed = await compute(_parseOrderList, result.items);
-    return Paginated(items: parsed, pageInfo: result.pageInfo);
+    return Paginated(items: parsed, pageInfo: result.pageInfo, metadata: result.metadata);
   }
 
   static List<Order> _parseOrderList(List<dynamic> items) {
@@ -426,16 +426,18 @@ class DataRepository {
     int pageSize = ApiClient.defaultPageSize,
     String? search,
     String? category,
+    String? clientId,
   }) async {
     final result = await _api.distributorStock(
       page: page,
       pageSize: pageSize,
       search: search,
       category: category,
+      clientId: clientId,
     );
     // Use compute for large lists to keep UI responsive
     final parsed = await compute(_parseProductList, result.items);
-    return Paginated(items: parsed, pageInfo: result.pageInfo);
+    return Paginated(items: parsed, pageInfo: result.pageInfo, metadata: result.metadata);
   }
 
   static List<ProductData> _parseProductList(List<dynamic> items) {
@@ -513,8 +515,8 @@ class DataRepository {
     return _api.adminIntegrationLogs(page: page, pageSize: pageSize);
   }
 
-  Future<Map<String, dynamic>> adminAnalytics({String? regionId, String? distributorId}) {
-    return _api.adminAnalytics(regionId: regionId, distributorId: distributorId);
+  Future<Map<String, dynamic>> adminAnalytics({String? regionId, String? distributorId, String? dateFrom, String? dateTo}) {
+    return _api.adminAnalytics(regionId: regionId, distributorId: distributorId, dateFrom: dateFrom, dateTo: dateTo);
   }
 
   Future<void> createCourierTask(Map<String, dynamic> data) async {
@@ -650,8 +652,8 @@ class DataRepository {
     return result.map(_notificationFromJson);
   }
 
-  Future<void> markNotificationsRead() async {
-    await _api.markNotificationsRead();
+  Future<void> markNotificationsRead({List<String>? ids}) async {
+    await _api.markNotificationsRead(ids: ids);
   }
 
   Future<void> sendNotification({
@@ -1066,6 +1068,8 @@ class DataRepository {
       clientName: _toString(json['clientName']),
       clientInn: _toString(json['clientInn']),
       distributorId: json['distributorId']?.toString() ?? '',
+      clientRegion: _toString(json['clientRegion']),
+      storeAddress: _toString(json['storeAddress']),
       storeName: json['storeName']?.toString() ?? '',
       documentNumber: json['documentNumber']?.toString() ?? '',
       date: DateTime.tryParse(json['date']?.toString() ?? '') ?? DateTime.now(),

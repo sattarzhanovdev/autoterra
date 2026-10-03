@@ -200,7 +200,7 @@ class _OrderReviewScreenState extends State<OrderReviewScreen> {
   }
 
   Future<void> _addProduct() async {
-    final product = await showProductPickerSheet(context);
+    final product = await showProductPickerSheet(context, clientId: _order?.clientId);
     if (product == null || !mounted) return;
 
     // Тот же товар мог уже быть в заказе или добавлен ранее — наращиваем
@@ -435,6 +435,8 @@ class _OrderReviewScreenState extends State<OrderReviewScreen> {
         padding: const EdgeInsets.all(16),
         children: [
           _OrderSummary(order: order),
+          if (order.clientRegion?.isNotEmpty == true) Padding(padding: const EdgeInsets.only(top: 8), child: Text('Регион: ${order.clientRegion}')),
+          if (order.storeAddress?.isNotEmpty == true) Padding(padding: const EdgeInsets.only(top: 8), child: Text('Адрес: ${order.storeAddress}')),
           const SizedBox(height: 16),
 
           // Правки требуют id позиций. Если сервер их не прислал, объясняем
@@ -728,7 +730,9 @@ class _OrderReviewScreenState extends State<OrderReviewScreen> {
   Widget? _buildActions(Order order) {
     final children = <Widget>[];
 
-    if (order.status == OrderStatus.newOrder) {
+    if (order.status == OrderStatus.accepted) {
+      children.add(_primaryButton(label: "ПОДТВЕРДИТЬ ДЛЯ ОПЛАТЫ", onPressed: () => _confirm()));
+    } else if (order.status == OrderStatus.newOrder) {
       if (_isModified) {
         children.add(_primaryButton(
           label: _hasAnyItem ? 'ОТПРАВИТЬ КОРРЕКТИРОВКУ' : 'НЕЧЕГО ПОДТВЕРЖДАТЬ',

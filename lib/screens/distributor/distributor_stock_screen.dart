@@ -19,6 +19,8 @@ class _DistributorStockScreenState extends State<DistributorStockScreen> {
   late final PaginationController<ProductData> _controller;
   bool _isUploading = false;
   String _searchQuery = '';
+  String? _category;
+  List<String> _categories = [];
 
   @override
   void initState() {
@@ -26,10 +28,11 @@ class _DistributorStockScreenState extends State<DistributorStockScreen> {
     // Поиск выполняется на сервере: при пагинации фильтровать загруженную
     // страницу на клиенте нельзя — совпадения с других страниц потерялись бы.
     _controller = PaginationController<ProductData>(
-      fetchPage: (page) => _repo.distributorStock(
-        page: page,
-        search: _searchQuery.isEmpty ? null : _searchQuery,
-      ),
+      fetchPage: (page) async {
+        final result = await _repo.distributorStock(page: page, search: _searchQuery.isEmpty ? null : _searchQuery, category: _category);
+        if (mounted) setState(() => _categories = (result.metadata['categories'] as List? ?? []).map((v) => v.toString()).toList());
+        return result;
+      },
     );
   }
 
@@ -192,6 +195,11 @@ class _DistributorStockScreenState extends State<DistributorStockScreen> {
               ),
             ),
           ),
+          Padding(padding: const EdgeInsets.symmetric(horizontal: 16), child: DropdownButton<String>(
+            value: _category, isExpanded: true, hint: const Text('Все категории'),
+            items: [const DropdownMenuItem<String>(value: null, child: Text('Все категории')), for (final category in _categories) DropdownMenuItem(value: category, child: Text(category))],
+            onChanged: (value) { setState(() => _category = value); _fetch(); },
+          )),
           Expanded(
             child: PaginatedListView<ProductData>(
               controller: _controller,

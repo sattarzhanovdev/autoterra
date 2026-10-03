@@ -13,18 +13,19 @@ import '../../widgets/common/product_photo.dart';
 ///
 /// Каталог грузится страницами с серверным поиском: у дистрибьютора могут быть
 /// сотни позиций, выкачивать их целиком ради одного выбора незачем.
-Future<ProductData?> showProductPickerSheet(BuildContext context) {
+Future<ProductData?> showProductPickerSheet(BuildContext context, {String? clientId}) {
   return showModalBottomSheet<ProductData>(
     context: context,
     isScrollControlled: true,
     useSafeArea: true,
     backgroundColor: Colors.transparent,
-    builder: (_) => const _ProductPickerSheet(),
+    builder: (_) => _ProductPickerSheet(clientId: clientId),
   );
 }
 
 class _ProductPickerSheet extends StatefulWidget {
-  const _ProductPickerSheet();
+  final String? clientId;
+  const _ProductPickerSheet({this.clientId});
 
   @override
   State<_ProductPickerSheet> createState() => _ProductPickerSheetState();
@@ -44,6 +45,7 @@ class _ProductPickerSheetState extends State<_ProductPickerSheet> {
     _controller = PaginationController<ProductData>(
       fetchPage: (page) => _repo.distributorStock(
         page: page,
+        clientId: widget.clientId,
         search: _search.isEmpty ? null : _search,
       ),
     );

@@ -250,6 +250,8 @@ class Order {
   final String clientId;
   final String? clientName;
   final String? clientInn;
+  final String? clientRegion;
+  final String? storeAddress;
   final String distributorId;
   final String storeName;
   final String documentNumber;
@@ -283,6 +285,8 @@ class Order {
     required this.clientId,
     this.clientName,
     this.clientInn,
+    this.clientRegion,
+    this.storeAddress,
     required this.distributorId,
     required this.storeName,
     required this.documentNumber,

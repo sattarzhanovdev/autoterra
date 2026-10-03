@@ -27,6 +27,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   String? _selectedRegionId;
   String? _selectedDistributorId;
   bool _loading = true;
+  DateTimeRange? _period;
+  String? get _dateFrom => _period == null ? null : DateFormat("yyyy-MM-dd").format(_period!.start);
+  String? get _dateTo => _period == null ? null : DateFormat("yyyy-MM-dd").format(_period!.end);
 
   @override
   void initState() {
@@ -38,14 +41,14 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     setState(() => _loading = true);
     try {
       final res = await Future.wait([
-        _repo.adminAnalytics(regionId: _selectedRegionId, distributorId: _selectedDistributorId),
-        _api.getRegions(),
-        _api.getDistributors(),
+        _repo.adminAnalytics(regionId: _selectedRegionId, distributorId: _selectedDistributorId, dateFrom: _dateFrom, dateTo: _dateTo),
+        fetchAllPages((page) => _api.getRegions(page: page)),
+        fetchAllPages((page) => _api.getDistributors(page: page)),
       ]);
       setState(() {
         _analytics = res[0] as Map<String, dynamic>;
-        _regions = (res[1] as Paginated<Map<String, dynamic>>).items;
-        _distributors = (res[2] as Paginated<Map<String, dynamic>>).items;
+        _regions = res[1] as List<Map<String, dynamic>>;
+        _distributors = res[2] as List<Map<String, dynamic>>;
         _loading = false;
       });
     } catch (e) {
@@ -67,7 +70,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
 
   Future<void> _fetch() async {
     try {
-      final res = await _repo.adminAnalytics(regionId: _selectedRegionId, distributorId: _selectedDistributorId);
+      final res = await _repo.adminAnalytics(regionId: _selectedRegionId, distributorId: _selectedDistributorId, dateFrom: _dateFrom, dateTo: _dateTo);
       setState(() {
         _analytics = res;
       });
@@ -90,7 +93,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
 
     final fmt = NumberFormat('#,##0', 'ru_RU');
     final clients = _analytics?['totalClients'] ?? 0;
-    final turnover = _analytics?['monthlyTurnover'] ?? 0.0;
+    final turnover = _analytics?[_period == null ? 'monthlyTurnover' : 'turnover'] ?? 0.0;
     final orders = _analytics?['newOrders'] ?? 0; 
     final tickets = _analytics?['openTickets'] ?? 0;
     final actions = (_analytics?['recentActions'] as List?)?.cast<Map<String, dynamic>>() ?? [];
@@ -443,7 +446,16 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('ФИЛЬТРЫ ДАННЫХ', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 11, color: AppColors.brandRed)),
+          Row(children: [
+            TextButton.icon(icon: const Icon(Icons.date_range), label: Text(_period == null ? 'Выбрать период' : '${DateFormat('dd.MM.yyyy').format(_period!.start)} — ${DateFormat('dd.MM.yyyy').format(_period!.end)}'), onPressed: () async {
+              final period = await showDateRangePicker(context: context, firstDate: DateTime(2020), lastDate: DateTime.now().add(const Duration(days: 1)), initialDateRange: _period);
+              if (!mounted || period == null) return;
+              setState(() => _period = period);
+              _fetch();
+            }),
+            if (_period != null) IconButton(onPressed: () { setState(() => _period = null); _fetch(); }, icon: const Icon(Icons.clear)),
+          ]),
+          const Text('ФИЛЬТРЫ ДАННЫХ' , style: TextStyle(fontWeight: FontWeight.w900, fontSize: 11, color: AppColors.brandRed)),
           const SizedBox(height: 16),
           Row(
             children: [

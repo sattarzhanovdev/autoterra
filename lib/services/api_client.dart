@@ -376,8 +376,8 @@ class ApiClient {
     return _getPage('/notifications/', page: page, pageSize: pageSize);
   }
 
-  Future<void> markNotificationsRead() async {
-    await _post('/notifications/read/', {});
+  Future<void> markNotificationsRead({List<String>? ids}) async {
+    await _post('/notifications/read/', {'ids': ?ids});
   }
 
   Future<Map<String, dynamic>> distributorReports() => _get('/distributor/reports/');
@@ -854,12 +854,13 @@ class ApiClient {
     int pageSize = defaultPageSize,
     String? search,
     String? category,
+    String? clientId,
   }) {
     return _getPage(
       '/distributor/stock/',
       page: page,
       pageSize: pageSize,
-      filters: {'search': search, 'category': category},
+      filters: {'search': search, 'category': category, 'clientId': clientId},
     );
   }
 
@@ -881,11 +882,13 @@ class ApiClient {
     return _getPage('/admin/integration/logs/', page: page, pageSize: pageSize);
   }
 
-  Future<Map<String, dynamic>> adminAnalytics({String? regionId, String? distributorId}) async {
+  Future<Map<String, dynamic>> adminAnalytics({String? regionId, String? distributorId, String? dateFrom, String? dateTo}) async {
     String path = '/admin/analytics/';
     final params = <String>[];
     if (regionId != null) params.add('region=$regionId');
     if (distributorId != null) params.add('distributor=$distributorId');
+    if (dateFrom != null) params.add('dateFrom=$dateFrom');
+    if (dateTo != null) params.add('dateTo=$dateTo');
     if (params.isNotEmpty) path += '?${params.join('&')}';
     return _get(path);
   }
