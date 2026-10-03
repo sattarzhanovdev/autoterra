@@ -328,14 +328,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
             const SizedBox(height: 16),
             Text(
               requiresApproval
-                  ? 'Заявка на регистрацию филиала отправлена на модерацию.'
+                  ? 'Заявка на регистрацию отправлена на проверку.'
                   : 'Регистрация успешно завершена.',
               style: const TextStyle(color: Colors.white, fontSize: 14),
             ),
             const SizedBox(height: 8),
-            const Text(
-              'Вы можете войти в систему после подтверждения.',
-              style: TextStyle(color: Colors.white70, fontSize: 12),
+            Text(
+              requiresApproval
+                  ? 'После подтверждения менеджером вы получите доступ к приложению.'
+                  : 'Аккаунт активен. Можно войти в систему.',
+              style: const TextStyle(color: Colors.white70, fontSize: 12),
             ),
           ],
         ),
