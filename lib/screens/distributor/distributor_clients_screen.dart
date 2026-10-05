@@ -1,3 +1,4 @@
+import '../clients/personal_prices_screen.dart';
 import 'package:flutter/material.dart';
 import '../../core/theme.dart';
 import '../../models/models.dart';
@@ -157,6 +158,7 @@ class ClientListCard extends StatelessWidget {
                   _infoRow('КОНТАКТ', client.contact),
                   _infoRow('ТЕЛЕФОН', client.phone),
                   _infoRow('ЗАКУПКИ', '${client.totalPurchases.toStringAsFixed(0)} ₽'),
+                  ClientPersonalPricesTile(clientId: client.id),
 
                 ],
               ),

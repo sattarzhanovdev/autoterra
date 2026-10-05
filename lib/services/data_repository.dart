@@ -26,6 +26,9 @@ class ProductData {
   final String? tnved;
   final String? vatRate;
   final double price;
+  final double? basePrice;
+  final double? personalPrice;
+  final String priceSource;
   final int quantity;
   final StockStatus status;
   final DateTime updatedAt;
@@ -52,6 +55,9 @@ class ProductData {
     this.tnved,
     this.vatRate,
     required this.price,
+    this.basePrice,
+    this.personalPrice,
+    this.priceSource = 'base',
     required this.quantity,
     required this.status,
     required this.updatedAt,
@@ -249,8 +255,21 @@ class DataRepository {
     );
   }
 
-  /// Страница каталога для клиента. Фильтры уходят на сервер: отбирать внутри
-  /// страницы нельзя — подходящие товары остались бы на других страницах.
+  /// Управление ценами клиента; доступ проверяет сервер.
+  Future<Paginated<Map<String, dynamic>>> clientPrices(String clientId, {
+    int page = 1, String? search, bool overridesOnly = true,
+  }) => _api.clientPrices(clientId, page: page, search: search, overridesOnly: overridesOnly);
+
+  Future<void> saveClientPrice(String clientId, String productId, {
+    required String price, required bool isActive,
+  }) async {
+    await _api.saveClientPrice(clientId, productId, price: price, isActive: isActive);
+  }
+
+  Future<void> deleteClientPrice(String clientId, String productId) =>
+      _api.deleteClientPrice(clientId, productId);
+
+  /// Страница каталога с итоговыми ценами текущего клиента.
   Future<Paginated<ProductData>> products({
     int page = 1,
     int pageSize = ApiClient.defaultPageSize,
@@ -1073,6 +1092,9 @@ class DataRepository {
       tnved: _toString(json['tnved']),
       vatRate: _toString(json['vatRate']),
       price: _toDouble(json['price']),
+      basePrice: json['basePrice'] == null ? null : _toDouble(json['basePrice']),
+      personalPrice: json['personalPrice'] == null ? null : _toDouble(json['personalPrice']),
+      priceSource: json['priceSource']?.toString() ?? 'base',
       quantity: _toInt(json['quantity']),
       status: _stockStatus(json['status']?.toString() ?? 'inStock'),
       updatedAt: DateTime.tryParse(json['updatedAt']?.toString() ?? '') ?? DateTime.now(),

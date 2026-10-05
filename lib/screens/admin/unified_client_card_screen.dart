@@ -1,3 +1,4 @@
+import '../clients/personal_prices_screen.dart';
 import 'package:flutter/material.dart';
 import '../../core/theme.dart';
 import '../../services/data_repository.dart';
@@ -46,7 +47,7 @@ class _UnifiedClientCardScreenState extends State<UnifiedClientCardScreen> {
     final tickets = _data!['tickets'] as List;
 
     return DefaultTabController(
-      length: 4,
+      length: 5,
       child: Scaffold(
         backgroundColor: AppColors.canvas,
         appBar: AppBar(
@@ -59,6 +60,7 @@ class _UnifiedClientCardScreenState extends State<UnifiedClientCardScreen> {
               Tab(text: 'ЗАКАЗЫ'),
               Tab(text: 'ЦВЕТ'),
               Tab(text: 'AI/QA'),
+              Tab(text: 'ПЕРСОНАЛЬНЫЕ ЦЕНЫ'),
             ],
           ),
         ),
@@ -68,6 +70,10 @@ class _UnifiedClientCardScreenState extends State<UnifiedClientCardScreen> {
             _buildList(orders, 'ЗАКАЗЫ'),
             _buildList(colorReqs, 'КОЛЕРОВКА'),
             _buildList(tickets, 'ТИКЕТЫ'),
+            Padding(
+              padding: const EdgeInsets.only(bottom: 80),
+              child: PersonalPricesScreen(clientId: widget.clientId, embedded: true),
+            ),
           ],
         ),
         floatingActionButton: FloatingActionButton.extended(
@@ -184,4 +190,3 @@ class _SendNotificationDialogState extends State<_SendNotificationDialog> {
     );
   }
 }
-

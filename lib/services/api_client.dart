@@ -417,6 +417,20 @@ class ApiClient {
     return _getPage('/manager/clients/', page: page, pageSize: pageSize);
   }
 
+  Future<Paginated<Map<String, dynamic>>> clientPrices(String clientId, {
+    int page = 1, String? search, bool overridesOnly = true,
+  }) => _getPage('/clients/$clientId/prices/', page: page, filters: {
+    'search': search, 'overridesOnly': overridesOnly.toString(),
+  });
+
+  Future<Map<String, dynamic>> saveClientPrice(String clientId, String productId, {
+    required String price, required bool isActive,
+  }) => _patch('/clients/$clientId/prices/$productId/', {'price': price, 'isActive': isActive});
+
+  Future<void> deleteClientPrice(String clientId, String productId) async {
+    await _delete('/clients/$clientId/prices/$productId/');
+  }
+
   Future<Map<String, dynamic>> managerClientUnified(String clientId) async {
     return _get('/manager/clients/$clientId/unified/');
   }

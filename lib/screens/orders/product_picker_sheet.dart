@@ -34,7 +34,7 @@ class _ProductPickerSheet extends StatefulWidget {
 class _ProductPickerSheetState extends State<_ProductPickerSheet> {
   final _repo = DataRepository();
   final _searchController = TextEditingController();
-  final _fmt = NumberFormat('#,##0', 'ru_RU');
+  final _fmt = NumberFormat('#,##0.##', 'ru_RU');
 
   late final PaginationController<ProductData> _controller;
   String _search = '';
@@ -214,6 +214,8 @@ class _ProductRow extends StatelessWidget {
                   '${fmt.format(product.price)} ₽',
                   style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13),
                 ),
+                if (product.basePrice != null) Text('Базовая: ${fmt.format(product.basePrice)} ₽', style: const TextStyle(fontSize: 10)),
+                if (product.personalPrice != null) Text('Персональная: ${fmt.format(product.personalPrice)} ₽', style: const TextStyle(fontSize: 10)),
                 const SizedBox(height: 4),
                 const Icon(Icons.add_circle_outline, size: 20, color: AppColors.brandRed),
               ],
