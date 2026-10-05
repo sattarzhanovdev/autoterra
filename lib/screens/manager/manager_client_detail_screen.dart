@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:go_router/go_router.dart';
 import '../../models/models.dart';
 import '../../models/paginated.dart';
 import '../../services/data_repository.dart';
+import '../../services/api_client.dart';
 import '../../core/theme.dart';
 
 const _kStatusLabels = {
@@ -25,6 +27,14 @@ class ManagerClientDetailScreen extends StatefulWidget {
 class _ManagerClientDetailScreenState extends State<ManagerClientDetailScreen> {
   final _repo = DataRepository();
   Map<String, dynamic>? _unified;
+  String? _loadError;
+  List<Order> _orders = [];
+  List<Purchase> _purchases = [];
+  int _ordersPage = 1;
+  int _purchasesPage = 1;
+  bool _moreOrders = false;
+  bool _morePurchases = false;
+  bool _moreBusy = false;
   List<ContactHistoryEntry> _history = [];
   bool _loading = true;
   bool _historyLoading = false;
@@ -45,7 +55,10 @@ class _ManagerClientDetailScreenState extends State<ManagerClientDetailScreen> {
       final results = await Future.wait([
         _repo.managerClientUnified(widget.clientId),
         _repo.managerClientHistory(widget.clientId),
+        _repo.managerClientOrders(widget.clientId),
+        _repo.managerClientPurchases(widget.clientId),
       ]);
+      if (!mounted) return;
       setState(() {
         _unified = results[0] as Map<String, dynamic>;
         final historyPage = results[1] as Paginated<ContactHistoryEntry>;
@@ -53,12 +66,74 @@ class _ManagerClientDetailScreenState extends State<ManagerClientDetailScreen> {
         _historyHasMore = historyPage.hasNext;
         _historyTotal = historyPage.count;
         _historyPage = 1;
+        final orders = results[2] as Paginated<Order>;
+        final purchases = results[3] as Paginated<Purchase>;
+        _orders = orders.items;
+        _purchases = purchases.items;
+        _moreOrders = orders.hasNext;
+        _morePurchases = purchases.hasNext;
+        _ordersPage = 1;
+        _purchasesPage = 1;
+        _loadError = null;
         _loading = false;
       });
     } catch (e) {
-      setState(() => _loading = false);
-      if (mounted) _showError(e.toString());
+      if (mounted) setState(() { _loading = false; _loadError = e.toString(); });
     }
+  }
+
+  Future<void> _loadMore({required bool orders}) async {
+    if (_moreBusy) return;
+    setState(() => _moreBusy = true);
+    try {
+      if (orders) {
+        final page = await _repo.managerClientOrders(widget.clientId, page: _ordersPage + 1);
+        if (mounted) setState(() { _orders = [..._orders, ...page.items]; _moreOrders = page.hasNext; _ordersPage++; });
+      } else {
+        final page = await _repo.managerClientPurchases(widget.clientId, page: _purchasesPage + 1);
+        if (mounted) setState(() { _purchases = [..._purchases, ...page.items]; _morePurchases = page.hasNext; _purchasesPage++; });
+      }
+    } catch (error) {
+      if (mounted) _showError(error.toString());
+    } finally {
+      if (mounted) setState(() => _moreBusy = false);
+    }
+  }
+
+  Future<void> _removeClient() async {
+    final name = _unified?['client']?['name']?.toString() ?? '';
+    final input = TextEditingController();
+    final confirmed = await showDialog<bool>(context: context, builder: (ctx) => AlertDialog(
+      title: const Text('Удалить клиента?'),
+      content: Column(mainAxisSize: MainAxisSize.min, children: [
+        Text('Для подтверждения введите точное название: $name'),
+        TextField(controller: input, autofocus: true, decoration: const InputDecoration(labelText: 'Название клиента')),
+      ]),
+      actions: [TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('ОТМЕНА')),
+        TextButton(onPressed: () => Navigator.pop(ctx, input.text == name), child: const Text('УДАЛИТЬ'))],
+    ));
+    input.dispose();
+    if (confirmed != true || !mounted) return;
+    try {
+      await _repo.managerRemoveClient(widget.clientId, name);
+      if (mounted) context.pop();
+    } on ApiException catch (error) {
+      final details = error.details;
+      if (details is Map && details['canArchive'] == true && mounted) {
+        final archive = await showDialog<bool>(context: context, builder: (ctx) => AlertDialog(
+          title: const Text('Есть история заказов'),
+          content: const Text('Удаление недоступно. Архивировать клиента и отключить вход, сохранив историю?'),
+          actions: [TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('ОТМЕНА')),
+            TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('АРХИВИРОВАТЬ'))],
+        ));
+        if (archive == true) {
+          try {
+            await _repo.managerRemoveClient(widget.clientId, name, archive: true);
+            if (mounted) context.pop();
+          } catch (archiveError) { if (mounted) _showError(archiveError.toString()); }
+        }
+      } else if (mounted) { _showError(error.toString()); }
+    } catch (error) { if (mounted) _showError(error.toString()); }
   }
 
   Future<void> _loadHistory() async {
@@ -165,12 +240,17 @@ class _ManagerClientDetailScreenState extends State<ManagerClientDetailScreen> {
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator(color: AppColors.brandRed))
+          : _loadError != null ? Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
+              Text('Ошибка: $_loadError'), TextButton(onPressed: _load, child: const Text('ПОВТОРИТЬ')),
+            ]))
           : SingleChildScrollView(
               padding: const EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _buildClientCard(),
+                  const SizedBox(height: 16),
+                  _buildStatsAndOrders(),
                   const SizedBox(height: 16),
                   _buildHistorySection(),
                 ],
@@ -246,10 +326,51 @@ class _ManagerClientDetailScreenState extends State<ManagerClientDetailScreen> {
               _InfoRow(label: 'КОНТАКТ', value: c['contact'].toString()),
             if (c['phone'] != null && c['phone'].toString().isNotEmpty)
               _InfoRow(label: 'ТЕЛЕФОН', value: c['phone'].toString()),
+            const SizedBox(height: 12),
+            TextButton.icon(onPressed: _removeClient,
+              icon: const Icon(Icons.delete_outline), label: const Text('УДАЛИТЬ КЛИЕНТА'),
+              style: TextButton.styleFrom(foregroundColor: AppColors.brandRed)),
           ],
         ),
       ),
     );
+  }
+
+  Widget _buildStatsAndOrders() {
+    final stats = _unified?['stats'] as Map<String, dynamic>? ?? const {};
+    String money(Object? value) => '${(value as num? ?? 0).toStringAsFixed(2)} ₽';
+    final lastOrder = DateTime.tryParse(stats['lastOrderAt']?.toString() ?? '');
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      const Text('СТАТИСТИКА', style: TextStyle(fontWeight: FontWeight.w900)),
+      Card(child: Padding(padding: const EdgeInsets.all(16), child: Column(children: [
+        _InfoRow(label: 'Заказов', value: '${stats['orderCount'] ?? 0}'),
+        _InfoRow(label: 'Оплачено', value: '${stats['paidOrderCount'] ?? 0}'),
+        _InfoRow(label: 'Оборот заказов', value: money(stats['orderTurnover'])),
+        _InfoRow(label: 'Покупки', value: money(stats['purchaseTurnover'])),
+        _InfoRow(label: 'Средний чек', value: money(stats['averageOrder'])),
+        _InfoRow(label: 'Последний заказ', value: lastOrder == null ? '—' : DateFormat('dd.MM.yyyy').format(lastOrder)),
+      ]))),
+      const SizedBox(height: 12),
+      const Text('ЗАКАЗЫ', style: TextStyle(fontWeight: FontWeight.w900)),
+      if (_orders.isEmpty) const Padding(padding: EdgeInsets.all(12), child: Text('Заказов нет')),
+      for (final order in _orders) Card(child: ListTile(
+        title: Text('${order.documentNumber} · ${order.totalAmount.toStringAsFixed(2)} ₽'),
+        subtitle: Text('${DateFormat('dd.MM.yyyy').format(order.createdAt)} · ${order.status.name}'),
+        trailing: const Icon(Icons.chevron_right),
+        onTap: () => context.push('/manager/orders/${order.id}'),
+      )),
+      if (_moreOrders) TextButton(onPressed: _moreBusy ? null : () => _loadMore(orders: true),
+        child: Text(_moreBusy ? 'ЗАГРУЗКА...' : 'ПОКАЗАТЬ ЕЩЁ ЗАКАЗЫ')),
+      const SizedBox(height: 12),
+      const Text('ИСТОРИЯ ПОКУПОК', style: TextStyle(fontWeight: FontWeight.w900)),
+      if (_purchases.isEmpty) const Padding(padding: EdgeInsets.all(12), child: Text('Покупок нет')),
+      for (final purchase in _purchases) Card(child: ListTile(
+        title: Text('${purchase.documentNumber} · ${purchase.totalAmount.toStringAsFixed(2)} ₽'),
+        subtitle: Text('${DateFormat('dd.MM.yyyy').format(purchase.date)} · ${purchase.status.name}'),
+      )),
+      if (_morePurchases) TextButton(onPressed: _moreBusy ? null : () => _loadMore(orders: false),
+        child: Text(_moreBusy ? 'ЗАГРУЗКА...' : 'ПОКАЗАТЬ ЕЩЁ ПОКУПКИ')),
+    ]);
   }
 
   Widget _buildHistorySection() {

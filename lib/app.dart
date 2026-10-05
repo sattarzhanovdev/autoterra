@@ -47,6 +47,7 @@ import 'screens/distributor/distributor_orders_screen.dart';
 import 'screens/distributor/distributor_reports_screen.dart';
 import 'screens/distributor/distributor_purchases_screen.dart';
 import 'screens/manager/manager_client_detail_screen.dart';
+import 'screens/manager/manager_orders_screen.dart';
 import 'widgets/common/brand_icon.dart';
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -145,6 +146,8 @@ final GoRouter _router = GoRouter(
       path: '${AppRoutes.managerClients}/:clientId',
       builder: (ctx, state) => ManagerClientDetailScreen(clientId: state.pathParameters['clientId']!),
     ),
+    GoRoute(path: '/manager/orders/:orderId',
+      builder: (ctx, state) => ManagerOrderDetailScreen(orderId: state.pathParameters['orderId']!)),
     GoRoute(path: AppRoutes.addPurchase, builder: (ctx, _) => const AddPurchaseScreen()),
     GoRoute(path: AppRoutes.qa, builder: (ctx, _) => const QaScreen()),
     GoRoute(path: '/knowledge-base', builder: (ctx, _) => const KnowledgeBaseScreen()),

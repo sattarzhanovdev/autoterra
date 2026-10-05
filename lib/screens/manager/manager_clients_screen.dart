@@ -12,8 +12,9 @@ import '../../widgets/common/brand_icon.dart';
 class ManagerClientsScreen extends StatefulWidget {
   /// Подменяется в тестах; в приложении создаётся сам.
   final DataRepository? repository;
+  final String? initialStatus;
 
-  const ManagerClientsScreen({super.key, this.repository});
+  const ManagerClientsScreen({super.key, this.repository, this.initialStatus});
 
   @override
   State<ManagerClientsScreen> createState() => _ManagerClientsScreenState();
@@ -31,6 +32,7 @@ class _ManagerClientsScreenState extends State<ManagerClientsScreen> {
   void initState() {
     super.initState();
     _repo = widget.repository ?? DataRepository();
+    _filterStatus = widget.initialStatus;
     // Фильтры уходят на сервер — отбирать записи внутри загруженной страницы
     // нельзя, подходящие клиенты остались бы на других страницах.
     _controller = PaginationController<Client>(

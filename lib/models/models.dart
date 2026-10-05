@@ -657,6 +657,25 @@ class CourierTaskEvent {
   }
 }
 
+class CourierOrderItem {
+  final String id;
+  final String name;
+  final String sku;
+  final int quantity;
+  final bool picked;
+  final DateTime? pickedAt;
+
+  const CourierOrderItem({required this.id, required this.name, required this.sku,
+    required this.quantity, required this.picked, this.pickedAt});
+
+  factory CourierOrderItem.fromJson(Map<String, dynamic> json) => CourierOrderItem(
+    id: json['id'].toString(), name: json['name']?.toString() ?? '',
+    sku: json['sku']?.toString() ?? '', quantity: (json['quantity'] as num?)?.toInt() ?? 0,
+    picked: json['picked'] == true,
+    pickedAt: DateTime.tryParse(json['pickedAt']?.toString() ?? ''),
+  );
+}
+
 class CourierTask {
   final String id;
   final String clientId;
@@ -664,6 +683,9 @@ class CourierTask {
   final String? courierName;
   final String? courierPhone;
   final String? orderId;
+  final String? orderNumber;
+  final List<CourierOrderItem> orderItems;
+  final bool allItemsPicked;
   /// 'pickup' | 'color_lab_pickup' | 'delivery'.
   /// 'return' больше не создаётся — готовое маляр забирает сам, чтобы сверить
   /// оттенок на месте. Экраны его всё ещё разбирают: в старых записях он есть.
@@ -692,6 +714,9 @@ class CourierTask {
     this.courierName,
     this.courierPhone,
     this.orderId,
+    this.orderNumber,
+    this.orderItems = const [],
+    this.allItemsPicked = false,
     required this.taskType,
     required this.typeDisplay,
     required this.address,
@@ -729,6 +754,10 @@ class CourierTask {
       courierName: json['courierName'],
       courierPhone: json['courierPhone'],
       orderId: json['orderId']?.toString(),
+      orderNumber: json['orderNumber']?.toString(),
+      orderItems: (json['orderItems'] as List? ?? const [])
+          .whereType<Map>().map((item) => CourierOrderItem.fromJson(Map<String, dynamic>.from(item))).toList(),
+      allItemsPicked: json['allItemsPicked'] == true,
       taskType: json['taskType'] ?? 'delivery',
       typeDisplay: json['typeDisplay'] ?? '',
       address: json['address'] ?? '',

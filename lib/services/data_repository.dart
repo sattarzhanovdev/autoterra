@@ -582,6 +582,11 @@ class DataRepository {
     return _courierTaskFromJson(result['task'] as Map<String, dynamic>);
   }
 
+  Future<CourierTask> courierPickItem(String taskId, String itemId) async {
+    final result = await _api.courierPickItem(taskId, itemId);
+    return _courierTaskFromJson(result['task'] as Map<String, dynamic>);
+  }
+
   Future<ExpertTicket> expertAnswerTicket(
     String ticketId, {
     required String answer,
@@ -682,6 +687,20 @@ class DataRepository {
 
   Future<Map<String, dynamic>> managerClientUnified(String clientId) {
     return _api.managerClientUnified(clientId);
+  }
+
+  Future<Paginated<Order>> managerClientOrders(String clientId, {int page = 1}) async =>
+      (await _api.managerClientOrders(clientId, page: page)).map(_orderFromJson);
+
+  Future<Paginated<Purchase>> managerClientPurchases(String clientId, {int page = 1}) async =>
+      (await _api.managerClientPurchases(clientId, page: page)).map(_purchaseFromJson);
+
+  Future<Paginated<Order>> managerOrders({int page = 1, String? status}) async =>
+      (await _api.managerOrders(page: page, status: status)).map(_orderFromJson);
+
+  Future<bool> managerRemoveClient(String clientId, String name, {bool archive = false}) async {
+    final result = await _api.managerRemoveClient(clientId, name, archive: archive);
+    return result['deleted'] == true || result['archived'] == true;
   }
 
   Future<Paginated<Client>> managerClientsFiltered({

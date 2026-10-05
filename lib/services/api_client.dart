@@ -421,6 +421,20 @@ class ApiClient {
     return _get('/manager/clients/$clientId/unified/');
   }
 
+  Future<Paginated<Map<String, dynamic>>> managerClientOrders(String clientId, {int page = 1}) =>
+      _getPage('/manager/clients/$clientId/orders/', page: page);
+
+  Future<Paginated<Map<String, dynamic>>> managerClientPurchases(String clientId, {int page = 1}) =>
+      _getPage('/manager/clients/$clientId/purchases/', page: page);
+
+  Future<Paginated<Map<String, dynamic>>> managerOrders({int page = 1, String? status}) =>
+      _getPage('/manager/orders/', page: page, filters: {'status': status});
+
+  Future<Map<String, dynamic>> managerRemoveClient(String clientId, String name, {bool archive = false}) =>
+      archive
+          ? _post('/manager/clients/$clientId/remove/', {'confirmName': name})
+          : _deleteJson('/manager/clients/$clientId/remove/', {'confirmName': name});
+
   Future<Paginated<Map<String, dynamic>>> managerClientsFiltered({
     int page = 1,
     int pageSize = defaultPageSize,
@@ -709,6 +723,9 @@ class ApiClient {
       filters: {'status': status},
     );
   }
+
+  Future<Map<String, dynamic>> courierPickItem(String taskId, String itemId) =>
+      _post('/courier/tasks/$taskId/items/$itemId/pick/', const {});
 
   Future<Map<String, dynamic>> updateCourierTaskStatus(
     String taskId, {
@@ -1115,6 +1132,20 @@ class ApiClient {
       final response = await _httpClient
           .delete(Uri.parse(fullUrl), headers: _headers())
           .timeout(defaultTimeout);
+      return _decode(response);
+    } catch (e) {
+      _handleError(e);
+      rethrow;
+    }
+  }
+
+  Future<Map<String, dynamic>> _deleteJson(String path, Map<String, dynamic> body) async {
+    try {
+      final normalizedPath = path.startsWith('/') ? path.substring(1) : path;
+      final fullUrl = baseUrl.endsWith('/') ? '$baseUrl$normalizedPath' : '$baseUrl/$normalizedPath';
+      final response = await _httpClient.delete(
+        Uri.parse(fullUrl), headers: _headers(), body: jsonEncode(body),
+      ).timeout(defaultTimeout);
       return _decode(response);
     } catch (e) {
       _handleError(e);

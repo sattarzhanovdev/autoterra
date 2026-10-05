@@ -59,11 +59,47 @@ class _CourierScreenState extends State<CourierScreen> {
   }
 }
 
-class _CourierTaskTile extends StatelessWidget {
+class _CourierTaskTile extends StatefulWidget {
   final CourierTask task;
   final VoidCallback onUpdate;
 
   const _CourierTaskTile({required this.task, required this.onUpdate});
+
+  @override
+  State<_CourierTaskTile> createState() => _CourierTaskTileState();
+}
+
+class _CourierTaskTileState extends State<_CourierTaskTile> {
+  late CourierTask task;
+  String? _pickingId;
+  bool _statusBusy = false;
+
+  @override
+  void initState() {
+    super.initState();
+    task = widget.task;
+  }
+
+  @override
+  void didUpdateWidget(covariant _CourierTaskTile oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.task != widget.task) task = widget.task;
+  }
+
+  Future<void> _pick(CourierOrderItem item) async {
+    if (_pickingId != null || item.picked) return;
+    setState(() => _pickingId = item.id);
+    try {
+      final updated = await DataRepository().courierPickItem(task.id, item.id);
+      if (!mounted) return;
+      setState(() => task = updated);
+      widget.onUpdate();
+    } catch (error) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Ошибка сборки: $error')));
+    } finally {
+      if (mounted) setState(() => _pickingId = null);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -83,6 +119,10 @@ class _CourierTaskTile extends StatelessWidget {
             task.clientName,
             style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
           ),
+          if (task.orderNumber != null) ...[
+            const SizedBox(height: 4),
+            Text('ЗАКАЗ № ${task.orderNumber}', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12)),
+          ],
           const SizedBox(height: 4),
           Row(
             children: [
@@ -120,6 +160,26 @@ class _CourierTaskTile extends StatelessWidget {
               ],
             ),
           ],
+          if (task.taskType == 'delivery' && task.orderId != null) ...[
+            const Divider(height: 24),
+            const Text('СБОРКА ЗАКАЗА', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12)),
+            if (task.orderItems.isEmpty)
+              const Padding(padding: EdgeInsets.symmetric(vertical: 8), child: Text('В заказе нет позиций. Обратитесь к оператору.')),
+            for (final item in task.orderItems)
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                title: Text(item.name),
+                subtitle: Text('Артикул: ${item.sku} · ${item.quantity} шт.'),
+                trailing: item.picked
+                    ? const Chip(label: Text('СОБРАНО'))
+                    : OutlinedButton(
+                        onPressed: task.status == CourierTaskStatus.assigned && _pickingId == null ? () => _pick(item) : null,
+                        child: _pickingId == item.id
+                            ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                            : const Text('СОБРАНО'),
+                      ),
+              ),
+          ],
           const Divider(height: 24),
           Row(
             children: [
@@ -134,14 +194,15 @@ class _CourierTaskTile extends StatelessWidget {
               const SizedBox(width: 8),
               if (task.status == CourierTaskStatus.assigned || task.status == CourierTaskStatus.inProgress)
                 ElevatedButton(
-                  onPressed: () => _showStatusDialog(context),
+                  onPressed: _statusBusy || (task.status == CourierTaskStatus.assigned && task.orderId != null && !task.allItemsPicked)
+                      ? null : () => _showStatusDialog(context),
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     minimumSize: const Size(0, 36),
                   ),
                   child: Text(
                     task.status == CourierTaskStatus.assigned
-                        ? 'ВЗЯТЬСЯ ЗА РАБОТУ'
+                        ? (task.orderId != null ? 'ЗАБРАЛ ЗАКАЗ / В ПУТЬ' : 'ВЗЯТЬСЯ ЗА РАБОТУ')
                         : 'ЗАВЕРШИТЬ ДОСТАВКУ',
                     style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900),
                   ),
@@ -232,7 +293,7 @@ class _CourierTaskTile extends StatelessWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(isAssigned ? 'Взяться за работу?' : 'Завершить доставку?'),
+        title: Text(isAssigned ? 'Забрали заказ и выезжаете?' : 'Завершить доставку?'),
         content: Text(isAssigned
           ? 'Клиент увидит статус «В пути» и ваш телефон для связи.'
           : 'Клиент увидит статус «Доставлено». Отменить это действие нельзя.'),
@@ -244,16 +305,21 @@ class _CourierTaskTile extends StatelessWidget {
           ElevatedButton(
             onPressed: () async {
               Navigator.pop(context);
+              if (_statusBusy) return;
+              setState(() => _statusBusy = true);
               try {
                 final newStatus = isAssigned ? 'in_progress' : 'delivered';
-                await DataRepository().updateCourierTaskStatus(task.id, status: newStatus);
-                onUpdate();
+                final updated = await DataRepository().updateCourierTaskStatus(task.id, status: newStatus);
+                if (mounted) setState(() => task = updated);
+                widget.onUpdate();
               } catch (e) {
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
+                if (mounted) {
+                  ScaffoldMessenger.of(this.context).showSnackBar(
                     SnackBar(content: Text('Ошибка: $e')),
                   );
                 }
+              } finally {
+                if (mounted) setState(() => _statusBusy = false);
               }
             },
             child: const Text('ПОДТВЕРДИТЬ'),
