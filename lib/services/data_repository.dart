@@ -256,6 +256,12 @@ class DataRepository {
   }
 
   /// Управление ценами клиента; доступ проверяет сервер.
+  Future<Map<String, dynamic>> clientDiscount(String clientId) =>
+      _api.clientDiscount(clientId);
+
+  Future<Map<String, dynamic>> updateClientDiscount(String clientId, String? percent) =>
+      _api.updateClientDiscount(clientId, percent);
+
   Future<Paginated<Map<String, dynamic>>> clientPrices(String clientId, {
     int page = 1, String? search, bool overridesOnly = true,
   }) => _api.clientPrices(clientId, page: page, search: search, overridesOnly: overridesOnly);

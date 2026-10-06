@@ -1,3 +1,4 @@
+import '../clients/client_discount_card.dart';
 import '../clients/personal_prices_screen.dart';
 import 'package:flutter/material.dart';
 import '../../core/theme.dart';
@@ -15,6 +16,7 @@ class _UnifiedClientCardScreenState extends State<UnifiedClientCardScreen> {
   final DataRepository _repo = DataRepository();
   Map<String, dynamic>? _data;
   bool _loading = true;
+  int _priceRevision = 0;
 
   @override
   void initState() {
@@ -64,15 +66,29 @@ class _UnifiedClientCardScreenState extends State<UnifiedClientCardScreen> {
             ],
           ),
         ),
-        body: TabBarView(
+        body: Column(
           children: [
-            _buildList(purchases, 'ПОКУПКИ'),
-            _buildList(orders, 'ЗАКАЗЫ'),
-            _buildList(colorReqs, 'КОЛЕРОВКА'),
-            _buildList(tickets, 'ТИКЕТЫ'),
-            Padding(
-              padding: const EdgeInsets.only(bottom: 80),
-              child: PersonalPricesScreen(clientId: widget.clientId, embedded: true),
+            ClientDiscountCard(
+              clientId: widget.clientId,
+              onChanged: () => setState(() => _priceRevision++),
+            ),
+            Expanded(
+              child: TabBarView(
+                children: [
+                  _buildList(purchases, 'ПОКУПКИ'),
+                  _buildList(orders, 'ЗАКАЗЫ'),
+                  _buildList(colorReqs, 'КОЛЕРОВКА'),
+                  _buildList(tickets, 'ТИКЕТЫ'),
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 80),
+                    child: PersonalPricesScreen(
+                      key: ValueKey(_priceRevision),
+                      clientId: widget.clientId,
+                      embedded: true,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ],
         ),

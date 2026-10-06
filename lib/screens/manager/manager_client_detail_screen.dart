@@ -1,3 +1,4 @@
+import '../clients/client_discount_card.dart';
 import '../clients/personal_prices_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -250,6 +251,7 @@ class _ManagerClientDetailScreenState extends State<ManagerClientDetailScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _buildClientCard(),
+                  ClientDiscountCard(clientId: widget.clientId),
                   ClientPersonalPricesTile(clientId: widget.clientId),
                   const SizedBox(height: 16),
                   _buildStatsAndOrders(),

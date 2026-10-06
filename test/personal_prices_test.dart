@@ -269,4 +269,79 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('650.25 ₽/шт · 650.25 ₽'), findsOneWidget);
   });
+  for (final effectivePrice in [800.0, 850.0]) {
+    testWidgets(
+      'catalog and basket use the personal percentage price $effectivePrice',
+      (tester) async {
+        final product = ProductData(
+          id: '7',
+          distributorId: '1',
+          sku: 'P-7',
+          name: 'Краска',
+          category: 'Краски',
+          brand: 'AutoTerra',
+          volume: 1,
+          price: effectivePrice,
+          basePrice: 1000,
+          personalPrice: null,
+          priceSource: 'personal_discount',
+          quantity: 10,
+          status: StockStatus.inStock,
+          updatedAt: DateTime(2026),
+        );
+        when(
+          () => repo.products(
+            page: any(named: 'page'),
+            search: any(named: 'search'),
+            category: any(named: 'category'),
+            brand: any(named: 'brand'),
+            inStockOnly: any(named: 'inStockOnly'),
+          ),
+        ).thenAnswer(
+          (_) async =>
+              Paginated(items: [product], pageInfo: PageInfo.single(1)),
+        );
+        when(() => repo.orderConfig()).thenAnswer(
+          (_) async => OrderConfigData(
+            client: Client(
+              id: '1',
+              inn: '123',
+              name: 'СТО',
+              category: ClientCategory.b,
+              region: 'Пермь',
+              city: 'Пермь',
+              contact: 'Иван',
+              phone: '1',
+              distributorId: '1',
+              status: ClientStatus.active,
+              createdAt: DateTime(2026),
+            ),
+            distributor: const Distributor(
+              id: '1',
+              name: 'Дистрибьютор',
+              inn: '1',
+              regions: [],
+              phone: '1',
+              email: '',
+            ),
+            stores: [],
+          ),
+        );
+        await tester.pumpWidget(
+          MaterialApp(home: OrderScreen(repository: repo)),
+        );
+        await tester.pumpAndSettle();
+        expect(find.text('Персональная скидка'), findsOneWidget);
+        await tester.ensureVisible(find.text('ДОБАВИТЬ'));
+        await tester.tap(find.text('ДОБАВИТЬ'));
+        await tester.pumpAndSettle();
+        expect(
+          find.text(
+            '${effectivePrice.toStringAsFixed(0)} ₽/шт · ${effectivePrice.toStringAsFixed(0)} ₽',
+          ),
+          findsOneWidget,
+        );
+      },
+    );
+  }
 }

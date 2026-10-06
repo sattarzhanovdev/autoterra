@@ -1028,6 +1028,7 @@ class _OrderScreenState extends State<OrderScreen> {
                 ],
               ),
               const SizedBox(height: 16),
+              if (item.priceSource == 'personal_discount') const Text('Персональная скидка', style: TextStyle(color: AppColors.brandRed)),
               if (item.priceSource == 'personal') const Text('Персональная цена', style: TextStyle(color: AppColors.brandRed)),
               Row(
                 children: [
@@ -1125,6 +1126,7 @@ class _OrderScreenState extends State<OrderScreen> {
                       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                         Text(item.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w700)),
                         Text('${_formatPrice(item.price)} ₽/шт · ${_formatPrice(item.price * qty)} ₽'),
+                        if (item.priceSource == 'personal_discount') const Text('Персональная скидка', style: TextStyle(color: AppColors.brandRed)),
                         if (item.priceSource == 'personal') const Text('Персональная цена', style: TextStyle(color: AppColors.brandRed, fontSize: 11)),
                       ]),
                     ),

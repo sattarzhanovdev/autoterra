@@ -417,6 +417,12 @@ class ApiClient {
     return _getPage('/manager/clients/', page: page, pageSize: pageSize);
   }
 
+  Future<Map<String, dynamic>> clientDiscount(String clientId) =>
+      _get('/clients/$clientId/discount/');
+
+  Future<Map<String, dynamic>> updateClientDiscount(String clientId, String? percent) =>
+      _patch('/clients/$clientId/discount/', {'personalDiscountPercent': percent});
+
   Future<Paginated<Map<String, dynamic>>> clientPrices(String clientId, {
     int page = 1, String? search, bool overridesOnly = true,
   }) => _getPage('/clients/$clientId/prices/', page: page, filters: {
