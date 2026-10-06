@@ -1,3 +1,5 @@
+import 'package:autoterra/models/paginated.dart';
+import 'package:autoterra/screens/orders/order_screen.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
@@ -241,6 +243,89 @@ void main() {
     await tester.tap(find.text('СОБРАНО'));
     await tester.pumpAndSettle();
     expect(tester.widget<ElevatedButton>(depart).onPressed, isNotNull);
+  });
+
+  testWidgets('cash checkout shows full amount without a bonus deduction', (
+    tester,
+  ) async {
+    when(() => repo.orderConfig()).thenAnswer(
+      (_) async => OrderConfigData(
+        client: Client(
+          id: '1',
+          inn: '123',
+          name: 'СТО',
+          category: ClientCategory.b,
+          region: 'Регион',
+          city: 'Город',
+          contact: 'Иван',
+          phone: '1',
+          distributorId: '1',
+          status: ClientStatus.active,
+          createdAt: DateTime(2026),
+          cashPaymentAllowed: true,
+        ),
+        distributor: const Distributor(
+          id: '1',
+          name: 'Дистрибьютор',
+          inn: '1',
+          regions: [],
+          phone: '1',
+          email: '',
+        ),
+        stores: [],
+        bonusBalance: 200,
+      ),
+    );
+    when(
+      () => repo.products(
+        page: any(named: 'page'),
+        search: any(named: 'search'),
+        category: any(named: 'category'),
+        brand: any(named: 'brand'),
+        inStockOnly: any(named: 'inStockOnly'),
+      ),
+    ).thenAnswer(
+      (_) async => Paginated(
+        items: [
+          ProductData(
+            id: '1',
+            distributorId: '1',
+            sku: 'P-1',
+            name: 'Краска',
+            category: 'Краски',
+            brand: 'AutoTerra',
+            volume: 1,
+            price: 1000,
+            quantity: 10,
+            status: StockStatus.inStock,
+            updatedAt: DateTime(2026),
+          ),
+        ],
+        pageInfo: PageInfo.single(1),
+      ),
+    );
+    await tester.pumpWidget(MaterialApp(home: OrderScreen(repository: repo)));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('ДОБАВИТЬ'));
+    await tester.tap(find.text('ДОБАВИТЬ'));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.text('Оплата наличными курьеру'),
+      250,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(find.text('Оплата наличными курьеру'));
+    await tester.pumpAndSettle();
+    final notice = find.text(
+      'Наличными курьеру: 1000 ₽. Бонусы при этом способе оплаты не списываются.',
+    );
+    await tester.scrollUntilVisible(
+      notice,
+      250,
+      scrollable: find.byType(Scrollable).first,
+    );
+    expect(notice, findsOneWidget);
+    expect(find.text('Спишется с этого заказа'), findsNothing);
   });
 
   test(

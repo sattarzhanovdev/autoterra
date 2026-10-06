@@ -636,7 +636,11 @@ class _OrderScreenState extends State<OrderScreen> {
                 ),
               ),
             ),
-            if (data.bonusBalance > 0 && totalAmount > 0) ...[
+            if (data.client.cashPaymentAllowed && _deliveryMethod == 'courier' && _paymentMethod == 'cash') ...[
+              const SizedBox(height: 16),
+              Text('Наличными курьеру: ${_formatPrice(totalAmount)} ₽. Бонусы при этом способе оплаты не списываются.'),
+            ],
+            if (data.bonusBalance > 0 && totalAmount > 0 && !(data.client.cashPaymentAllowed && _deliveryMethod == 'courier' && _paymentMethod == 'cash')) ...[
               const SizedBox(height: 16),
               _bonusPreview(data.bonusBalance, totalAmount),
             ],
