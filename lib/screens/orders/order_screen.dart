@@ -42,6 +42,7 @@ class _OrderScreenState extends State<OrderScreen> {
   String _selectedCategory = _allCategories;
   String? _selectedStoreId;
   String _deliveryMethod = 'courier';
+  String _paymentMethod = 'online';
   bool _sending = false;
 
   // Baseline for change tracking
@@ -223,6 +224,7 @@ class _OrderScreenState extends State<OrderScreen> {
       await _repo.createOrder(
         storeId: _selectedStoreId,
         deliveryMethod: _deliveryMethod,
+        paymentMethod: data.client.cashPaymentAllowed && _deliveryMethod == 'courier' ? _paymentMethod : 'online',
         comment: _commentCtrl.text,
         items: _qty.entries.map((entry) => {'productId': entry.key, 'quantity': entry.value}).toList(),
       );
@@ -327,6 +329,13 @@ class _OrderScreenState extends State<OrderScreen> {
                       _selectedCard(),
                       const SizedBox(height: 16),
                       _deliveryMethodCard(data),
+                      if (data.client.cashPaymentAllowed && _deliveryMethod == 'courier')
+                        SwitchListTile(
+                          title: const Text('Оплата наличными курьеру'),
+                          subtitle: const Text('После подтверждения заказ уйдёт в сборку. Оплатите при доставке.'),
+                          value: _paymentMethod == 'cash',
+                          onChanged: (value) => setState(() => _paymentMethod = value ? 'cash' : 'online'),
+                        ),
                       const SizedBox(height: 16),
                       _storesCard(data.stores),
                       const SizedBox(height: 16),

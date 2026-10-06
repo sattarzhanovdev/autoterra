@@ -256,6 +256,17 @@ class DataRepository {
   }
 
   /// Управление ценами клиента; доступ проверяет сервер.
+  Future<Map<String, dynamic>> clientCashPermission(String id) => _api.clientCashPermission(id);
+  Future<Map<String, dynamic>> updateClientCashPermission(String id, bool allowed) => _api.updateClientCashPermission(id, allowed);
+  Future<Order> chooseOrderCash(String id) async {
+    final data = await _api.chooseOrderCash(id);
+    return _orderFromJson(Map<String, dynamic>.from(data['order'] as Map));
+  }
+  Future<CourierTask> courierCollectCash(String id) async {
+    final data = await _api.courierCollectCash(id);
+    return CourierTask.fromJson(Map<String, dynamic>.from(data['task'] as Map));
+  }
+
   Future<Map<String, dynamic>> clientDiscount(String clientId) =>
       _api.clientDiscount(clientId);
 
@@ -867,6 +878,7 @@ class DataRepository {
   Future<void> createOrder({
     String? storeId,
     String? deliveryMethod,
+    String paymentMethod = 'online',
     required List<Map<String, dynamic>> items,
     required String comment,
   }) async {
@@ -1042,6 +1054,7 @@ class DataRepository {
       managerId: _toString(json['managerId']),
       status: _clientStatus(json['status']?.toString() ?? 'active'),
       partnerStatus: json['partnerStatus']?.toString() ?? 'Silver',
+      cashPaymentAllowed: json['cashPaymentAllowed'] == true,
       totalPurchases: _toDouble(json['totalPurchases']),
       createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? '') ?? DateTime.now(),
       distributorName: _toString(json['distributorName']),
@@ -1123,6 +1136,9 @@ class DataRepository {
       totalAmount: _toDouble(json['totalAmount']),
       status: _orderStatus(json['status']?.toString() ?? 'new'),
       deliveryMethod: json['deliveryMethod']?.toString() ?? 'courier',
+      paymentMethod: json['paymentMethod']?.toString() ?? 'online',
+      cashCollected: json['cashCollected'] == true,
+      canChooseCash: json['canChooseCash'] == true,
       items: _list(json['items']).map((item) => _purchaseItemFromJson(item)).toList(),
       comment: _toString(json['comment']),
       rejectionReason: _toString(json['rejectionReason']),

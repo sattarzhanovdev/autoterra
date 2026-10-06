@@ -1,3 +1,4 @@
+import '../clients/cash_payment_widgets.dart';
 import '../clients/client_discount_card.dart';
 import '../clients/personal_prices_screen.dart';
 import 'package:flutter/material.dart';
@@ -159,6 +160,7 @@ class ClientListCard extends StatelessWidget {
                   _infoRow('КОНТАКТ', client.contact),
                   _infoRow('ТЕЛЕФОН', client.phone),
                   _infoRow('ЗАКУПКИ', '${client.totalPurchases.toStringAsFixed(0)} ₽'),
+                  ClientCashPermissionCard(clientId: client.id),
                   ClientDiscountCard(clientId: client.id),
                   ClientPersonalPricesTile(clientId: client.id),
 

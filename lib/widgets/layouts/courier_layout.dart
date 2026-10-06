@@ -1,3 +1,4 @@
+import '../../screens/clients/cash_payment_widgets.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -191,23 +192,41 @@ class CourierTaskCard extends StatefulWidget {
 
 class _CourierTaskCardState extends State<CourierTaskCard> {
   bool _processing = false;
+  late CourierTask _task;
   late final DataRepository _repository;
 
   @override
   void initState() {
     super.initState();
+    _task = widget.task;
     _repository = widget.repository ?? DataRepository();
+  }
+
+  @override
+  void didUpdateWidget(covariant CourierTaskCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.task != widget.task) _task = widget.task;
+  }
+
+  Future<void> _pick(CourierOrderItem item) async {
+    setState(() => _processing = true);
+    try {
+      final updated = await _repository.courierPickItem(_task.id, item.id);
+      if (mounted) { setState(() => _task = updated); widget.onUpdated(); }
+    } catch (error) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Ошибка сборки: $error')));
+    } finally { if (mounted) setState(() => _processing = false); }
   }
 
   Future<void> _handleAction() async {
     setState(() => _processing = true);
     try {
-      if (widget.task.status == CourierTaskStatus.assigned) {
+      if (_task.status == CourierTaskStatus.assigned) {
         await _repository.updateCourierTaskStatus(
-          widget.task.id,
+          _task.id,
           status: 'in_progress',
         );
-      } else if (widget.task.status == CourierTaskStatus.inProgress) {
+      } else if (_task.status == CourierTaskStatus.inProgress) {
         final source = await showModalBottomSheet<ImageSource>(
           context: context,
           backgroundColor: Colors.white,
@@ -251,10 +270,10 @@ class _CourierTaskCardState extends State<CourierTaskCard> {
         if (image != null) {
           final bytes = await image.readAsBytes();
           await _repository.updateCourierTaskStatus(
-            widget.task.id,
+            _task.id,
             status: 'delivered',
             imageBytes: bytes,
-            fileName: 'proof_${widget.task.id}.jpg',
+            fileName: 'proof_${_task.id}.jpg',
           );
         } else {
           setState(() => _processing = false);
@@ -275,7 +294,7 @@ class _CourierTaskCardState extends State<CourierTaskCard> {
 
   @override
   Widget build(BuildContext context) {
-    final isColorLab = widget.task.taskType == 'pickup';
+    final isColorLab = _task.taskType == 'pickup';
 
     return Container(
       decoration: ShapeDecoration(
@@ -309,7 +328,7 @@ class _CourierTaskCardState extends State<CourierTaskCard> {
                       ? AppColors.brandRed
                       : AppColors.brandBlack,
                   child: Text(
-                    widget.task.typeDisplay.toUpperCase(),
+                    _task.typeDisplay.toUpperCase(),
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 10,
@@ -319,7 +338,7 @@ class _CourierTaskCardState extends State<CourierTaskCard> {
                   ),
                 ),
                 Text(
-                  widget.task.timeSlot,
+                  _task.timeSlot,
                   style: const TextStyle(
                     fontWeight: FontWeight.w900,
                     fontSize: 13,
@@ -330,7 +349,7 @@ class _CourierTaskCardState extends State<CourierTaskCard> {
             ),
             const SizedBox(height: 16),
             Text(
-              widget.task.clientName.toUpperCase(),
+              _task.clientName.toUpperCase(),
               style: const TextStyle(
                 fontWeight: FontWeight.w900,
                 fontSize: 12,
@@ -349,7 +368,7 @@ class _CourierTaskCardState extends State<CourierTaskCard> {
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    widget.task.address.toUpperCase(),
+                    _task.address.toUpperCase(),
                     style: const TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w800,
@@ -360,10 +379,10 @@ class _CourierTaskCardState extends State<CourierTaskCard> {
                 ),
               ],
             ),
-            if (widget.task.comment?.isNotEmpty == true) ...[
+            if (_task.comment?.isNotEmpty == true) ...[
               const SizedBox(height: 12),
               Text(
-                'КОММЕНТАРИЙ: ${widget.task.comment}',
+                'КОММЕНТАРИЙ: ${_task.comment}',
                 style: const TextStyle(
                   fontSize: 11,
                   color: AppColors.textHint,
@@ -372,14 +391,21 @@ class _CourierTaskCardState extends State<CourierTaskCard> {
               ),
             ],
             const SizedBox(height: 24),
+            CourierCashCollection(task: _task, repository: _repository, onChanged: (updated) { setState(() => _task = updated); widget.onUpdated(); }),
+            if (_task.orderId != null && _task.status == CourierTaskStatus.assigned) ...[
+              const Text('СБОРКА ЗАКАЗА', style: TextStyle(fontWeight: FontWeight.bold)),
+              for (final item in _task.orderItems)
+                ListTile(contentPadding: EdgeInsets.zero, title: Text(item.name), subtitle: Text('${item.quantity} шт.'),
+                  trailing: item.picked ? const Text('СОБРАНО') : OutlinedButton(onPressed: _processing ? null : () => _pick(item), child: const Text('СОБРАНО'))),
+            ],
             SizedBox(
               width: double.infinity,
               height: 50,
               child: ElevatedButton(
-                onPressed: _processing ? null : _handleAction,
+                onPressed: _processing || (_task.orderId != null && _task.status == CourierTaskStatus.assigned && !_task.allItemsPicked) || (_task.status == CourierTaskStatus.inProgress && _task.paymentMethod == 'cash' && !_task.cashCollected) ? null : _handleAction,
                 style: ElevatedButton.styleFrom(
                   backgroundColor:
-                      widget.task.status == CourierTaskStatus.assigned
+                      _task.status == CourierTaskStatus.assigned
                       ? AppColors.brandRed
                       : AppColors.brandBlack,
                   foregroundColor: Colors.white,
@@ -400,7 +426,7 @@ class _CourierTaskCardState extends State<CourierTaskCard> {
                         ),
                       )
                     : Text(
-                        widget.task.status == CourierTaskStatus.assigned
+                        _task.status == CourierTaskStatus.assigned
                             ? 'ПРИНЯТЬ В РАБОТУ'
                             : 'ЗАВЕРШИТЬ (ФОТО)',
                         style: const TextStyle(

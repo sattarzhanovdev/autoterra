@@ -1,3 +1,4 @@
+import '../clients/cash_payment_widgets.dart';
 import 'package:flutter/material.dart';
 import '../../core/theme.dart';
 import '../../models/models.dart';
@@ -160,6 +161,7 @@ class _CourierTaskTileState extends State<_CourierTaskTile> {
               ],
             ),
           ],
+          CourierCashCollection(task: task, repository: DataRepository(), onChanged: (updated) { setState(() => task = updated); widget.onUpdate(); }),
           if (task.taskType == 'delivery' && task.orderId != null) ...[
             const Divider(height: 24),
             const Text('СБОРКА ЗАКАЗА', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12)),
@@ -194,7 +196,7 @@ class _CourierTaskTileState extends State<_CourierTaskTile> {
               const SizedBox(width: 8),
               if (task.status == CourierTaskStatus.assigned || task.status == CourierTaskStatus.inProgress)
                 ElevatedButton(
-                  onPressed: _statusBusy || (task.status == CourierTaskStatus.assigned && task.orderId != null && !task.allItemsPicked)
+                  onPressed: _statusBusy || (task.status == CourierTaskStatus.inProgress && task.paymentMethod == 'cash' && !task.cashCollected) || (task.status == CourierTaskStatus.assigned && task.orderId != null && !task.allItemsPicked)
                       ? null : () => _showStatusDialog(context),
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(horizontal: 16),

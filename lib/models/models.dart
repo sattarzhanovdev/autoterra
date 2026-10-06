@@ -152,6 +152,7 @@ class Client {
   final String? managerId;
   final ClientStatus status;
   final String partnerStatus;
+  final bool cashPaymentAllowed;
   final double totalPurchases;
   final DateTime createdAt;
 
@@ -176,6 +177,7 @@ class Client {
     this.managerId,
     required this.status,
     this.partnerStatus = 'Silver',
+    this.cashPaymentAllowed = false,
     this.totalPurchases = 0,
     required this.createdAt,
     this.distributorName,
@@ -259,6 +261,9 @@ class Order {
   final double totalAmount;
   final OrderStatus status;
   final String deliveryMethod;
+  final String paymentMethod;
+  final bool cashCollected;
+  final bool canChooseCash;
   final List<PurchaseItem> items;
   final String? comment;
   final String? rejectionReason;
@@ -294,6 +299,9 @@ class Order {
     required this.totalAmount,
     required this.status,
     this.deliveryMethod = 'courier',
+    this.paymentMethod = 'online',
+    this.cashCollected = false,
+    this.canChooseCash = false,
     required this.items,
     this.comment,
     this.rejectionReason,
@@ -686,6 +694,9 @@ class CourierTask {
   final String? orderNumber;
   final List<CourierOrderItem> orderItems;
   final bool allItemsPicked;
+  final String paymentMethod;
+  final double cashAmount;
+  final bool cashCollected;
   /// 'pickup' | 'color_lab_pickup' | 'delivery'.
   /// 'return' больше не создаётся — готовое маляр забирает сам, чтобы сверить
   /// оттенок на месте. Экраны его всё ещё разбирают: в старых записях он есть.
@@ -717,6 +728,9 @@ class CourierTask {
     this.orderNumber,
     this.orderItems = const [],
     this.allItemsPicked = false,
+    this.paymentMethod = 'online',
+    this.cashAmount = 0,
+    this.cashCollected = false,
     required this.taskType,
     required this.typeDisplay,
     required this.address,
@@ -758,6 +772,9 @@ class CourierTask {
       orderItems: (json['orderItems'] as List? ?? const [])
           .whereType<Map>().map((item) => CourierOrderItem.fromJson(Map<String, dynamic>.from(item))).toList(),
       allItemsPicked: json['allItemsPicked'] == true,
+      paymentMethod: json['paymentMethod']?.toString() ?? 'online',
+      cashAmount: double.tryParse(json['cashAmount']?.toString() ?? '') ?? 0,
+      cashCollected: json['cashCollected'] == true,
       taskType: json['taskType'] ?? 'delivery',
       typeDisplay: json['typeDisplay'] ?? '',
       address: json['address'] ?? '',

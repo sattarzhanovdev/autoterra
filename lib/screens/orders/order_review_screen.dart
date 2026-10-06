@@ -1,3 +1,4 @@
+import '../clients/cash_payment_widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -745,9 +746,19 @@ class _OrderReviewScreenState extends State<OrderReviewScreen> {
     } else if (order.status == OrderStatus.adjusted) {
       children.add(const _StatusHint(text: 'Корректировка отправлена. Ждём ответа клиента.'));
     } else if (order.status == OrderStatus.confirmed) {
-      children.add(const _StatusHint(text: 'Заказ подтверждён. Ждём оплату от клиента.'));
+      if (order.paymentMethod == 'cash') {
+        children.add(_StatusHint(text: 'Наличные курьеру: ${order.totalAmount.toStringAsFixed(2)} ₽. Заказ доступен для сборки.'));
+        children.add(_primaryButton(label: 'ОТМЕТИТЬ ОТПРАВКУ', onPressed: _ship));
+      } else {
+        children.add(const _StatusHint(text: 'Заказ подтверждён. Ждём оплату от клиента.'));
+        if (order.canChooseCash && order.pendingPaymentUrl == null) children.add(OrderCashChoiceButton(order: order, repository: _repo, onChanged: (updated) => setState(() => _order = updated)));
+      }
     } else if (order.status == OrderStatus.shipped) {
-      children.add(_primaryButton(label: 'ПОДТВЕРДИТЬ ДОСТАВКУ', onPressed: () => _run(() => _repo.updateOrderStatus(widget.orderId, status: 'fulfilled'), 'Заказ доставлен')));
+      if (order.paymentMethod == 'cash' && !order.cashCollected) {
+        children.add(const _StatusHint(text: 'Ожидаем подтверждение получения наличных водителем.'));
+      } else {
+        children.add(_primaryButton(label: 'ПОДТВЕРДИТЬ ДОСТАВКУ', onPressed: () => _run(() => _repo.updateOrderStatus(widget.orderId, status: 'fulfilled'), 'Заказ доставлен')));
+      }
     } else if (order.status == OrderStatus.paid) {
       children.add(_primaryButton(label: 'ОТМЕТИТЬ ОТПРАВКУ', onPressed: _ship));
     }

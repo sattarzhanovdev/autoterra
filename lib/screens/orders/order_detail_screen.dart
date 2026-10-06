@@ -1,3 +1,4 @@
+import '../clients/cash_payment_widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -430,7 +431,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.all(16),
         children: [
-          _OrderProgress(status: order.status),
+          _OrderProgress(status: order.status, cash: order.paymentMethod == 'cash'),
           const SizedBox(height: 16),
 
           // Корректировка — самое важное на экране, поэтому идёт первой.
@@ -502,6 +503,12 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
   /// подтверждённого заказа — до этого платить нечего и не за что.
   Widget? _buildActions(Order order) {
     final children = <Widget>[];
+    if (order.paymentMethod == 'cash') {
+      children.add(_Hint(order.cashCollected ? 'Наличные получены курьером.' : 'Оплата наличными курьеру: ${_fmt.format(order.totalAmount)} ₽ при доставке.'));
+    }
+    if (order.canChooseCash && order.pendingPaymentUrl == null) {
+      children.add(OrderCashChoiceButton(order: order, repository: _repo, onChanged: (updated) => setState(() { _order = updated; _changed = true; })));
+    }
 
     switch (order.status) {
       case OrderStatus.newOrder:
@@ -524,6 +531,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
         children.add(const _Hint("Ожидается подтверждение заказа оператором."));
         children.add(_textButton("ОТМЕНИТЬ ЗАКАЗ", _cancel, isDestructive: true));
       case OrderStatus.confirmed:
+        if (order.paymentMethod == 'cash') children.add(const _Hint('Заказ передан в сборку.'));
         if (order.isPayable) {
           children.add(
           _primaryButton(
@@ -621,9 +629,15 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
 class _OrderProgress extends StatelessWidget {
   final OrderStatus status;
 
-  const _OrderProgress({required this.status});
+  final bool cash;
+  const _OrderProgress({required this.status, this.cash = false});
 
-  static const _steps = [
+  List<(String, List<OrderStatus>)> get _steps => cash ? const [
+    ('ОФОРМЛЕН', [OrderStatus.newOrder, OrderStatus.adjusted]),
+    ('В СБОРКЕ', [OrderStatus.confirmed, OrderStatus.accepted, OrderStatus.paid]),
+    ('В ПУТИ', [OrderStatus.shipped]),
+    ('ДОСТАВЛЕН', [OrderStatus.fulfilled]),
+  ] : const [
     ('ОФОРМЛЕН', [OrderStatus.newOrder, OrderStatus.adjusted]),
     ('ПОДТВЕРЖДЁН', [OrderStatus.confirmed, OrderStatus.accepted]),
     ('ОПЛАЧЕН', [OrderStatus.paid]),
@@ -663,6 +677,7 @@ class _OrderProgress extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
       color: Colors.white,
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           for (var i = 0; i < _steps.length; i++) ...[
             Expanded(
@@ -673,16 +688,21 @@ class _OrderProgress extends StatelessWidget {
                     color: i <= current ? AppColors.brandRed : AppColors.border,
                   ),
                   const SizedBox(height: 6),
-                  Text(
-                    _steps[i].$1,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 8,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 0.3,
-                      color: i <= current
-                          ? AppColors.brandBlack
-                          : AppColors.textHint,
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      _steps[i].$1,
+                      maxLines: 1,
+                      softWrap: false,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 8,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 0.3,
+                        color: i <= current
+                            ? AppColors.brandBlack
+                            : AppColors.textHint,
+                      ),
                     ),
                   ),
                 ],

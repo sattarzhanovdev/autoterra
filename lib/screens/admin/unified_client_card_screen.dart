@@ -1,3 +1,4 @@
+import '../clients/cash_payment_widgets.dart';
 import '../clients/client_discount_card.dart';
 import '../clients/personal_prices_screen.dart';
 import 'package:flutter/material.dart';
@@ -68,6 +69,7 @@ class _UnifiedClientCardScreenState extends State<UnifiedClientCardScreen> {
         ),
         body: Column(
           children: [
+            ClientCashPermissionCard(clientId: widget.clientId),
             ClientDiscountCard(
               clientId: widget.clientId,
               onChanged: () => setState(() => _priceRevision++),

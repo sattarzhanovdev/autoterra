@@ -200,6 +200,7 @@ class ApiClient {
   Future<Map<String, dynamic>> createOrder({
     String? storeId,
     String? deliveryMethod,
+    String paymentMethod = 'online',
     required List<Map<String, dynamic>> items,
     required String comment,
   }) {
@@ -416,6 +417,11 @@ class ApiClient {
   }) {
     return _getPage('/manager/clients/', page: page, pageSize: pageSize);
   }
+
+  Future<Map<String, dynamic>> clientCashPermission(String id) => _get('/clients/$id/cash-permission/');
+  Future<Map<String, dynamic>> updateClientCashPermission(String id, bool allowed) => _patch('/clients/$id/cash-permission/', {'cashPaymentAllowed': allowed});
+  Future<Map<String, dynamic>> chooseOrderCash(String id) => _post('/orders/$id/cash/', const {});
+  Future<Map<String, dynamic>> courierCollectCash(String id) => _post('/courier/tasks/$id/collect-cash/', const {});
 
   Future<Map<String, dynamic>> clientDiscount(String clientId) =>
       _get('/clients/$clientId/discount/');
