@@ -1,3 +1,4 @@
+import 'screens/finance/yookassa_finance_screen.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -81,6 +82,7 @@ final GoRouter _router = GoRouter(
     final role = authService.currentRole;
     final loc = state.matchedLocation;
 
+    if (loc == '/finance/yookassa' && role != UserRole.admin && role != UserRole.distributor) return AppRoutes.home;
     if (loc.startsWith('/distributor/') && role != UserRole.distributor) {
       return AppRoutes.home;
     }
@@ -94,6 +96,7 @@ final GoRouter _router = GoRouter(
     return null;
   },
   routes: [
+    GoRoute(path: '/finance/yookassa', builder: (ctx, _) => const YooKassaFinanceScreen()),
     GoRoute(path: '/account-status', builder: (ctx, _) => const AccountStatusScreen()),
     GoRoute(path: '/distributor/reports', builder: (ctx, _) => const DistributorReportsScreen()),
     GoRoute(path: AppRoutes.login, builder: (ctx, _) => const LoginScreen()),
@@ -123,6 +126,7 @@ final GoRouter _router = GoRouter(
         child: child,
       ),
       routes: [
+    GoRoute(path: '/finance/yookassa', builder: (ctx, _) => const YooKassaFinanceScreen()),
         GoRoute(path: AppRoutes.home, builder: (ctx, _) => const HomeScreen()),
         GoRoute(path: AppRoutes.purchases, builder: (ctx, _) => const PurchasesScreen()),
         GoRoute(path: AppRoutes.colorCenter, builder: (ctx, _) => const ColorCenterScreen()),

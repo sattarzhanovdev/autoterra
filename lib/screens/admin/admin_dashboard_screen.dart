@@ -1,3 +1,4 @@
+import 'package:go_router/go_router.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:fl_chart/fl_chart.dart';
@@ -116,6 +117,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              if (isGlobal) OutlinedButton.icon(onPressed: () => context.push('/finance/yookassa'), icon: const Icon(Icons.account_balance), label: const Text('УЧЕТ ЮKASSA')),
               if (isGlobal && system != null) ...[
                 const SectionHeader(title: 'СТРУКТУРА СИСТЕМЫ'),
                 const SizedBox(height: 12),

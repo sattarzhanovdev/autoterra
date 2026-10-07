@@ -381,6 +381,25 @@ class ApiClient {
     await _post('/notifications/read/', {'ids': ?ids});
   }
 
+  Future<Map<String, dynamic>> financeReport(Map<String, String> filters) =>
+      _get('/finance/yookassa/', params: filters);
+
+  Future<Map<String, dynamic>> importFinanceRegistry(List<int> bytes, String name, {String? distributorId}) =>
+      _multipartPost('/finance/yookassa/import/', {
+        'distributor_id': ?distributorId,
+      }, bytes, name);
+
+  Future<({Uint8List bytes, String fileName})> exportFinance(Map<String, String> filters) async {
+    final root = baseUrl.endsWith('/') ? baseUrl : '$baseUrl/';
+    final uri = Uri.parse('${root}finance/yookassa/export/').replace(queryParameters: filters);
+    final response = await _httpClient.get(uri, headers: _headers()).timeout(longTimeout);
+    if (response.statusCode != 200) {
+      _decode(response);
+      throw ApiException('Не удалось выгрузить отчет');
+    }
+    return (bytes: response.bodyBytes, fileName: _fileNameFrom(response.headers['content-disposition'], 'xlsx'));
+  }
+
   Future<Map<String, dynamic>> distributorReports() => _get('/distributor/reports/');
 
   Future<void> registerDeviceToken({

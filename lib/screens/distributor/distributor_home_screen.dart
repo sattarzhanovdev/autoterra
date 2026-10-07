@@ -156,6 +156,7 @@ class _DistributorHomeScreenState extends State<DistributorHomeScreen> {
           ],
         ),
         const SizedBox(height: 12),
+        OutlinedButton.icon(onPressed: () => context.push('/finance/yookassa'), icon: const Icon(Icons.account_balance), label: const Text('УЧЕТ ЮKASSA')),
         OutlinedButton.icon(onPressed: () => context.push('/distributor/reports'), icon: const Icon(Icons.analytics_outlined), label: const Text('ОТЧЁТЫ')),
         const SizedBox(height: 12),
         _metricCard(
