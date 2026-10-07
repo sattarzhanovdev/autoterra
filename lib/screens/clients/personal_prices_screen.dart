@@ -103,7 +103,7 @@ class _PersonalPricesScreenState extends State<PersonalPricesScreen> {
               TextField(
                 controller: _search,
                 decoration: const InputDecoration(
-                  labelText: 'Найти товар по названию или артикулу',
+                  labelText: 'Название, синоним, артикул, бренд, категория',
                   prefixIcon: Icon(Icons.search),
                 ),
                 onChanged: (_) => _controller.refreshDebounced(),

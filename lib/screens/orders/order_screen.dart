@@ -739,7 +739,7 @@ class _OrderScreenState extends State<OrderScreen> {
                 _catalog.refreshDebounced();
               },
               decoration: InputDecoration(
-                hintText: 'Поиск по названию, артикулу или бренду',
+                hintText: 'Название, синоним, артикул, бренд, категория',
                 prefixIcon: const Icon(Icons.search),
                 suffixIcon: _searchCtrl.text.isEmpty
                     ? null

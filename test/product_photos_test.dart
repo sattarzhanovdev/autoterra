@@ -147,4 +147,26 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(PageView), findsNothing);
   });
+  testWidgets('Поиск синонима передаётся серверу и сохраняет тот же товар', (tester) async {
+    final repo = buildRepo();
+    await tester.pumpWidget(wrap(OrderScreen(repository: repo)));
+    await tester.pumpAndSettle();
+    final field = find.byWidgetPredicate((widget) => widget is TextField &&
+        widget.decoration?.hintText == 'Название, синоним, артикул, бренд, категория');
+    await tester.enterText(field, 'ЗАЩИТНАЯ ПЛЁНКА');
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.pumpAndSettle();
+    verify(() => repo.products(
+      page: 1,
+      pageSize: any(named: 'pageSize'),
+      search: 'ЗАЩИТНАЯ ПЛЁНКА',
+      category: any(named: 'category'),
+      brand: any(named: 'brand'),
+      inStockOnly: any(named: 'inStockOnly'),
+    )).called(1);
+    // Server results aren't filtered again by their primary name in Flutter.
+    expect(find.text('ЛАК С ФОТО'), findsOneWidget);
+    expect(find.byType(ProductThumb), findsWidgets);
+  });
+
 }

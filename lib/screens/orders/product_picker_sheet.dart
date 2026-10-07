@@ -105,7 +105,7 @@ class _ProductPickerSheetState extends State<_ProductPickerSheet> {
                   controller: _searchController,
                   onChanged: _onSearchChanged,
                   decoration: InputDecoration(
-                    hintText: 'Поиск по названию, артикулу, бренду',
+                    hintText: 'Название, синоним, артикул, бренд, категория',
                     hintStyle: const TextStyle(fontSize: 12),
                     prefixIcon: const Icon(Icons.search, size: 20),
                     filled: true,

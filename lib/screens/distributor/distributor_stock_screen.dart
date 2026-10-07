@@ -98,6 +98,7 @@ class _DistributorStockScreenState extends State<DistributorStockScreen> {
   Future<void> _editProduct(ProductData product) async {
     final price = TextEditingController(text: product.price.toString());
     final quantity = TextEditingController(text: product.quantity.toString());
+    final synonyms = TextEditingController(text: product.synonyms.join('; '));
     String status = product.status.name;
     bool saving = false;
     String? error;
@@ -105,6 +106,7 @@ class _DistributorStockScreenState extends State<DistributorStockScreen> {
       title: Text(product.name),
       content: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [
         Text(product.sku),
+        TextField(controller: synonyms, maxLines: 3, decoration: const InputDecoration(labelText: 'Синонимы', helperText: 'Альтернативные названия через «;»')),
         TextField(controller: price, keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(labelText: 'Цена')),
         TextField(controller: quantity, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Доступный остаток')),
         DropdownButton<String>(value: status, isExpanded: true, items: [
@@ -121,7 +123,7 @@ class _DistributorStockScreenState extends State<DistributorStockScreen> {
           if (p == null || !p.isFinite || p < 0 || q == null || q < 0) { update(() => error = 'Введите корректную цену и остаток'); return; }
           update(() { saving = true; error = null; });
           try {
-            await ApiClient().distributorStockUpload([{'sku': product.sku, 'price': p, 'quantity': q, 'status': status}]);
+            await ApiClient().distributorStockUpload([{'sku': product.sku, 'price': p, 'quantity': q, 'status': status, 'synonyms': synonyms.text}]);
             if (dialogContext.mounted) Navigator.pop(dialogContext);
             if (mounted) _fetch();
           } catch (e) {
@@ -130,7 +132,7 @@ class _DistributorStockScreenState extends State<DistributorStockScreen> {
         }, child: Text(saving ? 'СОХРАНЕНИЕ…' : 'СОХРАНИТЬ')),
       ],
     )));
-    price.dispose(); quantity.dispose();
+    price.dispose(); quantity.dispose(); synonyms.dispose();
   }
 
   void _showAddProductSheet() {
@@ -182,7 +184,7 @@ class _DistributorStockScreenState extends State<DistributorStockScreen> {
             child: TextField(
               onChanged: _onSearchChanged,
               decoration: InputDecoration(
-                hintText: 'ПОИСК ПО SKU ИЛИ НАЗВАНИЮ',
+                hintText: 'НАЗВАНИЕ, СИНОНИМ, SKU, БРЕНД, КАТЕГОРИЯ',
                 prefixIcon: const Icon(Icons.search, color: AppColors.brandBlack),
                 filled: true,
                 fillColor: AppColors.brandWhite,
@@ -329,6 +331,7 @@ class AddProductSheet extends StatefulWidget {
 class AddProductSheetState extends State<AddProductSheet> {
   final _skuCtrl = TextEditingController();
   final _nameCtrl = TextEditingController();
+  final _synonymsCtrl = TextEditingController();
   final _catCtrl = TextEditingController(text: 'Общее');
   final _brandCtrl = TextEditingController(text: 'AutoTerra');
   final _priceCtrl = TextEditingController();
@@ -355,6 +358,7 @@ class AddProductSheetState extends State<AddProductSheet> {
   void dispose() {
     _skuCtrl.dispose();
     _nameCtrl.dispose();
+    _synonymsCtrl.dispose();
     _catCtrl.dispose();
     _brandCtrl.dispose();
     _priceCtrl.dispose();
@@ -374,6 +378,7 @@ class AddProductSheetState extends State<AddProductSheet> {
       await DataRepository().addProduct({
         'sku': _skuCtrl.text.trim(),
         'name': _nameCtrl.text.trim(),
+        'synonyms': _synonymsCtrl.text,
         'category': _catCtrl.text.trim(),
         'brand': _brandCtrl.text.trim(),
         'price': double.tryParse(_priceCtrl.text.replaceAll(',', '.')) ?? 0.0,
@@ -418,6 +423,7 @@ class AddProductSheetState extends State<AddProductSheet> {
           TextField(controller: _skuCtrl, decoration: const InputDecoration(labelText: 'АРТИКУЛ (SKU) *')),
           const SizedBox(height: 12),
           TextField(controller: _nameCtrl, decoration: const InputDecoration(labelText: 'НАЗВАНИЕ *')),
+          TextField(controller: _synonymsCtrl, maxLines: 3, decoration: const InputDecoration(labelText: 'СИНОНИМЫ', helperText: 'Альтернативные названия через «;»')),
           const SizedBox(height: 12),
           Row(
             children: [

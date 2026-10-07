@@ -11,6 +11,7 @@ class ProductData {
   final String? wbArticle;
   final String? groupName;
   final String name;
+  final List<String> synonyms;
   final String category;
   final String brand;
   final String? description;
@@ -40,6 +41,7 @@ class ProductData {
     this.wbArticle,
     this.groupName,
     required this.name,
+    this.synonyms = const [],
     required this.category,
     required this.brand,
     this.description,
@@ -1094,6 +1096,9 @@ class DataRepository {
       wbArticle: _toString(json['wbArticle']),
       groupName: _toString(json['groupName']),
       name: json['name']?.toString() ?? '',
+      synonyms: (json['synonyms'] is List)
+          ? (json['synonyms'] as List).map((e) => e.toString()).toList()
+          : const [],
       category: json['category']?.toString() ?? '',
       brand: json['brand']?.toString() ?? '',
       description: _toString(json['description']),
