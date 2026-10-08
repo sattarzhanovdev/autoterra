@@ -7,6 +7,7 @@ import '../../services/data_repository.dart';
 import '../../services/pagination_controller.dart';
 import '../../widgets/common/premium_icon_badge.dart';
 import '../../widgets/common/product_photo.dart';
+import '../../widgets/common/shop_sale_price.dart';
 
 class OrderScreen extends StatefulWidget {
   final DataRepository? repository;
@@ -69,6 +70,36 @@ class _OrderScreenState extends State<OrderScreen> {
     if (_deliveryMethod != _initialDeliveryMethod) return true;
 
     return false;
+  }
+
+  void _showProductDetails(ProductData product) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) => SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(product.name, style: Theme.of(context).textTheme.titleLarge),
+              const SizedBox(height: 12),
+              ProductThumb(images: product.images, size: 120,
+                onTap: () => showProductGallery(context, images: product.images, title: product.name)),
+              const SizedBox(height: 12),
+              Text('${product.brand} · ${product.sku}'),
+              if (product.description != null) Text(product.description!),
+              const SizedBox(height: 16),
+              Text('Закупочная цена: ${_formatPrice(product.price)} ₽'),
+              ShopSalePrice(product: product),
+              const SizedBox(height: 12),
+              TextButton(onPressed: () => Navigator.pop(context), child: const Text('Закрыть')),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   double get _totalAmount {
@@ -1015,9 +1046,12 @@ class _OrderScreenState extends State<OrderScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          item.name.toUpperCase(),
-                          style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 0.5),
+                        InkWell(
+                          onTap: () => _showProductDetails(item),
+                          child: Text(
+                            item.name.toUpperCase(),
+                            style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 0.5),
+                          ),
                         ),
                         const SizedBox(height: 4),
                         Text(
@@ -1041,15 +1075,17 @@ class _OrderScreenState extends State<OrderScreen> {
                 ],
               ),
               const SizedBox(height: 16),
+              ShopSalePrice(product: item),
               if (item.priceSource == 'personal_discount') const Text('Персональная скидка', style: TextStyle(color: AppColors.brandRed)),
               if (item.priceSource == 'personal') const Text('Персональная цена', style: TextStyle(color: AppColors.brandRed)),
               Row(
                 children: [
-                  Text(
-                    '${_formatPrice(item.price)} ₽',
-                    style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: AppColors.brandBlack),
+                  Expanded(
+                    child: Text(
+                      '${item.markupPercent != null ? 'Закупочная цена: ' : ''}${_formatPrice(item.price)} ₽',
+                      style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: AppColors.brandBlack),
+                    ),
                   ),
-                  const Spacer(),
                   if (isOutOfStock)
                     const SizedBox(height: 36) // Empty space instead of the button
                   else if (qty == 0)

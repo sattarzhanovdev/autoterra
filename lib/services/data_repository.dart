@@ -5,6 +5,8 @@ import 'api_client.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class ProductData {
+  final String? markupClientId;
+  final double? markupPercent;
   final String id;
   final String distributorId;
   final String sku;
@@ -35,6 +37,8 @@ class ProductData {
   final DateTime updatedAt;
 
   const ProductData({
+    this.markupClientId,
+    this.markupPercent,
     required this.id,
     required this.distributorId,
     required this.sku,
@@ -175,6 +179,16 @@ class DistributorDashboardData {
 }
 
 class DataRepository {
+  /// Account-scoped live display preferences. Purchase prices are immutable.
+  static final markupChanges = ValueNotifier<Map<String, double>>({});
+
+  Future<double> updateMyMarkup(String percent) async {
+    final data = await _api.updateMyMarkup(percent);
+    final value = _toDouble(data['markupPercent']);
+    markupChanges.value = {...markupChanges.value, data['clientId'].toString(): value};
+    return value;
+  }
+
   final ApiClient _api;
   ApiClient get api => _api;
 
@@ -1045,6 +1059,7 @@ class DataRepository {
     return Client(
       id: json['id'].toString(),
       externalId: _toString(json['externalId']),
+      markupPercent: _toDouble(json['markupPercent']),
       inn: json['inn'].toString(),
       name: json['name']?.toString() ?? 'Без названия',
       category: _clientCategory(json['category']?.toString() ?? 'b'),
@@ -1090,6 +1105,8 @@ class DataRepository {
 
   static ProductData _productFromJson(Map<String, dynamic> json) {
     return ProductData(
+      markupClientId: _toString(json['markupClientId']),
+      markupPercent: json['markupPercent'] == null ? null : _toDouble(json['markupPercent']),
       id: json['id'].toString(),
       distributorId: json['distributorId']?.toString() ?? '',
       sku: json['sku']?.toString() ?? '',

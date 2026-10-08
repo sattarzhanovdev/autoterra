@@ -152,6 +152,11 @@ class ApiClient {
 
   Future<Map<String, dynamic>> me() => _get('/auth/me/');
 
+  Future<Map<String, dynamic>> myMarkup() => _get('/me/markup/');
+
+  Future<Map<String, dynamic>> updateMyMarkup(String percent) =>
+      _patch('/me/markup/', {'markupPercent': percent});
+
   Future<Map<String, dynamic>> orderConfig() => _get('/order-config/');
 
   Future<(Paginated<Map<String, dynamic>>, List<String>)> products({

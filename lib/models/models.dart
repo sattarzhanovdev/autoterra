@@ -2,7 +2,7 @@ enum ClientStatus { newClient, pending, underReview, active, blocked, archived }
 
 enum ManagerTaskStatus { pending, completed }
 
-enum ClientCategory { a, b, c }
+enum ClientCategory { a, b, c, s }
 
 enum PurchaseStatus { newPurchase, pending, pendingVerification, underReview, duplicateReview, verified, rejected }
 
@@ -139,6 +139,7 @@ class Store {
 }
 
 class Client {
+  final double markupPercent;
   final String id;
   final String? externalId;
   final String inn;
@@ -164,6 +165,7 @@ class Client {
   final String? referralCode;
 
   const Client({
+    this.markupPercent = 0,
     required this.id,
     this.externalId,
     required this.inn,
@@ -193,6 +195,8 @@ class Client {
         return 'B';
       case ClientCategory.c:
         return 'C';
+      case ClientCategory.s:
+        return 'S';
     }
   }
 
@@ -204,6 +208,8 @@ class Client {
         return 'Автосервис с кузовным цехом';
       case ClientCategory.c:
         return 'Гаражный сервис';
+      case ClientCategory.s:
+        return 'Магазин';
     }
   }
 }

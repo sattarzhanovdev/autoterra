@@ -15,6 +15,7 @@ import '../../widgets/common/section_header.dart';
 
 import 'expert_profile_screen.dart';
 import '../../widgets/common/brand_icon.dart';
+import '../../widgets/common/shop_markup_editor.dart';
 
 class _StoreFormSheet extends StatefulWidget {
   final Store? store;
@@ -314,7 +315,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     _buildStoresSection(),
                   ],
                   const SizedBox(height: 16),
-                  _buildUnifiedSettingsSection(context),
+                  _buildUnifiedSettingsSection(context, data),
                   const SizedBox(height: 40),
                 ],
               ),
@@ -822,7 +823,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         if (data['specialty'] != null) InfoRow(label: 'Специализация', value: data['specialty']),
       ];
     } else if (data is DashboardData) {
-      title = 'Данные сервиса';
+      title = data.client.category == ClientCategory.s ? 'Данные магазина' : 'Данные сервиса';
       rows = [
         InfoRow(label: 'ИНН', value: data.client.inn),
         InfoRow(label: 'Регион', value: data.client.region),
@@ -847,13 +848,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildUnifiedSettingsSection(BuildContext context) {
+  Widget _buildUnifiedSettingsSection(BuildContext context, dynamic data) {
     final role = authService.currentRole;
     final hasSupportAccess = role != UserRole.distributor && role != UserRole.courier;
 
     return AppCard(
       child: Column(
         children: [
+          if (role == UserRole.client && data is DashboardData && data.client.category == ClientCategory.s) ...[
+            _settingItem(Icons.percent, 'Моя наценка, %', () => _editMarkup(data.client)),
+            const Divider(height: 1),
+          ],
           _settingItem(
             Icons.notifications_outlined,
             'Уведомления',
@@ -887,6 +892,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ],
       ),
     );
+  }
+
+  Future<void> _editMarkup(Client client) async {
+    await showDialog<void>(
+      context: context,
+      builder: (_) => ShopMarkupEditor(client: client, repository: _repo),
+    );
+    if (mounted) await _refresh();
   }
 
   Widget _settingItem(IconData icon, String label, VoidCallback onTap) {

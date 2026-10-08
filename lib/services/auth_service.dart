@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/models.dart';
 import 'api_client.dart';
+import 'data_repository.dart';
 
 class AuthService extends ChangeNotifier {
   static final AuthService _instance = AuthService._internal();
@@ -62,6 +63,7 @@ class AuthService extends ChangeNotifier {
   Future<void> logout() async {
     try { if (ApiClient.isAuthorized) await beforeLogout?.call(); } catch (_) { /* An expired session must still be cleared. */ }
     await ApiClient.clearToken();
+    DataRepository.markupChanges.value = {};
     _currentRole = UserRole.client; // Reset to default role
     _currentUserData = null;
     notifyListeners();

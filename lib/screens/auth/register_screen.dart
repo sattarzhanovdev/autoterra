@@ -29,6 +29,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _nameCtrl = TextEditingController();
   final _addressCtrl = TextEditingController();
   String? _selectedRegionId;
+  String _category = 'b';
   List<Map<String, dynamic>> _regions = [];
 
   // Page 2 fields
@@ -160,6 +161,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         'inn': _innCtrl.text,
         'region_id': int.parse(_selectedRegionId!),
         'company_name': _nameCtrl.text,
+        'category': _category,
         'contact_name': _contactCtrl.text,
         'store_address': _addressCtrl.text,
         if (_referralCtrl.text.trim().isNotEmpty)
@@ -459,7 +461,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             const Text(
-              'ДАННЫЕ АВТОСЕРВИСА',
+              'ДАННЫЕ ОРГАНИЗАЦИИ',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -484,10 +486,23 @@ class _RegisterScreenState extends State<RegisterScreen> {
               },
             ),
             const SizedBox(height: 16),
+            DropdownButtonFormField<String>(
+              initialValue: _category,
+              isExpanded: true,
+              decoration: const InputDecoration(labelText: 'Тип бизнеса'),
+              items: const [
+                DropdownMenuItem(value: 'a', child: Text('Дилерский салон')),
+                DropdownMenuItem(value: 'b', child: Text('Автосервис с кузовным цехом')),
+                DropdownMenuItem(value: 'c', child: Text('Гаражный сервис')),
+                DropdownMenuItem(value: 's', child: Text('Магазин')),
+              ],
+              onChanged: (value) => setState(() => _category = value ?? 'b'),
+            ),
+            const SizedBox(height: 16),
             TextFormField(
               controller: _nameCtrl,
               decoration: const InputDecoration(
-                labelText: 'НАЗВАНИЕ СЕРВИСА *',
+                labelText: 'НАЗВАНИЕ ОРГАНИЗАЦИИ *',
                 border: OutlineInputBorder(borderRadius: BorderRadius.zero),
               ),
               validator: (v) => v!.isEmpty ? 'Введите название' : null,
