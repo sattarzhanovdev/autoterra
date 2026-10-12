@@ -368,8 +368,17 @@ class AddProductSheetState extends State<AddProductSheet> {
   }
 
   Future<void> _submit() async {
-    if (_skuCtrl.text.isEmpty || _nameCtrl.text.isEmpty) {
+    if (_skuCtrl.text.trim().isEmpty || _nameCtrl.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('SKU и Название обязательны')));
+      return;
+    }
+
+    final priceText = _priceCtrl.text.trim().replaceAll(',', '.');
+    final price = double.tryParse(priceText);
+    final quantity = int.tryParse(_qtyCtrl.text.trim());
+    if (price == null || !price.isFinite || price < 0 || price > 9999999999.99 ||
+        !RegExp(r'^\d+(\.\d{1,2})?$').hasMatch(priceText) || quantity == null || quantity < 0 || quantity > 2147483647) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Введите корректную цену и целый неотрицательный остаток')));
       return;
     }
 
@@ -381,8 +390,8 @@ class AddProductSheetState extends State<AddProductSheet> {
         'synonyms': _synonymsCtrl.text,
         'category': _catCtrl.text.trim(),
         'brand': _brandCtrl.text.trim(),
-        'price': double.tryParse(_priceCtrl.text.replaceAll(',', '.')) ?? 0.0,
-        'quantity': int.tryParse(_qtyCtrl.text) ?? 0,
+        'price': price,
+        'quantity': quantity,
         'images': _images,
       });
 
@@ -408,7 +417,7 @@ class AddProductSheetState extends State<AddProductSheet> {
     return Container(
       decoration: const BoxDecoration(color: Colors.white),
       padding: EdgeInsets.fromLTRB(16, 20, 16, 16 + MediaQuery.of(context).viewInsets.bottom),
-      child: Column(
+      child: SingleChildScrollView(child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -465,7 +474,7 @@ class AddProductSheetState extends State<AddProductSheet> {
             ),
           ),
         ],
-      ),
+      )),
     );
   }
 }

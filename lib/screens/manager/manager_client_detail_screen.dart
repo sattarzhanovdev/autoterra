@@ -1,3 +1,4 @@
+import '../clients/client_settings_card.dart';
 import '../clients/client_discount_card.dart';
 import '../clients/personal_prices_screen.dart';
 import 'package:flutter/material.dart';
@@ -142,6 +143,7 @@ class _ManagerClientDetailScreenState extends State<ManagerClientDetailScreen> {
     setState(() => _historyLoading = true);
     try {
       final result = await _repo.managerClientHistory(widget.clientId);
+      if (!mounted) return;
       setState(() {
         _history = result.items;
         _historyHasMore = result.hasNext;
@@ -150,7 +152,7 @@ class _ManagerClientDetailScreenState extends State<ManagerClientDetailScreen> {
         _historyLoading = false;
       });
     } catch (_) {
-      setState(() => _historyLoading = false);
+      if (mounted) setState(() => _historyLoading = false);
     }
   }
 
@@ -164,6 +166,7 @@ class _ManagerClientDetailScreenState extends State<ManagerClientDetailScreen> {
         widget.clientId,
         page: _historyPage + 1,
       );
+      if (!mounted) return;
       setState(() {
         _history = [..._history, ...result.items];
         _historyHasMore = result.hasNext;
@@ -172,38 +175,13 @@ class _ManagerClientDetailScreenState extends State<ManagerClientDetailScreen> {
         _historyLoadingMore = false;
       });
     } catch (_) {
-      setState(() => _historyLoadingMore = false);
+      if (mounted) setState(() => _historyLoadingMore = false);
     }
   }
 
   void _showError(String msg) {
     ScaffoldMessenger.of(context)
         .showSnackBar(SnackBar(content: Text('Ошибка: $msg')));
-  }
-
-  void _openStatusChange() {
-    final client = _unified?['client'];
-    if (client == null) return;
-    final currentStatus = client['status']?.toString() ?? 'active';
-
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.white,
-      shape: AppShapes.border(size: AppShapes.chamferLg),
-      useSafeArea: true,
-      builder: (ctx) => _StatusSheet(
-        currentStatus: currentStatus,
-        onSelect: (newStatus) async {
-          Navigator.pop(ctx);
-          try {
-            await _repo.managerUpdateClientStatus(widget.clientId, newStatus);
-            _load();
-          } catch (e) {
-            if (mounted) _showError(e.toString());
-          }
-        },
-      ),
-    );
   }
 
   void _openAddHistory() {
@@ -251,6 +229,7 @@ class _ManagerClientDetailScreenState extends State<ManagerClientDetailScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _buildClientCard(),
+                  ClientSettingsCard(clientId: widget.clientId, onChanged: _load),
                   ClientDiscountCard(clientId: widget.clientId),
                   ClientPersonalPricesTile(clientId: widget.clientId),
                   const SizedBox(height: 16),
@@ -296,21 +275,7 @@ class _ManagerClientDetailScreenState extends State<ManagerClientDetailScreen> {
                     ),
                   ),
                 ),
-                TextButton(
-                  onPressed: _openStatusChange,
-                  style: TextButton.styleFrom(
-                    backgroundColor: AppColors.brandRed.withValues(alpha: 0.08),
-                    foregroundColor: AppColors.brandRed,
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    shape: const BeveledRectangleBorder(
-                      borderRadius: BorderRadius.only(topRight: Radius.circular(8)),
-                    ),
-                  ),
-                  child: const Text(
-                    'ИЗМЕНИТЬ СТАТУС',
-                    style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1),
-                  ),
-                ),
+
               ],
             ),
             const SizedBox(height: 16),
@@ -586,73 +551,6 @@ class _HistoryEntry extends StatelessWidget {
 }
 
 // ── Status Sheet ───────────────────────────────────────────────────────────────
-
-class _StatusSheet extends StatelessWidget {
-  final String currentStatus;
-  final void Function(String) onSelect;
-
-  const _StatusSheet({required this.currentStatus, required this.onSelect});
-
-  // Ровно те статусы, что принимает бэкенд (ClientProfile.STATUS_CHOICES).
-  // «Ожидание» и «архив» ему неизвестны — на них он отвечал 400.
-  static const _statuses = [
-    ('new', 'НОВЫЙ'),
-    ('under_review', 'НА ПРОВЕРКЕ'),
-    ('active', 'АКТИВНЫЙ'),
-    ('blocked', 'ЗАБЛОКИРОВАН'),
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    return SafeArea(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Padding(
-            padding: EdgeInsets.fromLTRB(20, 20, 20, 8),
-            child: Text(
-              'ИЗМЕНИТЬ СТАТУС',
-              style: TextStyle(
-                fontWeight: FontWeight.w900,
-                fontSize: 13,
-                letterSpacing: 1,
-                color: AppColors.brandBlack,
-              ),
-            ),
-          ),
-          const Divider(height: 1),
-          ..._statuses.map((s) {
-            final isSelected = s.$1 == currentStatus;
-            return ListTile(
-              onTap: () => onSelect(s.$1),
-              leading: Container(
-                width: 8,
-                height: 8,
-                color: isSelected ? AppColors.brandRed : Colors.transparent,
-              ),
-              title: Text(
-                s.$2,
-                style: TextStyle(
-                  fontWeight: FontWeight.w900,
-                  fontSize: 13,
-                  color: isSelected ? AppColors.brandRed : AppColors.brandBlack,
-                  letterSpacing: 0.5,
-                ),
-              ),
-              trailing: isSelected
-                  ? const Icon(Icons.check, color: AppColors.brandRed)
-                  : null,
-            );
-          }),
-          const SizedBox(height: 8),
-        ],
-      ),
-    );
-  }
-}
-
-// ── Add Contact History Sheet ──────────────────────────────────────────────────
 
 class _AddHistorySheet extends StatefulWidget {
   final String clientId;

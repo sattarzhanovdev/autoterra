@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -18,7 +19,10 @@ class OrderScreen extends StatefulWidget {
   State<OrderScreen> createState() => _OrderScreenState();
 }
 
-class _OrderScreenState extends State<OrderScreen> {
+class _OrderScreenState extends State<OrderScreen> with WidgetsBindingObserver {
+  Timer? _priceTimer;
+  bool _syncingPrices = false;
+  final _priceRevision = ValueNotifier<int>(0);
   static const _allCategories = 'Все';
 
   final _commentCtrl = TextEditingController();
@@ -51,6 +55,7 @@ class _OrderScreenState extends State<OrderScreen> {
   String? _initialComment;
   String? _initialStoreId;
   String? _initialDeliveryMethod;
+  String? _initialPaymentMethod;
 
   int get _totalQty => _qty.values.fold(0, (sum, value) => sum + value);
 
@@ -68,6 +73,7 @@ class _OrderScreenState extends State<OrderScreen> {
     if (_commentCtrl.text != (_initialComment ?? '')) return true;
     if (_selectedStoreId != _initialStoreId) return true;
     if (_deliveryMethod != _initialDeliveryMethod) return true;
+    if (_paymentMethod != _initialPaymentMethod) return true;
 
     return false;
   }
@@ -76,28 +82,34 @@ class _OrderScreenState extends State<OrderScreen> {
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      builder: (context) => SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(product.name, style: Theme.of(context).textTheme.titleLarge),
-              const SizedBox(height: 12),
-              ProductThumb(images: product.images, size: 120,
-                onTap: () => showProductGallery(context, images: product.images, title: product.name)),
-              const SizedBox(height: 12),
-              Text('${product.brand} · ${product.sku}'),
-              if (product.description != null) Text(product.description!),
-              const SizedBox(height: 16),
-              Text('Закупочная цена: ${_formatPrice(product.price)} ₽'),
-              ShopSalePrice(product: product),
-              const SizedBox(height: 12),
-              TextButton(onPressed: () => Navigator.pop(context), child: const Text('Закрыть')),
-            ],
-          ),
-        ),
+      builder: (context) => ValueListenableBuilder<int>(
+        valueListenable: _priceRevision,
+        builder: (context, revision, child) {
+          final current = _selected[product.id] ?? _catalog.items.where((p) => p.id == product.id).firstOrNull ?? product;
+          return SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(current.name, style: Theme.of(context).textTheme.titleLarge),
+                  const SizedBox(height: 12),
+                  ProductThumb(images: current.images, size: 120,
+                    onTap: () => showProductGallery(context, images: current.images, title: current.name)),
+                  const SizedBox(height: 12),
+                  Text('${current.brand} · ${current.sku}'),
+                  if (current.description != null) Text(current.description!),
+                  const SizedBox(height: 16),
+                  Text('Закупочная цена: ${_formatPrice(current.price)} ₽'),
+                  ShopSalePrice(product: current),
+                  const SizedBox(height: 12),
+                  TextButton(onPressed: () => Navigator.pop(context), child: const Text('Закрыть')),
+                ],
+              ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -126,10 +138,18 @@ class _OrderScreenState extends State<OrderScreen> {
       ),
     );
     _catalog.loadInitial();
+    _catalog.addListener(_updateCartFromCatalog);
+    WidgetsBinding.instance.addObserver(this);
+    _priceTimer = Timer.periodic(const Duration(seconds: 5), (_) {
+      if (WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed && !_sending) {
+        _syncPrices();
+      }
+    });
 
     if (widget.initialOrder != null) {
       _commentCtrl.text = widget.initialOrder!.comment ?? '';
       _deliveryMethod = widget.initialOrder!.deliveryMethod;
+      _paymentMethod = widget.initialOrder!.paymentMethod;
       _prefillFromOrder(widget.initialOrder!);
     }
     
@@ -141,6 +161,9 @@ class _OrderScreenState extends State<OrderScreen> {
 
   @override
   void dispose() {
+    _priceTimer?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
+    _priceRevision.dispose();
     _commentCtrl.dispose();
     _searchCtrl.dispose();
     _catalog.dispose();
@@ -172,6 +195,7 @@ class _OrderScreenState extends State<OrderScreen> {
     _initialQty = Map.from(_qty);
     _initialComment = _commentCtrl.text;
     _initialDeliveryMethod = _deliveryMethod;
+    _initialPaymentMethod = _paymentMethod;
   }
 
   void _applyFilters() {
@@ -248,11 +272,9 @@ class _OrderScreenState extends State<OrderScreen> {
 
     setState(() => _sending = true);
     try {
-      if (widget.initialOrder != null) {
-        await _repo.cancelOrder(widget.initialOrder!.id);
-      }
-
+      await _syncPrices(reportError: true);
       await _repo.createOrder(
+        replaceOrderId: widget.initialOrder?.id,
         storeId: _selectedStoreId,
         deliveryMethod: _deliveryMethod,
         paymentMethod: data.client.cashPaymentAllowed && _deliveryMethod == 'courier' ? _paymentMethod : 'online',
@@ -316,10 +338,55 @@ class _OrderScreenState extends State<OrderScreen> {
     }
   }
 
+  void _updateCartFromCatalog() {
+    if (!mounted) return;
+    for (final product in _catalog.items) {
+      if (_selected.containsKey(product.id)) _selected[product.id] = product;
+    }
+    setState(() {});
+    _priceRevision.value++;
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) _refresh();
+  }
+
+  Future<void> _syncPrices({bool reportError = false}) async {
+    if (_syncingPrices || !mounted) return;
+    final ids = {..._selected.keys, ..._catalog.items.map((p) => p.id)}.toList();
+    if (ids.isEmpty) return;
+    _syncingPrices = true;
+    try {
+      final products = await _repo.productQuote(ids);
+      if (!mounted) return;
+      for (final product in products) {
+        if (_selected.containsKey(product.id)) _selected[product.id] = product;
+        _catalog.replaceWhere((p) => p.id == product.id, product);
+      }
+      final available = products.map((p) => p.id).toSet();
+      // Never silently remove an unavailable cart item or submit stale prices.
+      _stockWarnings.addAll(_selected.keys.where((id) => !available.contains(id)));
+      setState(() {});
+      _priceRevision.value++;
+    } catch (e) {
+      if (reportError) rethrow;
+      // Keep the existing cart during a transient connection failure.
+    } finally {
+      _syncingPrices = false;
+    }
+  }
+
   Future<void> _refresh() async {
     final next = _repo.orderConfig();
-    setState(() => _future = next);
-    await next;
+    setState(() { _future = next; });
+    try {
+      await next;
+      await _catalog.refresh();
+      await _syncPrices(reportError: true);
+    } catch (_) {
+      // FutureBuilder and the catalog controller display their retry states.
+    }
   }
 
   @override
@@ -329,11 +396,11 @@ class _OrderScreenState extends State<OrderScreen> {
       body: FutureBuilder<OrderConfigData>(
         future: _future,
         builder: (context, snapshot) {
-          if (snapshot.connectionState != ConnectionState.done) {
+          if (snapshot.connectionState != ConnectionState.done && !snapshot.hasData) {
             return const Center(child: CircularProgressIndicator());
           }
           if (snapshot.hasError) {
-            return _ErrorState(message: snapshot.error.toString());
+            return _ErrorState(message: snapshot.error.toString(), onRetry: _refresh);
           }
           final data = snapshot.data!;
           _ensureStore(data);
@@ -1244,14 +1311,15 @@ class _OrderScreenState extends State<OrderScreen> {
 
 class _ErrorState extends StatelessWidget {
   final String message;
-  const _ErrorState({required this.message});
+  final VoidCallback onRetry;
+  const _ErrorState({required this.message, required this.onRetry});
 
   @override
   Widget build(BuildContext context) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
-        child: Text(message, textAlign: TextAlign.center),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [Text(message, textAlign: TextAlign.center), TextButton(onPressed: onRetry, child: const Text('Повторить'))]),
       ),
     );
   }

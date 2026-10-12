@@ -83,9 +83,11 @@ final GoRouter _router = GoRouter(
     final loc = state.matchedLocation;
 
     if (loc == '/finance/yookassa' && role != UserRole.admin && role != UserRole.distributor) return AppRoutes.home;
-    if (loc.startsWith('/distributor/') && role != UserRole.distributor) {
+    if ((loc.startsWith('/distributor/') || loc == '/distributor-cabinet') && role != UserRole.distributor && role != UserRole.admin) {
       return AppRoutes.home;
     }
+    if (loc.startsWith('/unified-client/') && ![UserRole.admin, UserRole.distributor, UserRole.manager].contains(role)) return AppRoutes.home;
+    if (loc == '/courier-cabinet' && role != UserRole.courier && role != UserRole.admin) return AppRoutes.home;
     if (loc.startsWith(AppRoutes.admin) && role != UserRole.admin) {
       return AppRoutes.home;
     }
@@ -126,7 +128,6 @@ final GoRouter _router = GoRouter(
         child: child,
       ),
       routes: [
-    GoRoute(path: '/finance/yookassa', builder: (ctx, _) => const YooKassaFinanceScreen()),
         GoRoute(path: AppRoutes.home, builder: (ctx, _) => const HomeScreen()),
         GoRoute(path: AppRoutes.purchases, builder: (ctx, _) => const PurchasesScreen()),
         GoRoute(path: AppRoutes.colorCenter, builder: (ctx, _) => const ColorCenterScreen()),
@@ -237,6 +238,7 @@ class _MainShellState extends State<_MainShell> {
       listenable: authService,
       builder: (context, _) {
         final role = authService.currentRole;
+        if (widget.location.startsWith('/unified-client/')) return widget.child;
 
         if (role == UserRole.courier) {
           return const CourierLayout(child: SizedBox());

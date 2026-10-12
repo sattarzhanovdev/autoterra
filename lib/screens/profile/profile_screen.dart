@@ -1,3 +1,4 @@
+import 'distributor_profile_editor.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
@@ -216,7 +217,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     setState(() {
       _future = next;
     });
-    await next;
+    try { await next; } catch (_) { /* FutureBuilder offers retry. */ }
   }
 
   Future<void> _loadStores() async {
@@ -259,8 +260,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
     );
     if (ok == true) {
-      await _repo.deleteStore(store.id);
-      _loadStores();
+      try {
+        await _repo.deleteStore(store.id);
+        if (mounted) await _loadStores();
+      } catch (error) {
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Не удалось удалить точку: $error')));
+      }
     }
   }
 
@@ -288,7 +293,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             return const Center(child: CircularProgressIndicator());
           }
           if (snapshot.hasError) {
-            return Center(child: Text('Ошибка загрузки: ${snapshot.error}'));
+            return Center(child: Column(mainAxisSize: MainAxisSize.min, children: [Text('Ошибка загрузки: ${snapshot.error}'), TextButton(onPressed: _refresh, child: const Text('Повторить'))]));
           }
 
           final role = authService.currentRole;
@@ -804,10 +809,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
       final dist = DataRepository.distributorFromJson(data['distributor']);
       title = 'Данные организации';
       rows = [
+        InfoRow(label: 'Название', value: dist.name),
         InfoRow(label: 'ИНН', value: dist.inn),
         InfoRow(label: 'Email', value: dist.email),
         InfoRow(label: 'Телефон', value: dist.phone),
         InfoRow(label: 'Регионы', value: dist.regions.join(', ')),
+        const Text('ИНН и регионы изменяет администратор'),
+        TextButton.icon(
+          icon: const Icon(Icons.edit), label: const Text('Редактировать'),
+          onPressed: () async {
+            final result = await showDialog<Map<String, dynamic>>(
+              context: context,
+              builder: (_) => DistributorProfileEditor(distributor: Map<String, dynamic>.from(data['distributor']), repository: _repo),
+            );
+            if (result != null && mounted) {
+              final user = {...Map<String, dynamic>.from(data), 'distributor': result['distributor']};
+              authService.updateFromBackendUser(user);
+              setState(() { _future = Future.value(user); });
+            }
+          },
+        ),
       ];
     } else if (role == UserRole.courier && data != null) {
       rows = [

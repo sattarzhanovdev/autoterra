@@ -1,3 +1,4 @@
+import '../clients/client_settings_card.dart';
 import '../clients/cash_payment_widgets.dart';
 import '../clients/client_discount_card.dart';
 import '../clients/personal_prices_screen.dart';
@@ -29,19 +30,20 @@ class _UnifiedClientCardScreenState extends State<UnifiedClientCardScreen> {
     setState(() => _loading = true);
     try {
       final res = await _repo.managerClientUnified(widget.clientId);
+      if (!mounted) return;
       setState(() {
         _data = res;
         _loading = false;
       });
     } catch (e) {
-      setState(() => _loading = false);
+      if (mounted) setState(() => _loading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     if (_loading) return const Scaffold(body: Center(child: CircularProgressIndicator(color: AppColors.brandRed)));
-    if (_data == null) return const Scaffold(body: Center(child: Text('ОШИБКА ЗАГРУЗКИ')));
+    if (_data == null) return Scaffold(appBar: AppBar(title: const Text('Клиент')), body: Center(child: TextButton(onPressed: _fetch, child: const Text('Не удалось загрузить. Повторить'))));
 
     final client = _data!['client'];
     final purchases = _data!['purchases'] as List;
@@ -55,7 +57,7 @@ class _UnifiedClientCardScreenState extends State<UnifiedClientCardScreen> {
         backgroundColor: AppColors.canvas,
         appBar: AppBar(
           backgroundColor: AppColors.brandBlack,
-          title: Text(client['name'].toString().toUpperCase(), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900)),
+          title: Text(client['name'].toString().toUpperCase(), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900)),
           bottom: const TabBar(
             isScrollable: true,
             tabs: [
@@ -69,6 +71,7 @@ class _UnifiedClientCardScreenState extends State<UnifiedClientCardScreen> {
         ),
         body: Column(
           children: [
+            ClientSettingsCard(clientId: widget.clientId, onChanged: _fetch),
             ClientCashPermissionCard(clientId: widget.clientId),
             ClientDiscountCard(
               clientId: widget.clientId,
@@ -154,6 +157,13 @@ class _SendNotificationDialogState extends State<_SendNotificationDialog> {
     {'id': 'ai', 'label': 'AI Совет'},
   ];
 
+  @override
+  void dispose() {
+    _titleCtrl.dispose();
+    _bodyCtrl.dispose();
+    super.dispose();
+  }
+
   Future<void> _send() async {
     if (_titleCtrl.text.isEmpty || _bodyCtrl.text.isEmpty) return;
     setState(() => _loading = true);
@@ -170,7 +180,7 @@ class _SendNotificationDialogState extends State<_SendNotificationDialog> {
       }
     } catch (e) {
       if (mounted) {
-        setState(() => _loading = false);
+        if (mounted) setState(() => _loading = false);
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Ошибка: $e')));
       }
     }

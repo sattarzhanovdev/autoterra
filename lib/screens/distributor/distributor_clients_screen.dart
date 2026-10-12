@@ -1,3 +1,4 @@
+import '../clients/client_settings_card.dart';
 import '../clients/cash_payment_widgets.dart';
 import '../clients/client_discount_card.dart';
 import '../clients/personal_prices_screen.dart';
@@ -77,7 +78,7 @@ class _DistributorClientsScreenState extends State<DistributorClientsScreen> {
             child: PaginatedListView<Client>(
               controller: _controller,
               emptyMessage: 'КЛИЕНТЫ НЕ НАЙДЕНЫ',
-              itemBuilder: (context, client, _) => ClientListCard(client: client),
+              itemBuilder: (context, client, _) => ClientListCard(key: ValueKey(client.id), client: client, repository: _repo, onChanged: _controller.refresh),
             ),
           ),
         ],
@@ -108,7 +109,9 @@ class _DistributorClientsScreenState extends State<DistributorClientsScreen> {
 
 class ClientListCard extends StatelessWidget {
   final Client client;
-  const ClientListCard({super.key, required this.client});
+  final DataRepository? repository;
+  final VoidCallback? onChanged;
+  const ClientListCard({super.key, required this.client, this.repository, this.onChanged});
 
   @override
   Widget build(BuildContext context) {
@@ -136,7 +139,7 @@ class ClientListCard extends StatelessWidget {
             client.name.toUpperCase(),
             style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13, color: AppColors.brandBlack),
           ),
-          subtitle: Row(
+          subtitle: Wrap(spacing: 8, runSpacing: 4,
             children: [
               Text('ИНН ${client.inn}', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.textSecondary)),
               const SizedBox(width: 8),
@@ -160,8 +163,9 @@ class ClientListCard extends StatelessWidget {
                   _infoRow('КОНТАКТ', client.contact),
                   _infoRow('ТЕЛЕФОН', client.phone),
                   _infoRow('ЗАКУПКИ', '${client.totalPurchases.toStringAsFixed(0)} ₽'),
-                  ClientCashPermissionCard(clientId: client.id),
-                  ClientDiscountCard(clientId: client.id),
+                  ClientSettingsCard(clientId: client.id, repository: repository, onChanged: onChanged),
+                  ClientCashPermissionCard(clientId: client.id, repository: repository),
+                  ClientDiscountCard(clientId: client.id, repository: repository),
                   ClientPersonalPricesTile(clientId: client.id),
 
                 ],
@@ -188,6 +192,9 @@ class ClientListCard extends StatelessWidget {
       case ClientStatus.blocked:
         color = AppColors.statusBlocked;
         label = 'БЛОК';
+      case ClientStatus.archived:
+        color = AppColors.textSecondary;
+        label = 'АРХИВ';
       default:
         color = AppColors.statusNew;
         label = 'НОВЫЙ';
@@ -207,7 +214,7 @@ class ClientListCard extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(label, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: AppColors.textHint)),
-          Text(value.toUpperCase(), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.brandBlack)),
+          Expanded(child: Text(value.toUpperCase(), textAlign: TextAlign.end, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.brandBlack))),
         ],
       ),
     );

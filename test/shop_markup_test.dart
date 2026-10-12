@@ -14,7 +14,7 @@ class MockApi extends Mock implements ApiClient {}
 
 class MockRepo extends Mock implements DataRepository {}
 
-ProductData product({String clientId = '1', double? markup = 0}) => ProductData(
+ProductData product({String clientId = '1', double? markup = 0, double price = 1000}) => ProductData(
   id: 'p',
   distributorId: 'd',
   sku: 'p',
@@ -22,7 +22,7 @@ ProductData product({String clientId = '1', double? markup = 0}) => ProductData(
   category: 'Краски',
   brand: 'Brand',
   volume: 1,
-  price: 1000,
+  price: price,
   basePrice: 1500,
   quantity: 10,
   status: StockStatus.inStock,
@@ -192,6 +192,24 @@ void main() {
     expect(tester.takeException(), isNull);
     expect(find.textContaining('1300 ₽/шт'), findsNothing);
     expect(find.text('Отправить дистрибьютору · 1000 ₽'), findsOneWidget);
+    when(() => repo.productQuote(any())).thenAnswer((_) async => [product(markup: 30, price: 900)]);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pumpAndSettle();
+    await tester.pump(const Duration(seconds: 5));
+    await tester.pumpAndSettle();
+    expect(find.text('Отправить дистрибьютору · 900 ₽'), findsOneWidget);
+    await tester.ensureVisible(find.text('КРАСКА'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('КРАСКА'));
+    await tester.pumpAndSettle();
+    expect(find.text('Цена продажи: 1\u00a0170,00 ₽'), findsNWidgets(2));
+    when(() => repo.productQuote(any())).thenAnswer((_) async => [product(markup: 30, price: 800)]);
+    await tester.pump(const Duration(seconds: 5));
+    await tester.pumpAndSettle();
+    expect(find.text('Цена продажи: 1\u00a0040,00 ₽'), findsNWidgets(2));
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox());
+
   });
 
   test('failed save keeps current display preference', () async {

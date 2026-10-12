@@ -28,6 +28,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   String? _selectedRegionId;
   String? _selectedDistributorId;
   bool _loading = true;
+  String? _error;
   DateTimeRange? _period;
   String? get _dateFrom => _period == null ? null : DateFormat("yyyy-MM-dd").format(_period!.start);
   String? get _dateTo => _period == null ? null : DateFormat("yyyy-MM-dd").format(_period!.end);
@@ -46,37 +47,29 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         fetchAllPages((page) => _api.getRegions(page: page)),
         fetchAllPages((page) => _api.getDistributors(page: page)),
       ]);
+      if (!mounted) return;
       setState(() {
+        _error = null;
         _analytics = res[0] as Map<String, dynamic>;
         _regions = res[1] as List<Map<String, dynamic>>;
         _distributors = res[2] as List<Map<String, dynamic>>;
         _loading = false;
       });
     } catch (e) {
-      debugPrint('AdminDashboard Init Error: $e');
-      if (mounted) {
-        setState(() {
-          _analytics = {
-            'totalClients': 0,
-            'monthlyTurnover': 0.0,
-            'newOrders': 0,
-            'openTickets': 0,
-          };
-          _loading = false;
-        });
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Ошибка API: $e')));
-      }
+      if (mounted) setState(() { _loading = false; _error = 'Не удалось загрузить аналитику: $e'; });
     }
   }
 
   Future<void> _fetch() async {
     try {
       final res = await _repo.adminAnalytics(regionId: _selectedRegionId, distributorId: _selectedDistributorId, dateFrom: _dateFrom, dateTo: _dateTo);
+      if (!mounted) return;
       setState(() {
+        _error = null;
         _analytics = res;
       });
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Не удалось обновить данные: $e')));
+      if (mounted) setState(() => _error = 'Не удалось обновить данные: $e');
     }
   }
 
@@ -90,6 +83,12 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         backgroundColor: AppColors.canvas,
         body: Center(child: CircularProgressIndicator(color: AppColors.brandRed)),
       );
+    }
+
+    if (_error != null) {
+      return Scaffold(appBar: AppBar(title: const Text('Аналитика')), body: Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
+        Text(_error!), TextButton(onPressed: _initData, child: const Text('Повторить')),
+      ])));
     }
 
     final fmt = NumberFormat('#,##0', 'ru_RU');

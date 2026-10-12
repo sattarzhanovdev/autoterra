@@ -28,8 +28,8 @@ class _ExpertProfileScreenState extends State<ExpertProfileScreen> {
 
   Future<void> _refresh() async {
     final next = DataRepository().me();
-    setState(() => _future = next);
-    await next;
+    setState(() { _future = next; });
+    try { await next; } catch (_) { /* FutureBuilder displays the error. */ }
   }
 
   @override

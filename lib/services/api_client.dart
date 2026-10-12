@@ -157,6 +157,8 @@ class ApiClient {
   Future<Map<String, dynamic>> updateMyMarkup(String percent) =>
       _patch('/me/markup/', {'markupPercent': percent});
 
+  Future<Map<String, dynamic>> productQuote(List<String> ids) => _get('/products/quote/', params: {'ids': ids.join(',')});
+
   Future<Map<String, dynamic>> orderConfig() => _get('/order-config/');
 
   Future<(Paginated<Map<String, dynamic>>, List<String>)> products({
@@ -206,12 +208,14 @@ class ApiClient {
     String? storeId,
     String? deliveryMethod,
     String paymentMethod = 'online',
+    String? replaceOrderId,
     required List<Map<String, dynamic>> items,
     required String comment,
   }) {
-    return _post('/orders/create/', {
+    return _post(replaceOrderId == null ? '/orders/create/' : '/orders/$replaceOrderId/replace/', {
       'storeId': ?storeId,
       'deliveryMethod': ?deliveryMethod,
+      'paymentMethod': paymentMethod,
       'items': items,
       'comment': comment,
     });
@@ -446,6 +450,10 @@ class ApiClient {
   Future<Map<String, dynamic>> updateClientCashPermission(String id, bool allowed) => _patch('/clients/$id/cash-permission/', {'cashPaymentAllowed': allowed});
   Future<Map<String, dynamic>> chooseOrderCash(String id) => _post('/orders/$id/cash/', const {});
   Future<Map<String, dynamic>> courierCollectCash(String id) => _post('/courier/tasks/$id/collect-cash/', const {});
+
+  Future<Map<String, dynamic>> clientSettings(String id) => _get('/clients/$id/settings/');
+  Future<Map<String, dynamic>> updateClientSettings(String id, Map<String, dynamic> values) => _patch('/clients/$id/settings/', values);
+  Future<Map<String, dynamic>> updateDistributorProfile(Map<String, dynamic> values) => _patch('/distributor/profile/', values);
 
   Future<Map<String, dynamic>> clientDiscount(String clientId) =>
       _get('/clients/$clientId/discount/');

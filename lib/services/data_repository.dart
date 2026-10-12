@@ -283,6 +283,10 @@ class DataRepository {
     return CourierTask.fromJson(Map<String, dynamic>.from(data['task'] as Map));
   }
 
+  Future<Map<String, dynamic>> clientSettings(String id) => _api.clientSettings(id);
+  Future<Map<String, dynamic>> updateClientSettings(String id, Map<String, dynamic> values) => _api.updateClientSettings(id, values);
+  Future<Map<String, dynamic>> updateDistributorProfile(Map<String, dynamic> values) => _api.updateDistributorProfile(values);
+
   Future<Map<String, dynamic>> clientDiscount(String clientId) =>
       _api.clientDiscount(clientId);
 
@@ -303,6 +307,15 @@ class DataRepository {
       _api.deleteClientPrice(clientId, productId);
 
   /// Страница каталога с итоговыми ценами текущего клиента.
+  Future<List<ProductData>> productQuote(List<String> ids) async {
+    final products = <ProductData>[];
+    for (var start = 0; start < ids.length; start += 200) {
+      final data = await _api.productQuote(ids.sublist(start, (start + 200).clamp(0, ids.length)));
+      products.addAll((data['results'] as List).map((row) => _productFromJson(Map<String, dynamic>.from(row))));
+    }
+    return products;
+  }
+
   Future<Paginated<ProductData>> products({
     int page = 1,
     int pageSize = ApiClient.defaultPageSize,
@@ -895,12 +908,15 @@ class DataRepository {
     String? storeId,
     String? deliveryMethod,
     String paymentMethod = 'online',
+    String? replaceOrderId,
     required List<Map<String, dynamic>> items,
     required String comment,
   }) async {
     await _api.createOrder(
       storeId: storeId, 
       deliveryMethod: deliveryMethod,
+      paymentMethod: paymentMethod,
+      replaceOrderId: replaceOrderId,
       items: items, 
       comment: comment
     );

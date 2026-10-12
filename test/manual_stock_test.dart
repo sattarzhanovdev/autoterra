@@ -5,6 +5,10 @@ import 'package:autoterra/screens/distributor/distributor_stock_screen.dart';
 void main() {
   group('Manual Stock Entry Component Tests', () {
     testWidgets('Add Product form allows text entry', (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(320, 568);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
       // Test the component directly to avoid Scaffold/Navigator complexity
       await tester.pumpWidget(
         MaterialApp(
@@ -39,6 +43,7 @@ void main() {
       );
 
       final submitButton = find.text('ДОБАВИТЬ ТОВАР');
+      await tester.ensureVisible(submitButton);
       await tester.tap(submitButton);
       await tester.pumpAndSettle();
 

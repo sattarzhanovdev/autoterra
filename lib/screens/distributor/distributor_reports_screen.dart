@@ -12,7 +12,7 @@ class _DistributorReportsScreenState extends State<DistributorReportsScreen> {
   late Future<Map<String, dynamic>> _report;
   @override
   void initState() { super.initState(); _report = ApiClient().distributorReports(); }
-  void _refresh() => setState(() => _report = ApiClient().distributorReports());
+  void _refresh() => setState(() { _report = ApiClient().distributorReports(); });
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(title: const Text('ОТЧЁТЫ'), actions: [IconButton(onPressed: _refresh, icon: const Icon(Icons.refresh))]),

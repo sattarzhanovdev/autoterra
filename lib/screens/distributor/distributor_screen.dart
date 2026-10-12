@@ -26,8 +26,8 @@ class _DistributorScreenState extends State<DistributorScreen> {
 
   Future<void> _refresh() async {
     final next = DataRepository().dashboard();
-    setState(() => _future = next);
-    await next;
+    setState(() { _future = next; });
+    try { await next; } catch (_) { /* FutureBuilder displays the error. */ }
   }
 
   @override

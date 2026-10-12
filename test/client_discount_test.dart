@@ -86,7 +86,7 @@ void main() {
     verify(() => repo.updateClientDiscount('1', '100')).called(1);
   });
 
-  testWidgets('distributor sees value without edit controls', (tester) async {
+  testWidgets('read-only role sees value without edit controls', (tester) async {
     when(
       () => repo.clientDiscount('1'),
     ).thenAnswer((_) async => data('15', edit: false));

@@ -24,6 +24,7 @@ class _DistributorIntegrationScreenState extends State<DistributorIntegrationScr
   final TextEditingController _testController = TextEditingController();
   Map<String, dynamic>? _testResult;
   bool _testing = false;
+  String? _error;
 
   @override
   void initState() {
@@ -41,12 +42,14 @@ class _DistributorIntegrationScreenState extends State<DistributorIntegrationScr
     setState(() => _loading = true);
     try {
       final res = await _repo.distributorIntegration();
+      if (!mounted) return;
       setState(() {
+        _error = null;
         _data = res;
         _loading = false;
       });
     } catch (e) {
-      if (mounted) setState(() => _loading = false);
+      if (mounted) setState(() { _loading = false; _error = 'Не удалось загрузить интеграцию: $e'; });
     }
   }
 
@@ -109,7 +112,9 @@ class _DistributorIntegrationScreenState extends State<DistributorIntegrationScr
         title: const Text('ИНТЕГРАЦИЯ 1С'),
         backgroundColor: AppColors.brandBlack,
       ),
-      body: RefreshIndicator(
+      body: _error != null ? Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
+        Text(_error!), TextButton(onPressed: _fetch, child: const Text('Повторить')),
+      ])) : RefreshIndicator(
         onRefresh: _fetch,
         child: ListView(
           padding: const EdgeInsets.all(16),

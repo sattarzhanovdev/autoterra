@@ -8,14 +8,16 @@ import '../../services/auth_service.dart';
 import '../../models/models.dart';
 
 class AdminIntegrationScreen extends StatefulWidget {
-  const AdminIntegrationScreen({super.key});
+  final DataRepository? repository;
+  const AdminIntegrationScreen({super.key, this.repository});
 
   @override
   State<AdminIntegrationScreen> createState() => _AdminIntegrationScreenState();
 }
 
 class _AdminIntegrationScreenState extends State<AdminIntegrationScreen> {
-  final DataRepository _repo = DataRepository();
+  late final DataRepository _repo = widget.repository ?? DataRepository();
+  String? _error;
   List<dynamic> _tokens = [];
   List<dynamic> _logs = [];
   bool _loading = true;
@@ -40,7 +42,9 @@ class _AdminIntegrationScreenState extends State<AdminIntegrationScreen> {
         (page) => _repo.adminIntegrationTokens(page: page),
       );
       final logs = await _repo.adminIntegrationLogs();
+      if (!mounted) return;
       setState(() {
+        _error = null;
         _tokens = List<dynamic>.from(tokens);
         _logs = List<dynamic>.from(logs.items);
         _logsHasMore = logs.hasNext;
@@ -49,20 +53,7 @@ class _AdminIntegrationScreenState extends State<AdminIntegrationScreen> {
         _loading = false;
       });
     } catch (e) {
-      debugPrint('AdminIntegration Init Error: $e');
-      // Mock data fallback
-      setState(() {
-        _tokens = [
-          {'id': '1', 'name': 'AutoTerra МСК', 'token': 'abc123def456...', 'createdAt': '2026-06-06T10:00:00Z'},
-          {'id': '2', 'name': 'AutoTerra КЗН', 'token': null, 'createdAt': null},
-        ];
-        _logs = [
-          {'id': '1', 'distributorName': 'AutoTerra МСК', 'type': 'stock_update', 'status': 'success', 'createdAt': '2026-06-06T10:05:00Z'},
-          {'id': '2', 'distributorName': 'AutoTerra МСК', 'type': 'stock_update', 'status': 'error', 'createdAt': '2026-06-06T09:00:00Z'},
-          {'id': '3', 'distributorName': 'AutoTerra КЗН', 'type': 'orders_export', 'status': 'success', 'createdAt': '2026-06-05T18:00:00Z'},
-        ];
-        _loading = false;
-      });
+      if (mounted) setState(() { _loading = false; _error = 'Не удалось загрузить интеграции: $e'; });
     }
   }
 
@@ -75,7 +66,7 @@ class _AdminIntegrationScreenState extends State<AdminIntegrationScreen> {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Новый ключ сгенерирован', style: TextStyle(color: Colors.white))));
       }
     } catch (e) {
-      setState(() => _loading = false);
+      if (mounted) setState(() => _loading = false);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Ошибка генерации токена')));
       }
@@ -108,7 +99,9 @@ class _AdminIntegrationScreenState extends State<AdminIntegrationScreen> {
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator(color: AppColors.brandRed))
-          : SingleChildScrollView(
+          : _error != null ? Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
+              Text(_error!), TextButton(onPressed: _fetch, child: const Text('Повторить')),
+            ])) : SingleChildScrollView(
               padding: const EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,

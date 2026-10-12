@@ -50,7 +50,7 @@ class _ManagerOrderDetailScreenState extends State<ManagerOrderDetailScreen> {
   late Future<Order> _future;
   @override
   void initState() { super.initState(); _future = _repo.orderDetail(widget.orderId); }
-  void _reload() => setState(() => _future = _repo.orderDetail(widget.orderId));
+  void _reload() => setState(() { _future = _repo.orderDetail(widget.orderId); });
 
   @override
   Widget build(BuildContext context) => Scaffold(
