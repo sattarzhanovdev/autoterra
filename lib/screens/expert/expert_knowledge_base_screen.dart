@@ -1,3 +1,4 @@
+import 'knowledge_documents_panel.dart';
 import 'package:flutter/material.dart';
 import '../../core/theme.dart';
 import '../../models/models.dart';
@@ -14,6 +15,7 @@ class KnowledgeBaseScreen extends StatefulWidget {
 }
 
 class _KnowledgeBaseScreenState extends State<KnowledgeBaseScreen> {
+  bool _documents = false;
   final DataRepository _repo = DataRepository();
   late final PaginationController<KnowledgeCard> _controller;
 
@@ -37,7 +39,9 @@ class _KnowledgeBaseScreenState extends State<KnowledgeBaseScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isExpert = authService.currentRole == UserRole.aiExpert;
+    final isExpert =
+        authService.currentRole == UserRole.aiExpert ||
+        authService.currentRole == UserRole.admin;
 
     return Scaffold(
       backgroundColor: AppColors.brandWhite,
@@ -54,22 +58,43 @@ class _KnowledgeBaseScreenState extends State<KnowledgeBaseScreen> {
           ),
         ],
       ),
-      body: PaginatedListView<KnowledgeCard>(
-        controller: _controller,
-        emptyMessage: 'БАЗА ЗНАНИЙ ПУСТА',
-        itemBuilder: (context, card, _) => _KnowledgeCardTile(
-          card: card,
-          onUpdate: _refresh,
-          isExpert: isExpert,
-        ),
+      body: Column(
+        children: [
+          if (isExpert)
+            Padding(
+              padding: const EdgeInsets.all(12),
+              child: SegmentedButton<bool>(
+                segments: const [
+                  ButtonSegment(value: false, label: Text('Карточки')),
+                  ButtonSegment(value: true, label: Text('Документы')),
+                ],
+                selected: {_documents},
+                onSelectionChanged: (value) =>
+                    setState(() => _documents = value.first),
+              ),
+            ),
+          Expanded(
+            child: _documents && isExpert
+                ? const KnowledgeDocumentsPanel()
+                : PaginatedListView<KnowledgeCard>(
+                    controller: _controller,
+                    emptyMessage: 'БАЗА ЗНАНИЙ ПУСТА',
+                    itemBuilder: (context, card, _) => _KnowledgeCardTile(
+                      card: card,
+                      onUpdate: _refresh,
+                      isExpert: isExpert,
+                    ),
+                  ),
+          ),
+        ],
       ),
-      floatingActionButton: isExpert 
-        ? FloatingActionButton(
-            onPressed: () => _showEditSheet(),
-            backgroundColor: AppColors.brandRed,
-            child: const Icon(Icons.add, color: Colors.white),
-          )
-        : null,
+      floatingActionButton: isExpert && !_documents
+          ? FloatingActionButton(
+              onPressed: () => _showEditSheet(),
+              backgroundColor: AppColors.brandRed,
+              child: const Icon(Icons.add, color: Colors.white),
+            )
+          : null,
     );
   }
 

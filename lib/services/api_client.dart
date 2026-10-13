@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 
@@ -647,13 +648,63 @@ class ApiClient {
     });
   }
 
-  Future<String> aiChat(String message) async {
-    final result = await _post(
-      '/ai/chat/',
-      {'message': message},
-      timeout: longTimeout,
+  Future<Map<String, dynamic>> aiChatWithSources(String message) =>
+      _post('/ai/chat/', {'message': message}, timeout: longTimeout);
+
+  Future<String> aiChat(String message) async =>
+      (await aiChatWithSources(message))['answer'] as String;
+
+  Future<Paginated<Map<String, dynamic>>> knowledgeDocuments({int page = 1}) =>
+      _getPage('/knowledge-documents/', page: page);
+
+  Future<Map<String, dynamic>> knowledgeDocument(String id) =>
+      _get('/knowledge-documents/$id/');
+
+  Future<Map<String, dynamic>> deleteKnowledgeDocument(String id) =>
+      _delete('/knowledge-documents/$id/');
+
+  Future<Map<String, dynamic>> reprocessKnowledgeDocument(String id) =>
+      _post('/knowledge-documents/$id/reprocess/', {});
+
+  Future<Map<String, dynamic>> uploadKnowledgeDocument(
+    Stream<List<int>> stream,
+    int size,
+    String name, {
+    void Function(int sent, int total)? onProgress,
+  }) async {
+    final path = baseUrl.endsWith('/')
+        ? '${baseUrl}knowledge-documents/upload/'
+        : '$baseUrl/knowledge-documents/upload/';
+    final abort = Completer<void>();
+    final request = http.AbortableMultipartRequest('POST', Uri.parse(path),
+        abortTrigger: abort.future);
+    if (_token != null) request.headers['Authorization'] = 'Bearer $_token';
+    var sent = 0;
+    request.files.add(
+      http.MultipartFile(
+        'file',
+        stream.map((chunk) {
+          sent += chunk.length;
+          onProgress?.call(sent, size);
+          return chunk;
+        }),
+        size,
+        filename: name,
+        contentType: _mediaTypeForFile(name),
+      ),
     );
-    return result['answer'] as String;
+    try {
+      return await (() async {
+        final response = await _httpClient.send(request);
+        return _decode(await http.Response.fromStream(response));
+      })().timeout(longTimeout, onTimeout: () {
+        if (!abort.isCompleted) abort.complete();
+        throw TimeoutException('Превышено время загрузки');
+      });
+    } catch (e) {
+      _handleError(e);
+      rethrow;
+    }
   }
 
   Future<Map<String, dynamic>> register(Map<String, dynamic> body) {
@@ -760,6 +811,10 @@ class ApiClient {
         return MediaType('image', 'webp');
       case 'pdf':
         return MediaType('application', 'pdf');
+      case 'docx':
+        return MediaType('application', 'vnd.openxmlformats-officedocument.wordprocessingml.document');
+      case 'txt':
+        return MediaType('text', 'plain');
       case 'mp4':
         return MediaType('video', 'mp4');
       case 'mov':

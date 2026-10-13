@@ -116,6 +116,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              if (isGlobal) OutlinedButton.icon(onPressed: () => context.push('/knowledge-base'), icon: const Icon(Icons.library_books), label: const Text('БАЗА ЗНАНИЙ ИИ')),
               if (isGlobal) OutlinedButton.icon(onPressed: () => context.push('/finance/yookassa'), icon: const Icon(Icons.account_balance), label: const Text('УЧЕТ ЮKASSA')),
               if (isGlobal && system != null) ...[
                 const SectionHeader(title: 'СТРУКТУРА СИСТЕМЫ'),

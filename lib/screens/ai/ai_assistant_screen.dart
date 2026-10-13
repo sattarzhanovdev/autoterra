@@ -46,7 +46,20 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
     _scrollToBottom();
     String answer;
     try {
-      answer = await _api.aiChat(text);
+      final response = await _api.aiChatWithSources(text);
+      answer = response['answer'] as String;
+      final sources = (response['sources'] as List? ?? [])
+          .whereType<Map>()
+          .toList();
+      if (sources.isNotEmpty) {
+        final labels = sources.asMap().entries.map((entry) {
+          final source = entry.value;
+          final page = source['page'];
+          final section = source['section'] as String? ?? '';
+          return '[${entry.key + 1}] ${source['filename'] ?? source['title']}${page == null ? '' : ', стр. $page'}${section.isEmpty ? '' : ', $section'}';
+        });
+        answer += '\n\nИсточники:\n${labels.join('\n')}';
+      }
     } catch (e) {
       answer =
           'AI-помощник сейчас недоступен. Попробуйте позже или отправьте вопрос технологу через раздел Вопрос-Ответ.';
@@ -81,7 +94,10 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('AI-ПОМОЩНИК', style: TextStyle(fontWeight: FontWeight.w900)),
+        title: const Text(
+          'AI-ПОМОЩНИК',
+          style: TextStyle(fontWeight: FontWeight.w900),
+        ),
       ),
       body: Column(
         children: [
@@ -264,7 +280,9 @@ class _MessageBubble extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
-                color: message.isAi ? AppColors.brandWhite : AppColors.brandBlack,
+                color: message.isAi
+                    ? AppColors.brandWhite
+                    : AppColors.brandBlack,
                 borderRadius: BorderRadius.zero,
                 border: message.isAi
                     ? Border.all(color: AppColors.border.withValues(alpha: 0.5))
