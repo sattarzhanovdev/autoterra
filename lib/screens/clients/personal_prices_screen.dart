@@ -147,6 +147,7 @@ class _PersonalPricesScreenState extends State<PersonalPricesScreen> {
                       const SizedBox(height: 8),
                       Text('Базовая цена: ${_price(item['basePrice'])}'),
                       Text('Цена по рангу: ${_price(item['rankPrice'])}'),
+                      if (item['priceSource'] == 'brand_discount') Text('Применена скидка по бренду: ${item['discountPercent']}%'),
                       Text(
                         hasOverride
                             ? 'Персональная цена: ${_price(item['personalPrice'])}${active ? '' : ' · отключена'}'

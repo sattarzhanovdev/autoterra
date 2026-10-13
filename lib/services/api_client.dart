@@ -455,6 +455,10 @@ class ApiClient {
   Future<Map<String, dynamic>> updateClientSettings(String id, Map<String, dynamic> values) => _patch('/clients/$id/settings/', values);
   Future<Map<String, dynamic>> updateDistributorProfile(Map<String, dynamic> values) => _patch('/distributor/profile/', values);
 
+  Future<Paginated<Map<String, dynamic>>> clientBrandDiscounts(String id, {int page = 1, String? search, bool discountsOnly = false}) => _getPage('/clients/$id/brand-discounts/', page: page, filters: {'search': search, 'discountsOnly': discountsOnly.toString()});
+  Future<Map<String, dynamic>> saveBrandDiscounts(String id, List<Map<String, dynamic>> discounts) => _patch('/clients/$id/brand-discounts/', {'discounts': discounts});
+  Future<Map<String, dynamic>> deleteBrandDiscount(String id, String brand) => _deleteJson('/clients/$id/brand-discounts/', {'brand': brand});
+
   Future<Map<String, dynamic>> clientDiscount(String clientId) =>
       _get('/clients/$clientId/discount/');
 

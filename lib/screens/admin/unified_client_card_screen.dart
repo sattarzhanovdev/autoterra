@@ -1,3 +1,4 @@
+import '../clients/brand_discounts_screen.dart';
 import '../clients/client_settings_card.dart';
 import '../clients/cash_payment_widgets.dart';
 import '../clients/client_discount_card.dart';
@@ -71,6 +72,7 @@ class _UnifiedClientCardScreenState extends State<UnifiedClientCardScreen> {
         ),
         body: Column(
           children: [
+            ClientBrandDiscountsTile(clientId: widget.clientId, onChanged: () => setState(() => _priceRevision++)),
             ClientSettingsCard(clientId: widget.clientId, onChanged: _fetch),
             ClientCashPermissionCard(clientId: widget.clientId),
             ClientDiscountCard(

@@ -287,6 +287,10 @@ class DataRepository {
   Future<Map<String, dynamic>> updateClientSettings(String id, Map<String, dynamic> values) => _api.updateClientSettings(id, values);
   Future<Map<String, dynamic>> updateDistributorProfile(Map<String, dynamic> values) => _api.updateDistributorProfile(values);
 
+  Future<Paginated<Map<String, dynamic>>> clientBrandDiscounts(String id, {int page = 1, String? search, bool discountsOnly = false}) => _api.clientBrandDiscounts(id, page: page, search: search, discountsOnly: discountsOnly);
+  Future<Map<String, dynamic>> saveBrandDiscounts(String id, List<Map<String, dynamic>> discounts) => _api.saveBrandDiscounts(id, discounts);
+  Future<Map<String, dynamic>> deleteBrandDiscount(String id, String brand) => _api.deleteBrandDiscount(id, brand);
+
   Future<Map<String, dynamic>> clientDiscount(String clientId) =>
       _api.clientDiscount(clientId);
 

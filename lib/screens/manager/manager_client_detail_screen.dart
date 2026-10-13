@@ -1,3 +1,4 @@
+import '../clients/brand_discounts_screen.dart';
 import '../clients/client_settings_card.dart';
 import '../clients/client_discount_card.dart';
 import '../clients/personal_prices_screen.dart';
@@ -231,6 +232,7 @@ class _ManagerClientDetailScreenState extends State<ManagerClientDetailScreen> {
                   _buildClientCard(),
                   ClientSettingsCard(clientId: widget.clientId, onChanged: _load),
                   ClientDiscountCard(clientId: widget.clientId),
+                  ClientBrandDiscountsTile(clientId: widget.clientId),
                   ClientPersonalPricesTile(clientId: widget.clientId),
                   const SizedBox(height: 16),
                   _buildStatsAndOrders(),

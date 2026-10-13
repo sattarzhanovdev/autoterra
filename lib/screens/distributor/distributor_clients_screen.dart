@@ -1,3 +1,4 @@
+import '../clients/brand_discounts_screen.dart';
 import '../clients/client_settings_card.dart';
 import '../clients/cash_payment_widgets.dart';
 import '../clients/client_discount_card.dart';
@@ -166,6 +167,7 @@ class ClientListCard extends StatelessWidget {
                   ClientSettingsCard(clientId: client.id, repository: repository, onChanged: onChanged),
                   ClientCashPermissionCard(clientId: client.id, repository: repository),
                   ClientDiscountCard(clientId: client.id, repository: repository),
+                  ClientBrandDiscountsTile(clientId: client.id, repository: repository),
                   ClientPersonalPricesTile(clientId: client.id),
 
                 ],
