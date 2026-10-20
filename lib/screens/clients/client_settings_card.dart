@@ -21,6 +21,7 @@ class _ClientSettingsCardState extends State<ClientSettingsCard> {
   late final _repo = widget.repository ?? DataRepository();
   Map<String, dynamic>? _data;
   String? _error;
+  bool _approving = false;
 
   @override
   void initState() {
@@ -64,6 +65,24 @@ class _ClientSettingsCardState extends State<ClientSettingsCard> {
     }
   }
 
+  Future<void> _approve() async {
+    if (_approving) return;
+    setState(() => _approving = true);
+    try {
+      await _repo.approveClient(widget.clientId);
+      await _load();
+      widget.onChanged?.call();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Не удалось подтвердить регистрацию: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _approving = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_error != null) {
@@ -73,16 +92,32 @@ class _ClientSettingsCardState extends State<ClientSettingsCard> {
       );
     }
     if (_data == null) return const LinearProgressIndicator();
-    return ListTile(
-      title: Text('Статус: ${_label('status', 'statuses')}'),
-      subtitle: Text('Категория: ${_label('category', 'categories')}'),
-      trailing: _data!['canEdit'] == true
-          ? IconButton(
-              tooltip: 'Изменить статус и категорию',
-              onPressed: _edit,
-              icon: const Icon(Icons.edit),
-            )
-          : null,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        ListTile(
+          title: Text('Статус: ${_label('status', 'statuses')}'),
+          subtitle: Text('Категория: ${_label('category', 'categories')}'),
+          trailing: _data!['canEdit'] == true
+              ? IconButton(
+                  tooltip: 'Изменить статус и категорию',
+                  onPressed: _edit,
+                  icon: const Icon(Icons.edit),
+                )
+              : null,
+        ),
+        if (_data!['canApprove'] == true)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: FilledButton.icon(
+              onPressed: _approving ? null : _approve,
+              icon: const Icon(Icons.verified_user_outlined),
+              label: Text(
+                _approving ? 'ПОДТВЕРЖДЕНИЕ…' : 'ПОДТВЕРДИТЬ РЕГИСТРАЦИЮ',
+              ),
+            ),
+          ),
+      ],
     );
   }
 }

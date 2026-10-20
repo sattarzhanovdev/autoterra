@@ -283,6 +283,10 @@ class DataRepository {
     return CourierTask.fromJson(Map<String, dynamic>.from(data['task'] as Map));
   }
 
+  Future<void> approveClient(String id) async {
+    await _api.approveClient(id);
+  }
+
   Future<Map<String, dynamic>> clientSettings(String id) => _api.clientSettings(id);
   Future<Map<String, dynamic>> updateClientSettings(String id, Map<String, dynamic> values) => _api.updateClientSettings(id, values);
   Future<Map<String, dynamic>> updateDistributorProfile(Map<String, dynamic> values) => _api.updateDistributorProfile(values);

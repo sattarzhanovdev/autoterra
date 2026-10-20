@@ -452,6 +452,8 @@ class ApiClient {
   Future<Map<String, dynamic>> chooseOrderCash(String id) => _post('/orders/$id/cash/', const {});
   Future<Map<String, dynamic>> courierCollectCash(String id) => _post('/courier/tasks/$id/collect-cash/', const {});
 
+  Future<Map<String, dynamic>> approveClient(String id) => _post('/manager/clients/$id/approve/', {});
+
   Future<Map<String, dynamic>> clientSettings(String id) => _get('/clients/$id/settings/');
   Future<Map<String, dynamic>> updateClientSettings(String id, Map<String, dynamic> values) => _patch('/clients/$id/settings/', values);
   Future<Map<String, dynamic>> updateDistributorProfile(Map<String, dynamic> values) => _patch('/distributor/profile/', values);

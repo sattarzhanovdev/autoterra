@@ -84,6 +84,50 @@ void main() {
     ).called(1);
   });
 
+  testWidgets('manager confirms registration without financial edit access', (
+    tester,
+  ) async {
+    var approved = false;
+    when(() => repo.clientSettings('1')).thenAnswer(
+      (_) async => {
+        ...settings(edit: false, status: approved ? 'active' : 'new'),
+        'canApprove': !approved,
+      },
+    );
+    when(() => repo.approveClient('1')).thenAnswer((_) async {
+      approved = true;
+    });
+    var changes = 0;
+    await open(tester, changed: () => changes++);
+    expect(find.byTooltip('Изменить статус и категорию'), findsNothing);
+    await tester.tap(find.text('ПОДТВЕРДИТЬ РЕГИСТРАЦИЮ'));
+    await tester.pumpAndSettle();
+    expect(find.text('Статус: Активный'), findsOneWidget);
+    expect(find.text('ПОДТВЕРДИТЬ РЕГИСТРАЦИЮ'), findsNothing);
+    expect(changes, 1);
+    verify(() => repo.approveClient('1')).called(1);
+  });
+
+  testWidgets('failed approval keeps registration available to retry', (
+    tester,
+  ) async {
+    when(() => repo.clientSettings('1')).thenAnswer(
+      (_) async => {
+        ...settings(edit: false, status: 'new'),
+        'canApprove': true,
+      },
+    );
+    when(() => repo.approveClient('1')).thenThrow(Exception('offline'));
+    await open(tester);
+    await tester.tap(find.text('ПОДТВЕРДИТЬ РЕГИСТРАЦИЮ'));
+    await tester.pumpAndSettle();
+    expect(
+      find.textContaining('Не удалось подтвердить регистрацию:'),
+      findsOneWidget,
+    );
+    expect(find.text('ПОДТВЕРДИТЬ РЕГИСТРАЦИЮ'), findsOneWidget);
+  });
+
   testWidgets('read-only role has no edit control', (tester) async {
     when(
       () => repo.clientSettings('1'),
