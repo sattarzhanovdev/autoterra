@@ -306,7 +306,7 @@ void main() {
       await tester.ensureVisible(find.text('ДОБАВИТЬ'));
       await tester.tap(find.text('ДОБАВИТЬ'));
       await tester.pump(const Duration(milliseconds: 300));
-      await tester.tap(find.byIcon(Icons.add).first);
+      await tester.tap(find.byKey(const ValueKey('add-to-cart-1')));
       await tester.pump(const Duration(milliseconds: 300));
       second.complete({
         'orderDiscount': {

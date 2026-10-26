@@ -37,6 +37,7 @@ class CatalogRepository extends DataRepository {
   List<String> brands = ['AutoTerra'];
   List<ProductData> items = [product()];
   final requests = <Map<String, dynamic>>[];
+  final quotedQuantities = <int>[];
   Future<Paginated<ProductData>> Function()? load;
 
   @override
@@ -97,6 +98,7 @@ class CatalogRepository extends DataRepository {
       0,
       (sum, row) => sum + (row['quantity'] as int),
     );
+    quotedQuantities.add(quantity);
     final total = (quantity * 95.53).toStringAsFixed(2);
     return {
       'orderDiscount': {
@@ -148,6 +150,11 @@ Future<void> open(WidgetTester tester, CatalogRepository repo) async {
 Future<void> capture(WidgetTester tester, String name) async {
   final dir = Platform.environment['AUTOTERRA_UX_SCREENSHOTS'];
   if (dir == null) return;
+  final tile = find.byKey(const ValueKey('catalog-product-1'));
+  if (tile.evaluate().isNotEmpty) {
+    await tester.ensureVisible(tile);
+    await tester.pumpAndSettle();
+  }
   await tester.runAsync(() async {
     final boundary = tester.renderObject<RenderRepaintBoundary>(
       find.byKey(const ValueKey('screen')),
@@ -182,53 +189,140 @@ void main() {
   }
 
   testWidgets(
-    'catalog price, stock, add to max, disabled plus and minus to zero',
+    'choose quantity then confirm; add remains visible and stock is enforced',
     (tester) async {
-      await open(tester, CatalogRepository());
+      final repo = CatalogRepository();
+      await open(tester, repo);
       expect(find.text('Персональная скидка −24%'), findsOneWidget);
-      expect(find.text('95,53 ₽'), findsOneWidget);
       expect(
         tester.widget<Text>(find.text('125,70 ₽')).style?.decoration,
         TextDecoration.lineThrough,
       );
-      await tester.ensureVisible(find.text('ДОБАВИТЬ'));
-      await capture(tester, 'catalog-discount-stock');
-      await tester.tap(find.text('ДОБАВИТЬ'));
-      await tester.pumpAndSettle();
-      expect(find.text('Доступно: 4 шт.'), findsOneWidget);
-      expect(find.text('В корзине'), findsWidgets);
-      for (var next = 2; next <= 4; next++) {
+      final add = find.byKey(const ValueKey('add-to-cart-1'));
+      final pending = find.byKey(const ValueKey('quantity-to-add-1'));
+      await tester.ensureVisible(add);
+      await capture(tester, 'catalog-choose-quantity');
+      for (var next = 2; next <= 3; next++) {
         await tester.tap(find.byIcon(Icons.add).first);
         await tester.pumpAndSettle();
-        expect(find.text('$next').first, findsOneWidget);
+        expect(tester.widget<Text>(pending).data, '$next');
       }
-      expect(find.text('МАЛО · 4 ШТ.'), findsOneWidget);
+      // Selecting alone does not change the basket or request final pricing.
+      expect(find.text('В корзине: 3 шт.'), findsNothing);
+      expect(repo.quotedQuantities, isEmpty);
+      await capture(tester, 'catalog-quantity-selected');
+      await tester.tap(add);
+      await tester.pumpAndSettle();
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pumpAndSettle();
+      expect(find.text('В корзине: 3 шт.'), findsOneWidget);
+      expect(repo.quotedQuantities.last, 3);
+      expect(find.text('Можно добавить ещё: 1 шт.'), findsOneWidget);
+      expect(tester.widget<Text>(pending).data, '1');
+      expect(tester.widget<ElevatedButton>(add).onPressed, isNotNull);
+      expect(find.text('ДОБАВИТЬ'), findsOneWidget);
+      await capture(tester, 'catalog-after-add');
+      await tester.tap(add);
+      await tester.pumpAndSettle();
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pumpAndSettle();
+      expect(find.text('В корзине: 4 шт.'), findsOneWidget);
+      expect(repo.quotedQuantities.last, 4);
       expect(
         find.text('Достигнут максимальный остаток: 4 шт.'),
         findsOneWidget,
       );
-      final plus = find.widgetWithIcon(IconButton, Icons.add).first;
-      expect(tester.widget<IconButton>(plus).onPressed, isNull);
-      await tester.tap(plus);
+      expect(tester.widget<ElevatedButton>(add).onPressed, isNull);
+      expect(
+        tester
+            .widget<IconButton>(
+              find.widgetWithIcon(IconButton, Icons.add).first,
+            )
+            .onPressed,
+        isNull,
+      );
+      await tester.tap(add);
       await tester.pumpAndSettle();
-      expect(find.text('4').first, findsOneWidget);
+      expect(find.text('В корзине: 4 шт.'), findsOneWidget);
+      await capture(tester, 'catalog-max-stock');
+      // Existing basket controls still remove items; the add button becomes available again.
+      final basketControls = find.byKey(const ValueKey('basket-quantity-1'));
       await tester.scrollUntilVisible(
-        find.text('00202 SM БЫСТРОСЪЕМНЫЙ'),
-        -250,
+        basketControls,
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      for (var next = 3; next >= 0; next--) {
+        final remove = find.descendant(
+          of: basketControls,
+          matching: find.byIcon(Icons.remove),
+        );
+        await tester.ensureVisible(remove);
+        await tester.tap(remove);
+        await tester.pumpAndSettle();
+      }
+      await tester.scrollUntilVisible(
+        add,
+        -200,
         scrollable: find.byType(Scrollable).first,
       );
       await tester.pumpAndSettle();
-      await capture(tester, 'catalog-max-stock');
-      for (var next = 3; next >= 0; next--) {
-        await tester.tap(find.byIcon(Icons.remove).first);
-        await tester.pumpAndSettle();
-        if (next > 0) expect(find.text('$next').first, findsOneWidget);
-      }
-      expect(find.text('ДОБАВИТЬ'), findsOneWidget);
-      expect(find.byIcon(Icons.add), findsNothing);
+      expect(tester.widget<ElevatedButton>(add).onPressed, isNotNull);
+      expect(find.textContaining('В корзине:'), findsNothing);
       expect(tester.takeException(), isNull);
     },
   );
+
+  testWidgets(
+    'a refreshed stock limit clamps the selected amount before confirmation',
+    (tester) async {
+      final repo = CatalogRepository();
+      await open(tester, repo);
+      final add = find.byKey(const ValueKey('add-to-cart-1'));
+      await tester.ensureVisible(add);
+      await tester.tap(find.byIcon(Icons.add).first);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byIcon(Icons.add).first);
+      await tester.pumpAndSettle();
+      repo.items = [product(quantity: 2)];
+      tester.state<RefreshIndicatorState>(find.byType(RefreshIndicator)).show();
+      await tester.pumpAndSettle();
+      await tester.scrollUntilVisible(
+        add,
+        150,
+        scrollable: find.byType(Scrollable).first,
+      );
+      expect(
+        tester
+            .widget<Text>(find.byKey(const ValueKey('quantity-to-add-1')))
+            .data,
+        '2',
+      );
+      await tester.tap(add);
+      await tester.pumpAndSettle();
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pumpAndSettle();
+      expect(find.text('В корзине: 2 шт.'), findsOneWidget);
+      expect(repo.quotedQuantities.last, 2);
+      expect(tester.widget<ElevatedButton>(add).onPressed, isNull);
+    },
+  );
+
+  testWidgets('selected amount can be decreased before adding', (tester) async {
+    await open(tester, CatalogRepository());
+    await tester.ensureVisible(find.byKey(const ValueKey('add-to-cart-1')));
+    await tester.tap(find.byIcon(Icons.add).first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(Icons.remove).first);
+    await tester.pumpAndSettle();
+    expect(
+      tester.widget<Text>(find.byKey(const ValueKey('quantity-to-add-1'))).data,
+      '1',
+    );
+    await tester.tap(find.byKey(const ValueKey('add-to-cart-1')));
+    await tester.pumpAndSettle();
+    expect(find.text('В корзине: 1 шт.'), findsOneWidget);
+  });
 
   testWidgets('onOrder zero keeps the existing additional order rule', (
     tester,
@@ -241,7 +335,14 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byIcon(Icons.add).first);
     await tester.pumpAndSettle();
-    expect(find.text('2').first, findsOneWidget);
+    expect(
+      tester.widget<Text>(find.byKey(const ValueKey('quantity-to-add-1'))).data,
+      '2',
+    );
+    expect(find.text('В корзине: 1 шт.'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('add-to-cart-1')));
+    await tester.pumpAndSettle();
+    expect(find.text('В корзине: 3 шт.'), findsOneWidget);
     expect(find.text('Достигнут максимальный остаток: 0 шт.'), findsNothing);
   });
 

@@ -190,6 +190,7 @@ void main() {
     await tester.tap(find.text('Закрыть'));
     await tester.pumpAndSettle();
     await tester.ensureVisible(find.text('ДОБАВИТЬ'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('ДОБАВИТЬ'));
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);

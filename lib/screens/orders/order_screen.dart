@@ -65,6 +65,7 @@ class _OrderScreenState extends State<OrderScreen> with WidgetsBindingObserver {
   late final DataRepository _repo;
   late Future<OrderConfigData> _future;
   final Map<String, int> _qty = {};
+  final Map<String, int> _quantityToAdd = {};
 
   /// Выбранные товары целиком. Каталог листается страницами, и товар из
   /// корзины может быть уже не загружен — считать сумму и показывать состав
@@ -263,6 +264,36 @@ class _OrderScreenState extends State<OrderScreen> with WidgetsBindingObserver {
       if (store.id == _selectedStoreId) return store;
     }
     return stores.isEmpty ? null : stores.first;
+  }
+
+  int _remainingToAdd(ProductData product) {
+    if (!_canOrder(product)) return 0;
+    final limit = product.status == StockStatus.onOrder && product.quantity == 0
+        ? 999 : product.quantity;
+    return (limit - (_qty[product.id] ?? 0)).clamp(0, limit);
+  }
+
+  int _pendingQuantity(ProductData product) {
+    final remaining = _remainingToAdd(product);
+    if (remaining == 0) return 0;
+    return (_quantityToAdd[product.id] ?? 1).clamp(1, remaining);
+  }
+
+  void _selectQuantity(ProductData product, int delta) {
+    final remaining = _remainingToAdd(product);
+    if (remaining == 0) return;
+    setState(() {
+      _quantityToAdd[product.id] = (_pendingQuantity(product) + delta).clamp(1, remaining);
+    });
+  }
+
+  void _addSelectedQuantity(ProductData product) {
+    final count = _pendingQuantity(product);
+    if (count == 0) return;
+    _changeQty(product, count);
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text('Добавлено в корзину: $count шт.')));
   }
 
   void _changeQty(ProductData product, int delta) {
@@ -1148,6 +1179,7 @@ class _OrderScreenState extends State<OrderScreen> with WidgetsBindingObserver {
     final isOutOfStock = !canOrder && qty == 0;
 
     return Container(
+      key: ValueKey('catalog-product-${item.id}'),
       margin: const EdgeInsets.only(bottom: 12),
       decoration: ShapeDecoration(
         color: isOutOfStock 
@@ -1216,40 +1248,18 @@ class _OrderScreenState extends State<OrderScreen> with WidgetsBindingObserver {
               ),
               const SizedBox(height: 16),
               ShopSalePrice(product: item),
-              Row(
-                children: [
-                  Expanded(
-                    child: ClientProductPrice(product: item),
-                  ),
-                  if (isOutOfStock)
-                    const SizedBox(height: 36) // Empty space instead of the button
-                  else if (qty == 0)
-                    ElevatedButton(
-                      onPressed: () => _changeQty(item, 1),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.brandBlack,
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        minimumSize: const Size(100, 36),
-                      ),
-                      child: const Text('ДОБАВИТЬ', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
-                    )
-                  else
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        _qtyStepper(item, qty),
-                        if (!canOrder)
-                          const Padding(
-                            padding: EdgeInsets.only(top: 4),
-                            child: Text('БОЛЬШЕ НЕТ', style: TextStyle(color: AppColors.error, fontSize: 9, fontWeight: FontWeight.bold)),
-                          ),
-                      ],
-                    ),
+              ClientProductPrice(product: item),
+              if (canOrder || qty > 0) ...[
+                const SizedBox(height: 12),
+                _addToCartControls(item),
+                if (qty > 0) ...[
+                  const SizedBox(height: 8),
+                  Text('В корзине: $qty шт.', style: const TextStyle(fontWeight: FontWeight.w700)),
                 ],
-              ),
-              if (qty > 0 && item.quantity > 0 && !showStockWarning) ...[
+              ],
+              if (item.quantity > 0 && !showStockWarning) ...[
                 const SizedBox(height: 8),
-                Text('Доступно: ${item.quantity} шт.', style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+                Text(qty > 0 ? 'Можно добавить ещё: ${_remainingToAdd(item)} шт.' : 'Доступно: ${item.quantity} шт.', style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
               ],
               if (showStockWarning && item.quantity > 0) ...[
                 const SizedBox(height: 8),
@@ -1262,6 +1272,46 @@ class _OrderScreenState extends State<OrderScreen> with WidgetsBindingObserver {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _addToCartControls(ProductData product) {
+    final pending = _pendingQuantity(product);
+    final remaining = _remainingToAdd(product);
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('Количество', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700)),
+            const SizedBox(height: 4),
+            Container(
+              decoration: BoxDecoration(border: Border.all(color: AppColors.border)),
+              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                _qtyButton(Icons.remove, pending <= 1, () => _selectQuantity(product, -1)),
+                SizedBox(width: 32, child: Text('$pending',
+                  key: ValueKey('quantity-to-add-${product.id}'),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontWeight: FontWeight.w800))),
+                _qtyButton(Icons.add, pending >= remaining, () => _selectQuantity(product, 1)),
+              ]),
+            ),
+          ],
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: ElevatedButton(
+            key: ValueKey('add-to-cart-${product.id}'),
+            onPressed: pending > 0 ? () => _addSelectedQuantity(product) : null,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.brandBlack,
+              minimumSize: const Size(100, 36),
+            ),
+            child: const Text('ДОБАВИТЬ', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+          ),
+        ),
+      ],
     );
   }
 
@@ -1345,6 +1395,7 @@ class _OrderScreenState extends State<OrderScreen> with WidgetsBindingObserver {
     final reachedLimit = !_canOrder(product) || (isUnlimited ? qty >= 999 : qty >= product.quantity);
 
     return Column(
+      key: ValueKey('basket-quantity-${product.id}'),
       mainAxisSize: MainAxisSize.min,
       children: [
         const Text('В корзине', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700)),
