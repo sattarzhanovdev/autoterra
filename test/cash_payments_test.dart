@@ -310,6 +310,8 @@ void main() {
     await tester.ensureVisible(find.text('ДОБАВИТЬ'));
     await tester.tap(find.text('ДОБАВИТЬ'));
     await tester.pumpAndSettle();
+    await tester.tap(find.text('ДОБАВИТЬ'));
+    await tester.pumpAndSettle();
     await tester.scrollUntilVisible(
       find.text('Оплата наличными курьеру'),
       250,

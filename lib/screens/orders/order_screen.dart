@@ -66,6 +66,10 @@ class _OrderScreenState extends State<OrderScreen> with WidgetsBindingObserver {
   late Future<OrderConfigData> _future;
   final Map<String, int> _qty = {};
   final Map<String, int> _quantityToAdd = {};
+  final Set<String> _quantityEditors = {};
+  bool _showCheckout = false;
+  final _catalogScroll = ScrollController();
+  final _checkoutScroll = ScrollController();
 
   /// Выбранные товары целиком. Каталог листается страницами, и товар из
   /// корзины может быть уже не загружен — считать сумму и показывать состав
@@ -199,6 +203,8 @@ class _OrderScreenState extends State<OrderScreen> with WidgetsBindingObserver {
     _commentCtrl.dispose();
     _searchCtrl.dispose();
     _catalog.dispose();
+    _catalogScroll.dispose();
+    _checkoutScroll.dispose();
     super.dispose();
   }
 
@@ -291,9 +297,7 @@ class _OrderScreenState extends State<OrderScreen> with WidgetsBindingObserver {
     final count = _pendingQuantity(product);
     if (count == 0) return;
     _changeQty(product, count);
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text('Добавлено в корзину: $count шт.')));
+
   }
 
   void _changeQty(ProductData product, int delta) {
@@ -477,64 +481,147 @@ class _OrderScreenState extends State<OrderScreen> with WidgetsBindingObserver {
     }
   }
 
+  void _setCheckout(bool value) {
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    setState(() => _showCheckout = value);
+  }
+
+  Widget _cartBar() {
+    return SafeArea(
+      top: false,
+      child: Material(
+        color: Colors.white,
+        elevation: 8,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'В корзине: $_totalQty шт.',
+                      style: const TextStyle(fontWeight: FontWeight.w800),
+                    ),
+                    Text(
+                      _quoteError != null
+                          ? 'Не удалось рассчитать сумму'
+                          : _orderDiscount == null
+                          ? 'Расчёт суммы...'
+                          : '${_formatPrice(_totalAmount)} ₽',
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              SizedBox(
+                height: 48,
+                child: ElevatedButton(
+                  key: const ValueKey('open-checkout'),
+                  onPressed: () => _setCheckout(true),
+                  child: const Text('К ОФОРМЛЕНИЮ'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text(widget.initialOrder != null ? 'Изменение заказа' : 'Оформление заказа')),
-      body: FutureBuilder<OrderConfigData>(
-        future: _future,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState != ConnectionState.done && !snapshot.hasData) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (snapshot.hasError) {
-            return _ErrorState(message: snapshot.error.toString(), onRetry: _refresh);
-          }
-          final data = snapshot.data!;
-          _ensureStore(data);
-          return RefreshIndicator(
-            onRefresh: _refresh,
-            child: CustomScrollView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              slivers: [
-                // Каталог: шапка с фильтрами
-                SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-                  sliver: SliverToBoxAdapter(child: _catalogHeader(data)),
-                ),
-                // Каталог: виртуализированный список товаров
-                _catalogSliverList(),
-                // Остальные карточки
-                SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 80),
-                  sliver: SliverList(
-                    delegate: SliverChildListDelegate([
-                      const SizedBox(height: 2),
-                      _catalogFooter(),
-                      const SizedBox(height: 16),
-                      _selectedCard(),
-                      const SizedBox(height: 16),
-                      _deliveryMethodCard(data),
-                      if (data.client.cashPaymentAllowed && _deliveryMethod == 'courier')
-                        SwitchListTile(
-                          title: const Text('Оплата наличными курьеру'),
-                          subtitle: const Text('После подтверждения заказ уйдёт в сборку. Оплатите при доставке.'),
-                          value: _paymentMethod == 'cash',
-                          onChanged: (value) => setState(() => _paymentMethod = value ? 'cash' : 'online'),
-                        ),
-                      const SizedBox(height: 16),
-                      _storesCard(data.stores),
-                      const SizedBox(height: 16),
-                      _requestForm(data),
-                      const SizedBox(height: 16),
-                      _distributorCard(data),
-                    ]),
+    return PopScope(
+      canPop: !_showCheckout || _sending,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop && _showCheckout) _setCheckout(false);
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          leading: _showCheckout
+              ? BackButton(onPressed: () => _setCheckout(false))
+              : null,
+          title: Text(
+            _showCheckout
+                ? 'Корзина и оформление'
+                : widget.initialOrder != null
+                ? 'Изменение заказа'
+                : 'Оформление заказа',
+          ),
+        ),
+        bottomNavigationBar: !_showCheckout && _totalQty > 0
+            ? _cartBar()
+            : null,
+        body: FutureBuilder<OrderConfigData>(
+          future: _future,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState != ConnectionState.done &&
+                !snapshot.hasData) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            if (snapshot.hasError) {
+              return _ErrorState(
+                message: snapshot.error.toString(),
+                onRetry: _refresh,
+              );
+            }
+            final data = snapshot.data!;
+            _ensureStore(data);
+            return RefreshIndicator(
+              onRefresh: _refresh,
+              child: CustomScrollView(
+                key: ValueKey(_showCheckout ? 'checkout-view' : 'catalog-view'),
+                controller: _showCheckout ? _checkoutScroll : _catalogScroll,
+                physics: const AlwaysScrollableScrollPhysics(),
+                slivers: [
+                  if (!_showCheckout) ...[
+                    // Каталог: шапка с фильтрами
+                    SliverPadding(
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                      sliver: SliverToBoxAdapter(child: _catalogHeader(data)),
+                    ),
+                    // Каталог: виртуализированный список товаров
+                    _catalogSliverList(),
+                  ],
+                  // Остальные карточки
+                  SliverPadding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 80),
+                    sliver: SliverList(
+                      delegate: SliverChildListDelegate([
+                        const SizedBox(height: 2),
+                        if (!_showCheckout) _catalogFooter(),
+                        const SizedBox(height: 16),
+                        _selectedCard(),
+                        const SizedBox(height: 16),
+                        _deliveryMethodCard(data),
+                        if (data.client.cashPaymentAllowed &&
+                            _deliveryMethod == 'courier')
+                          SwitchListTile(
+                            title: const Text('Оплата наличными курьеру'),
+                            subtitle: const Text(
+                              'После подтверждения заказ уйдёт в сборку. Оплатите при доставке.',
+                            ),
+                            value: _paymentMethod == 'cash',
+                            onChanged: (value) => setState(
+                              () => _paymentMethod = value ? 'cash' : 'online',
+                            ),
+                          ),
+                        const SizedBox(height: 16),
+                        _storesCard(data.stores),
+                        const SizedBox(height: 16),
+                        _requestForm(data),
+                        const SizedBox(height: 16),
+                        _distributorCard(data),
+                      ]),
+                    ),
                   ),
-                ),
-              ],
-            ),
-          );
-        },
+                ],
+              ),
+            );
+          },
+        ),
       ),
     );
   }
@@ -1182,12 +1269,16 @@ class _OrderScreenState extends State<OrderScreen> with WidgetsBindingObserver {
       key: ValueKey('catalog-product-${item.id}'),
       margin: const EdgeInsets.only(bottom: 12),
       decoration: ShapeDecoration(
-        color: isOutOfStock 
-            ? AppColors.border.withValues(alpha: 0.2) 
-            : (qty > 0 ? AppColors.brandRed.withValues(alpha: 0.05) : Colors.white),
+        color: isOutOfStock
+            ? AppColors.border.withValues(alpha: 0.2)
+            : (qty > 0
+                  ? AppColors.brandRed.withValues(alpha: 0.05)
+                  : Colors.white),
         shape: BeveledRectangleBorder(
           side: BorderSide(
-            color: isOutOfStock ? AppColors.border : (qty > 0 ? AppColors.brandRed : AppColors.border)
+            color: isOutOfStock
+                ? AppColors.border
+                : (qty > 0 ? AppColors.brandRed : AppColors.border),
           ),
           borderRadius: BorderRadius.zero,
         ),
@@ -1220,28 +1311,59 @@ class _OrderScreenState extends State<OrderScreen> with WidgetsBindingObserver {
                       children: [
                         InkWell(
                           onTap: () => _showProductDetails(item),
-                          child: Text(
-                            item.name.toUpperCase(),
-                            style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 0.5),
+                          child: SizedBox(
+                            key: ValueKey('catalog-title-${item.id}'),
+                            width: double.infinity,
+                            height:
+                                MediaQuery.textScalerOf(context).scale(13) *
+                                1.3 *
+                                3,
+                            child: Text(
+                              item.name.toUpperCase(),
+                              maxLines: 3,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w900,
+                                fontSize: 13,
+                                height: 1.3,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
                           ),
                         ),
                         const SizedBox(height: 4),
                         Text(
                           '${item.brand} · ${item.sku}',
-                          style: const TextStyle(color: AppColors.textSecondary, fontSize: 11, fontWeight: FontWeight.bold),
+                          style: const TextStyle(
+                            color: AppColors.textSecondary,
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: ShapeDecoration(
+                            color: stockColor.withValues(alpha: 0.1),
+                            shape: const BeveledRectangleBorder(
+                              borderRadius: BorderRadius.only(
+                                topRight: Radius.circular(5),
+                              ),
+                            ),
+                          ),
+                          child: Text(
+                            stockStatusText,
+                            style: TextStyle(
+                              color: stockColor,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
                         ),
                       ],
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: ShapeDecoration(
-                      color: stockColor.withValues(alpha: 0.1),
-                      shape: const BeveledRectangleBorder(borderRadius: BorderRadius.only(topRight: Radius.circular(5))),
-                    ),
-                    child: Text(
-                      stockStatusText,
-                      style: TextStyle(color: stockColor, fontSize: 10, fontWeight: FontWeight.w900),
                     ),
                   ),
                 ],
@@ -1254,18 +1376,33 @@ class _OrderScreenState extends State<OrderScreen> with WidgetsBindingObserver {
                 _addToCartControls(item),
                 if (qty > 0) ...[
                   const SizedBox(height: 8),
-                  Text('В корзине: $qty шт.', style: const TextStyle(fontWeight: FontWeight.w700)),
+                  Text(
+                    'В корзине: $qty шт.',
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
                 ],
               ],
               if (item.quantity > 0 && !showStockWarning) ...[
                 const SizedBox(height: 8),
-                Text(qty > 0 ? 'Можно добавить ещё: ${_remainingToAdd(item)} шт.' : 'Доступно: ${item.quantity} шт.', style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+                Text(
+                  qty > 0
+                      ? 'Можно добавить ещё: ${_remainingToAdd(item)} шт.'
+                      : 'Доступно: ${item.quantity} шт.',
+                  style: const TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 12,
+                  ),
+                ),
               ],
               if (showStockWarning && item.quantity > 0) ...[
                 const SizedBox(height: 8),
                 Text(
                   'Достигнут максимальный остаток: ${item.quantity} шт.',
-                  style: const TextStyle(color: AppColors.error, fontSize: 10, fontWeight: FontWeight.w900),
+                  style: const TextStyle(
+                    color: AppColors.error,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
               ],
             ],
@@ -1276,41 +1413,85 @@ class _OrderScreenState extends State<OrderScreen> with WidgetsBindingObserver {
   }
 
   Widget _addToCartControls(ProductData product) {
+    final expanded =
+        _quantityEditors.contains(product.id) || (_qty[product.id] ?? 0) > 0;
     final pending = _pendingQuantity(product);
     final remaining = _remainingToAdd(product);
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.end,
-      children: [
-        Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text('Количество', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700)),
-            const SizedBox(height: 4),
-            Container(
-              decoration: BoxDecoration(border: Border.all(color: AppColors.border)),
-              child: Row(mainAxisSize: MainAxisSize.min, children: [
-                _qtyButton(Icons.remove, pending <= 1, () => _selectQuantity(product, -1)),
-                SizedBox(width: 32, child: Text('$pending',
-                  key: ValueKey('quantity-to-add-${product.id}'),
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(fontWeight: FontWeight.w800))),
-                _qtyButton(Icons.add, pending >= remaining, () => _selectQuantity(product, 1)),
-              ]),
-            ),
-          ],
+    final addButton = SizedBox(
+      height: 48,
+      child: ElevatedButton(
+        key: ValueKey('add-to-cart-${product.id}'),
+        onPressed: pending > 0
+            ? () {
+                if (!expanded) {
+                  setState(() => _quantityEditors.add(product.id));
+                } else {
+                  _addSelectedQuantity(product);
+                }
+              }
+            : null,
+        style: ElevatedButton.styleFrom(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          minimumSize: const Size(0, 48),
+          backgroundColor: AppColors.brandBlack,
+          shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
         ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: ElevatedButton(
-            key: ValueKey('add-to-cart-${product.id}'),
-            onPressed: pending > 0 ? () => _addSelectedQuantity(product) : null,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.brandBlack,
-              minimumSize: const Size(100, 36),
+        child: const Text(
+          'ДОБАВИТЬ',
+          style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+        ),
+      ),
+    );
+    if (!expanded) return SizedBox(width: double.infinity, child: addButton);
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Semantics(
+          label: 'Количество для добавления',
+          child: Container(
+            key: ValueKey('quantity-control-${product.id}'),
+            width: 120,
+            height: 48,
+            decoration: BoxDecoration(
+              border: Border.all(color: AppColors.border),
             ),
-            child: const Text('ДОБАВИТЬ', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+            child: Row(
+              children: [
+                Expanded(
+                  child: IconButton(
+                    tooltip: 'Уменьшить количество для добавления',
+                    padding: EdgeInsets.zero,
+                    onPressed: pending > 1
+                        ? () => _selectQuantity(product, -1)
+                        : null,
+                    icon: const Icon(Icons.remove, size: 18),
+                  ),
+                ),
+                SizedBox(
+                  width: 32,
+                  child: Text(
+                    '$pending',
+                    key: ValueKey('quantity-to-add-${product.id}'),
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontWeight: FontWeight.w800),
+                  ),
+                ),
+                Expanded(
+                  child: IconButton(
+                    tooltip: 'Увеличить количество для добавления',
+                    padding: EdgeInsets.zero,
+                    onPressed: pending < remaining
+                        ? () => _selectQuantity(product, 1)
+                        : null,
+                    icon: const Icon(Icons.add, size: 18),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
+        const SizedBox(width: 12),
+        Expanded(child: addButton),
       ],
     );
   }

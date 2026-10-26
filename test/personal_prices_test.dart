@@ -268,6 +268,8 @@ void main() {
     await tester.ensureVisible(find.text('ДОБАВИТЬ'));
     await tester.tap(find.text('ДОБАВИТЬ'));
     await tester.pumpAndSettle();
+    await tester.tap(find.text('ДОБАВИТЬ'));
+    await tester.pumpAndSettle();
     expect(find.text('650.25 ₽/шт · 650.25 ₽'), findsOneWidget);
   });
   for (final effectivePrice in [800.0, 850.0]) {
@@ -336,6 +338,8 @@ void main() {
         expect(find.text('Персональная скидка'), findsOneWidget);
         await tester.ensureVisible(find.text('ДОБАВИТЬ'));
         await tester.tap(find.text('ДОБАВИТЬ'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('ДОБАВИТЬ'));
         await tester.pumpAndSettle();
         expect(
           find.text(

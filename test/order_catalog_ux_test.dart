@@ -13,13 +13,15 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 ProductData product({
+  String id = '1',
+  String name = '00202 SM Быстросъемный',
   int quantity = 4,
   StockStatus status = StockStatus.inStock,
 }) => ProductData(
-  id: '1',
+  id: id,
   distributorId: '1',
   sku: '00024216',
-  name: '00202 SM Быстросъемный',
+  name: name,
   category: 'Круги',
   brand: 'AutoTerra',
   volume: 1,
@@ -38,7 +40,22 @@ class CatalogRepository extends DataRepository {
   List<ProductData> items = [product()];
   final requests = <Map<String, dynamic>>[];
   final quotedQuantities = <int>[];
+  List<Map<String, dynamic>>? submittedItems;
   Future<Paginated<ProductData>> Function()? load;
+
+  @override
+  Future<void> createOrder({
+    String? storeId,
+    String? deliveryMethod,
+    String paymentMethod = 'online',
+    String? replaceOrderId,
+    required List<Map<String, dynamic>> items,
+    required String comment,
+  }) async {
+    submittedItems = items
+        .map((row) => Map<String, dynamic>.from(row))
+        .toList();
+  }
 
   @override
   Future<OrderConfigData> orderConfig() async => OrderConfigData(
@@ -201,6 +218,19 @@ void main() {
       final add = find.byKey(const ValueKey('add-to-cart-1'));
       final pending = find.byKey(const ValueKey('quantity-to-add-1'));
       await tester.ensureVisible(add);
+      expect(pending, findsNothing);
+      await capture(tester, 'catalog-initial-add');
+      await tester.tap(add);
+      await tester.pumpAndSettle();
+      expect(repo.quotedQuantities, isEmpty);
+      final selectorRect = tester.getRect(
+        find.byKey(const ValueKey('quantity-control-1')),
+      );
+      final buttonRect = tester.getRect(add);
+      expect(selectorRect.height, 48);
+      expect(buttonRect.height, 48);
+      expect(selectorRect.top, buttonRect.top);
+      expect(selectorRect.bottom, buttonRect.bottom);
       await capture(tester, 'catalog-choose-quantity');
       for (var next = 2; next <= 3; next++) {
         await tester.tap(find.byIcon(Icons.add).first);
@@ -215,7 +245,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.pump(const Duration(milliseconds: 300));
       await tester.pumpAndSettle();
-      expect(find.text('В корзине: 3 шт.'), findsOneWidget);
+      expect(find.text('В корзине: 3 шт.'), findsNWidgets(2));
       expect(repo.quotedQuantities.last, 3);
       expect(find.text('Можно добавить ещё: 1 шт.'), findsOneWidget);
       expect(tester.widget<Text>(pending).data, '1');
@@ -226,7 +256,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.pump(const Duration(milliseconds: 300));
       await tester.pumpAndSettle();
-      expect(find.text('В корзине: 4 шт.'), findsOneWidget);
+      expect(find.text('В корзине: 4 шт.'), findsNWidgets(2));
       expect(repo.quotedQuantities.last, 4);
       expect(
         find.text('Достигнут максимальный остаток: 4 шт.'),
@@ -243,7 +273,7 @@ void main() {
       );
       await tester.tap(add);
       await tester.pumpAndSettle();
-      expect(find.text('В корзине: 4 шт.'), findsOneWidget);
+      expect(find.text('В корзине: 4 шт.'), findsNWidgets(2));
       await capture(tester, 'catalog-max-stock');
       // Existing basket controls still remove items; the add button becomes available again.
       final basketControls = find.byKey(const ValueKey('basket-quantity-1'));
@@ -280,6 +310,8 @@ void main() {
       await open(tester, repo);
       final add = find.byKey(const ValueKey('add-to-cart-1'));
       await tester.ensureVisible(add);
+      await tester.tap(add);
+      await tester.pumpAndSettle();
       await tester.tap(find.byIcon(Icons.add).first);
       await tester.pumpAndSettle();
       await tester.tap(find.byIcon(Icons.add).first);
@@ -302,7 +334,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.pump(const Duration(milliseconds: 300));
       await tester.pumpAndSettle();
-      expect(find.text('В корзине: 2 шт.'), findsOneWidget);
+      expect(find.text('В корзине: 2 шт.'), findsNWidgets(2));
       expect(repo.quotedQuantities.last, 2);
       expect(tester.widget<ElevatedButton>(add).onPressed, isNull);
     },
@@ -311,6 +343,8 @@ void main() {
   testWidgets('selected amount can be decreased before adding', (tester) async {
     await open(tester, CatalogRepository());
     await tester.ensureVisible(find.byKey(const ValueKey('add-to-cart-1')));
+    await tester.tap(find.byKey(const ValueKey('add-to-cart-1')));
+    await tester.pumpAndSettle();
     await tester.tap(find.byIcon(Icons.add).first);
     await tester.pumpAndSettle();
     await tester.tap(find.byIcon(Icons.remove).first);
@@ -321,7 +355,7 @@ void main() {
     );
     await tester.tap(find.byKey(const ValueKey('add-to-cart-1')));
     await tester.pumpAndSettle();
-    expect(find.text('В корзине: 1 шт.'), findsOneWidget);
+    expect(find.text('В корзине: 1 шт.'), findsNWidgets(2));
   });
 
   testWidgets('onOrder zero keeps the existing additional order rule', (
@@ -333,18 +367,142 @@ void main() {
     await tester.ensureVisible(find.text('ДОБАВИТЬ'));
     await tester.tap(find.text('ДОБАВИТЬ'));
     await tester.pumpAndSettle();
+    await tester.tap(find.text('ДОБАВИТЬ'));
+    await tester.pumpAndSettle();
     await tester.tap(find.byIcon(Icons.add).first);
     await tester.pumpAndSettle();
     expect(
       tester.widget<Text>(find.byKey(const ValueKey('quantity-to-add-1'))).data,
       '2',
     );
-    expect(find.text('В корзине: 1 шт.'), findsOneWidget);
+    expect(find.text('В корзине: 1 шт.'), findsNWidgets(2));
     await tester.tap(find.byKey(const ValueKey('add-to-cart-1')));
     await tester.pumpAndSettle();
-    expect(find.text('В корзине: 3 шт.'), findsOneWidget);
+    expect(find.text('В корзине: 3 шт.'), findsNWidgets(2));
     expect(find.text('Достигнут максимальный остаток: 0 шт.'), findsNothing);
   });
+
+  testWidgets(
+    'different product names share aligned title areas and add button sizes',
+    (tester) async {
+      final repo = CatalogRepository()
+        ..items = [
+          product(),
+          product(
+            id: '2',
+            name: '00204 SM БЫСТРОСЪЕМ.ШЛИФ.КРУГ R205 QCD 50MM, P50',
+          ),
+        ];
+      await open(tester, repo);
+      final title1 = tester.getSize(
+        find.byKey(const ValueKey('catalog-title-1')),
+      );
+      final button1 = tester.getSize(
+        find.byKey(const ValueKey('add-to-cart-1')),
+      );
+      await tester.scrollUntilVisible(
+        find.byKey(const ValueKey('add-to-cart-2')),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      expect(
+        tester.getSize(find.byKey(const ValueKey('catalog-title-2'))),
+        title1,
+      );
+      expect(
+        tester.getSize(find.byKey(const ValueKey('add-to-cart-2'))),
+        button1,
+      );
+      expect(button1.height, 48);
+      expect(find.byKey(const ValueKey('quantity-control-2')), findsNothing);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'add, open checkout and send creates the order and closes the form',
+    (tester) async {
+      final repo = CatalogRepository();
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Builder(
+            builder: (context) => Scaffold(
+              body: TextButton(
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => OrderScreen(repository: repo),
+                  ),
+                ),
+                child: const Text('НАЧАТЬ ЗАКАЗ'),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text('НАЧАТЬ ЗАКАЗ'));
+      await tester.pumpAndSettle();
+      final add = find.byKey(const ValueKey('add-to-cart-1'));
+      await tester.ensureVisible(add);
+      await tester.tap(add);
+      await tester.pumpAndSettle();
+      expect(repo.submittedItems, isNull);
+      await tester.tap(add);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('open-checkout')));
+      await tester.pumpAndSettle();
+      final send = find.text('Отправить дистрибьютору · 95.53 ₽');
+      await tester.scrollUntilVisible(
+        send,
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(send);
+      await tester.pumpAndSettle();
+      expect(repo.submittedItems, [
+        {'productId': '1', 'quantity': 1},
+      ]);
+      expect(find.text('НАЧАТЬ ЗАКАЗ'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'cart bar opens checkout and back returns to the catalog with the basket intact',
+    (tester) async {
+      final repo = CatalogRepository();
+      await open(tester, repo);
+      final add = find.byKey(const ValueKey('add-to-cart-1'));
+      await tester.ensureVisible(add);
+      await tester.tap(add);
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('open-checkout')), findsNothing);
+      expect(repo.quotedQuantities, isEmpty);
+      await tester.tap(add);
+      await tester.pumpAndSettle();
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pumpAndSettle();
+      final checkout = find.byKey(const ValueKey('open-checkout'));
+      expect(checkout, findsOneWidget);
+      await tester.tap(checkout);
+      await tester.pumpAndSettle();
+      expect(find.text('Корзина и оформление'), findsOneWidget);
+      expect(find.byKey(const ValueKey('catalog-product-1')), findsNothing);
+      expect(find.byKey(const ValueKey('basket-quantity-1')), findsOneWidget);
+      await capture(tester, 'checkout');
+      await tester.scrollUntilVisible(
+        find.text('Отправить дистрибьютору · 95.53 ₽'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      expect(find.text('Отправить дистрибьютору · 95.53 ₽'), findsOneWidget);
+      await tester.tap(find.byType(BackButton));
+      await tester.pumpAndSettle();
+      expect(find.text('Оформление заказа'), findsOneWidget);
+      expect(find.byKey(const ValueKey('open-checkout')), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
 
   testWidgets('refresh clears a selected brand missing from fresh config', (
     tester,

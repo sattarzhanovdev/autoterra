@@ -193,6 +193,8 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('ДОБАВИТЬ'));
     await tester.pumpAndSettle();
+    await tester.tap(find.text('ДОБАВИТЬ'));
+    await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
     expect(find.textContaining('1300 ₽/шт'), findsNothing);
     await tester.pump(const Duration(milliseconds: 300));
