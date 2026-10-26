@@ -98,7 +98,13 @@ void main() {
     expect(find.text('${photos.length}'), findsWidgets);
 
     // У товара без фото — заглушка вместо картинки.
-    expect(thumbs.any((t) => t.images.isEmpty), isTrue);
+    await tester.scrollUntilVisible(
+      find.byWidgetPredicate((w) => w is ProductThumb && w.images.isEmpty),
+      150,
+      scrollable: find.byType(Scrollable).first,
+    );
+    expect(tester.widgetList<ProductThumb>(find.byType(ProductThumb))
+        .any((t) => t.images.isEmpty), isTrue);
     expect(find.byIcon(Icons.photo_outlined), findsWidgets);
   });
 

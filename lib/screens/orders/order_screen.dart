@@ -58,6 +58,8 @@ class _OrderScreenState extends State<OrderScreen> with WidgetsBindingObserver {
 
   bool _syncingPrices = false;
   final _priceRevision = ValueNotifier<int>(0);
+  static const _buildName = String.fromEnvironment('FLUTTER_BUILD_NAME', defaultValue: 'dev');
+  static const _buildNumber = String.fromEnvironment('FLUTTER_BUILD_NUMBER', defaultValue: 'dev');
   static const _allCategories = 'Все';
 
   final _commentCtrl = TextEditingController();
@@ -540,6 +542,15 @@ class _OrderScreenState extends State<OrderScreen> with WidgetsBindingObserver {
       },
       child: Scaffold(
         appBar: AppBar(
+          bottom: const PreferredSize(
+            preferredSize: Size.fromHeight(20),
+            child: Padding(
+              padding: EdgeInsets.only(bottom: 5),
+              child: Text('Версия $_buildName · сборка $_buildNumber',
+                key: ValueKey('installed-build-label'),
+                style: TextStyle(fontSize: 11, color: Colors.white70)),
+            ),
+          ),
           leading: _showCheckout
               ? BackButton(onPressed: () => _setCheckout(false))
               : null,

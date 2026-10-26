@@ -12,7 +12,8 @@ import '../../widgets/common/brand_icon.dart';
 import '../../core/constants.dart';
 
 class ReferralScreen extends StatefulWidget {
-  const ReferralScreen({super.key});
+  final DataRepository? repository;
+  const ReferralScreen({super.key, this.repository});
 
   @override
   State<ReferralScreen> createState() => _ReferralScreenState();
@@ -20,6 +21,7 @@ class ReferralScreen extends StatefulWidget {
 
 class _ReferralScreenState extends State<ReferralScreen> {
   late final PaginationController<Referral> _controller;
+  late final DataRepository _repo;
 
   /// Сводка приходит тем же ответом и считается по всей базе, а не по
   /// загруженной странице — поэтому храним её отдельно от списка.
@@ -28,9 +30,10 @@ class _ReferralScreenState extends State<ReferralScreen> {
   @override
   void initState() {
     super.initState();
+    _repo = widget.repository ?? DataRepository();
     _controller = PaginationController<Referral>(
       fetchPage: (page) async {
-        final (result, stats) = await DataRepository().referrals(page: page);
+        final (result, stats) = await _repo.referrals(page: page);
         if (mounted) setState(() => _stats = stats);
         return result;
       },
@@ -65,10 +68,10 @@ class _ReferralScreenState extends State<ReferralScreen> {
         ? ''
         : 'Приложение для Android:\n${AppConstants.appStoreUrl}\n\n';
     return '$greeting\n\n'
-        'Зарегистрируйтесь по ссылке — она сразу свяжет ваш аккаунт с моим:\n'
+        'Для регистрации используйте ссылку с моим кодом приглашения:\n'
         '$link\n\n'
         '$appLink'
-        'Если регистрируетесь вручную, введите код приглашения: $code';
+        'При регистрации без ссылки укажите код приглашения: $code';
   }
 
   /// Открывает системное «Поделиться». Это единственный способ, которым
@@ -132,12 +135,12 @@ class _ReferralScreenState extends State<ReferralScreen> {
                     padding: const EdgeInsets.all(12),
                     color: AppColors.canvas,
                     child: const Text(
-                      'Запись закрепит за вами это СТО по ИНН — вас свяжут, '
-                      'даже если оно зарегистрируется без вашей ссылки.\n\n'
-                      'Бонус начислится после того, как СТО при регистрации '
-                      'подтвердит, что пригласили его вы.\n\n'
-                      'Само приглашение отправите вы — после сохранения '
-                      'откроется «Поделиться» с готовой ссылкой.',
+                      'Укажите ИНН и название СТО. После регистрации с этим ИНН '
+                      'приглашённому СТО потребуется подтвердить приглашение.\n\n'
+                      'Бонусы начисляются за подтверждённые закупки и выполненные '
+                      'заказы после подтверждения приглашения.\n\n'
+                      'После сохранения откроется «Поделиться», чтобы вы могли '
+                      'отправить ссылку приглашённому СТО.',
                       style: TextStyle(fontSize: 11, height: 1.4, color: AppColors.textSecondary),
                     ),
                   ),
@@ -195,7 +198,7 @@ class _ReferralScreenState extends State<ReferralScreen> {
                                 busy = true;
                               });
                               try {
-                                await DataRepository().createReferral({
+                                await _repo.createReferral({
                                   'inviteeInn': inn,
                                   'inviteeName': name,
                                 });
@@ -304,15 +307,15 @@ class _ReferralScreenState extends State<ReferralScreen> {
         children: [
           const Text('КАК ЭТО РАБОТАЕТ', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14)),
           const SizedBox(height: 16),
-          _step('1', 'ОТПРАВЬТЕ ССЫЛКУ ИЛИ КОД ДРУГОМУ СТО'),
-          _step('2', 'СТО РЕГИСТРИРУЕТСЯ ПО НЕЙ И ДЕЛАЕТ ЗАКАЗЫ'),
+          _step('1', 'Отправьте СТО ссылку или ваш код приглашения.'),
+          _step('2', 'СТО регистрируется по приглашению. Для заявки по ИНН требуется подтверждение приглашённого СТО.'),
           // Бонус — процент от подтверждённых закупок и выполненных заказов
           // приглашённого, см. api/services/referral_bonus.py.
-          _step('3', 'ПРОЦЕНТ ОТ ЕГО ЗАКУПОК КАПАЕТ НА ВАШ БОНУСНЫЙ СЧЁТ'),
-          _step('4', 'ЧЕМ БОЛЬШЕ ОН ЗАКУПАЕТ, ТЕМ ВЫШЕ ВАША СТАВКА'),
+          _step('3', 'Бонусы начисляются на ваш бонусный счёт за подтверждённые закупки и выполненные заказы приглашённого СТО.'),
+          _step('4', 'Ставка зависит от накопленного оборота каждого приглашённого СТО и определяется отдельно для каждого участника.'),
           if (tiers.isNotEmpty) ...[
             const Divider(height: 24),
-            const Text('СТАВКА ПО ОБОРОТУ СТО', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 11)),
+            const Text('СТАВКИ НАЧИСЛЕНИЯ БОНУСОВ', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 11)),
             const SizedBox(height: 8),
             ...tiers.map(
               (tier) => Padding(
@@ -321,16 +324,23 @@ class _ReferralScreenState extends State<ReferralScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      tier.from == 0 ? 'ДО ${fmt.format(tiers.length > 1 ? tiers[1].from : 0)} ₽' : 'ОТ ${fmt.format(tier.from)} ₽',
+                      tier.from == 0 && tiers.length > 1 ? 'До ${fmt.format(tiers[1].from)} ₽' : 'От ${fmt.format(tier.from)} ₽',
                       style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.textSecondary),
                     ),
                     Text(
-                      '${tier.rate}%',
+                      '${NumberFormat('0.##', 'ru_RU').format(tier.rate)}%',
                       style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: AppColors.brandRed),
                     ),
                   ],
                 ),
               ),
+            ),
+          ],
+          if (tiers.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            const Text(
+              'При переходе на следующую ступень ставка применяется ко всему накопленному обороту этого СТО. Ранее начисленные бонусы учитываются при перерасчёте.',
+              style: TextStyle(fontSize: 11, height: 1.4, color: AppColors.textSecondary),
             ),
           ],
           if (_activityMin != null) ...[
@@ -339,8 +349,8 @@ class _ReferralScreenState extends State<ReferralScreen> {
               padding: const EdgeInsets.all(8),
               color: AppColors.canvas,
               child: Text(
-                'ЗАКУПАЙТЕСЬ САМИ ОТ ${fmt.format(_activityMin)} ₽ В МЕСЯЦ — '
-                'ИНАЧЕ НАКОПЛЕННЫЕ БОНУСЫ СГОРАЮТ',
+                'Для сохранения бонусного баланса ваш собственный подтверждённый оборот должен составлять не менее ${fmt.format(_activityMin)} ₽ за календарный месяц. '
+                'При невыполнении условия накопленный бонусный баланс аннулируется.',
                 style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: AppColors.textSecondary),
               ),
             ),
@@ -447,7 +457,7 @@ class _ReferralScreenState extends State<ReferralScreen> {
         children: [
           _stat('СТО', '${stat('invitedCount')}'),
           _stat('АКТИВНЫЕ', '${stat('buyersCount')}'),
-          _stat('БОНУСЫ', '${stat('giftCount')}'),
+          _stat('С БОНУСАМИ', '${stat('giftCount')}'),
         ],
       ),
     );
@@ -505,7 +515,7 @@ class _ReferralCard extends StatelessWidget {
               _stepIcon('ЗАКАЗЫ', referral.hasPurchase),
               _arrow(),
               // Галочка по факту начисления: согласование убрано, бонус
-              // капает сам, как только у приглашённого прошла покупка.
+              // начисляется после выполнения условий программы.
               _stepIcon('БОНУС', referral.bonusEarned > 0),
             ],
           ),
@@ -517,7 +527,7 @@ class _ReferralCard extends StatelessWidget {
             _giftBanner(
               icon: Icons.help_outline,
               color: AppColors.textSecondary,
-              text: 'СТО ЕЩЁ НЕ ПОДТВЕРДИЛО ПРИГЛАШЕНИЕ — БОНУС НЕ НАЧИСЛИТСЯ',
+              text: 'Ожидается подтверждение приглашения от СТО. До подтверждения бонусы по этому приглашению не начисляются.',
             ),
           ],
           if (referral.confirmationDeclined) ...[
@@ -525,7 +535,7 @@ class _ReferralCard extends StatelessWidget {
             _giftBanner(
               icon: Icons.person_off_outlined,
               color: AppColors.brandRed,
-              text: 'СТО УКАЗАЛО, ЧТО ЕГО ПРИГЛАСИЛИ НЕ ВЫ',
+              text: 'Приглашённое СТО не подтвердило связь с вами. Бонусы по этому приглашению не начисляются.',
             ),
           ],
           // Пока СТО не зарегистрировалось, запись никак ему не видна: система
@@ -542,7 +552,7 @@ class _ReferralCard extends StatelessWidget {
                   const SizedBox(width: 8),
                   const Expanded(
                     child: Text(
-                      'ЖДЁМ РЕГИСТРАЦИЮ. ОТПРАВЬТЕ ССЫЛКУ, ЕСЛИ ЕЩЁ НЕ ОТПРАВИЛИ',
+                      'Ожидается регистрация СТО. Отправьте ссылку-приглашение.',
                       style: TextStyle(
                         color: AppColors.textSecondary,
                         fontSize: 10,
@@ -576,10 +586,11 @@ class _ReferralCard extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  'ЗАКУПИЛ: ${fmt.format(referral.purchaseAmount)} ₽ · СТАВКА ${referral.bonusRate}%',
+                Expanded(child: Text(
+                  'Подтверждённый оборот: ${fmt.format(referral.purchaseAmount)} ₽ · ставка ${NumberFormat('0.##', 'ru_RU').format(referral.bonusRate)}%',
                   style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.textSecondary),
-                ),
+                )),
+                const SizedBox(width: 8),
                 Text(
                   '+${fmt.format(referral.bonusEarned)} ₽',
                   style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: AppColors.brandRed),

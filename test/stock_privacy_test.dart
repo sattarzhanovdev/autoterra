@@ -75,6 +75,10 @@ void main() {
     await tester.pumpAndSettle(); // Finish loading
 
     expect(find.text('В НАЛИЧИИ · 10 ШТ.'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.text('МАЛО · 3 ШТ.'), 150,
+      scrollable: find.byType(Scrollable).first,
+    );
     expect(find.text('МАЛО · 3 ШТ.'), findsOneWidget);
 
     // Ensure titles are visible to confirm we are on the right screen

@@ -219,6 +219,16 @@ void main() {
       final pending = find.byKey(const ValueKey('quantity-to-add-1'));
       await tester.ensureVisible(add);
       expect(pending, findsNothing);
+      final installedBuild = tester.widget<Text>(
+        find.byKey(const ValueKey('installed-build-label')),
+      );
+      expect(installedBuild.data, contains('Версия 1.0.0'));
+      expect(
+        installedBuild.data,
+        contains(
+          'сборка ${const String.fromEnvironment('FLUTTER_BUILD_NUMBER')}',
+        ),
+      );
       await capture(tester, 'catalog-initial-add');
       await tester.tap(add);
       await tester.pumpAndSettle();

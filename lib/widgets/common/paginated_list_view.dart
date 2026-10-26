@@ -207,11 +207,14 @@ class _PaginatedListViewState<T> extends State<PaginatedListView<T>> {
 
   Widget _wrapWithHeader(Widget child) {
     if (widget.header == null) return child;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Padding(padding: widget.padding, child: widget.header!),
-        Expanded(child: child),
+    return CustomScrollView(
+      controller: _scrollController,
+      physics: const AlwaysScrollableScrollPhysics(),
+      slivers: [
+        SliverToBoxAdapter(
+          child: Padding(padding: widget.padding, child: widget.header!),
+        ),
+        SliverFillRemaining(hasScrollBody: false, child: child),
       ],
     );
   }
