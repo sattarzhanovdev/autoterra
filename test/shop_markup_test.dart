@@ -151,6 +151,8 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
     final repo = MockRepo();
+    var quotedTotal = 1000;
+    when(() => repo.orderQuote(any())).thenAnswer((_) async => {'orderDiscount': {'total': quotedTotal, 'subtotalBeforeOrderDiscount': quotedTotal}});
     when(() => repo.orderConfig()).thenAnswer(
       (_) async => OrderConfigData(
         client: shop(),
@@ -191,13 +193,18 @@ void main() {
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
     expect(find.textContaining('1300 ₽/шт'), findsNothing);
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.text('Отправить дистрибьютору · 1000 ₽'), 250, scrollable: find.byType(Scrollable).first);
     expect(find.text('Отправить дистрибьютору · 1000 ₽'), findsOneWidget);
+    quotedTotal = 900;
     when(() => repo.productQuote(any())).thenAnswer((_) async => [product(markup: 30, price: 900)]);
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
     await tester.pumpAndSettle();
     await tester.pump(const Duration(seconds: 5));
     await tester.pumpAndSettle();
     expect(find.text('Отправить дистрибьютору · 900 ₽'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('КРАСКА'), -250, scrollable: find.byType(Scrollable).first);
     await tester.ensureVisible(find.text('КРАСКА'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('КРАСКА'));

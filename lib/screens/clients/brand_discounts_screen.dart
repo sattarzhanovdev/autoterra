@@ -268,11 +268,11 @@ class _BrandPercentDialogState extends State<_BrandPercentDialog> {
     if (value == null ||
         !value.isFinite ||
         value < 0 ||
-        value > 100 ||
+        value > 40 ||
         !RegExp(r'^\d+(\.\d{1,2})?$').hasMatch(raw)) {
       setState(
         () => _error =
-            'Введите процент от 0 до 100, до двух знаков после запятой',
+            'Введите процент от 0 до 40, до двух знаков после запятой',
       );
       return;
     }

@@ -115,11 +115,11 @@ class _DiscountDialogState extends State<_DiscountDialog> {
         (value == null ||
             !value.isFinite ||
             value < 0 ||
-            value > 100 ||
+            value > 40 ||
             !RegExp(r'^\d+(\.\d{1,2})?$').hasMatch(raw))) {
       setState(
         () =>
-            _error = 'Введите число от 0 до 100, до двух знаков после запятой',
+            _error = 'Введите скидку от 0 до 40%',
       );
       return;
     }
@@ -155,7 +155,7 @@ class _DiscountDialogState extends State<_DiscountDialog> {
             enabled: !_saving,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
             decoration: InputDecoration(
-              labelText: 'Скидка от 0 до 100%',
+              labelText: 'Скидка от 0 до 40%',
               errorText: _error,
               errorMaxLines: 3,
             ),

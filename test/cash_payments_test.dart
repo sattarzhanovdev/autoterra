@@ -248,6 +248,7 @@ void main() {
   testWidgets('cash checkout shows full amount without a bonus deduction', (
     tester,
   ) async {
+    when(() => repo.orderQuote(any())).thenAnswer((_) async => {'orderDiscount': {'total': 1000, 'subtotalBeforeOrderDiscount': 1000}});
     when(() => repo.orderConfig()).thenAnswer(
       (_) async => OrderConfigData(
         client: Client(

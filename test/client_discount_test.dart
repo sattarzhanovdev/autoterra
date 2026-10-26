@@ -66,24 +66,24 @@ void main() {
     expect(find.text('Не задана — действует скидка по рангу'), findsOneWidget);
   });
 
-  testWidgets('rejects invalid values and accepts 100', (tester) async {
+  testWidgets('rejects invalid values and accepts 40', (tester) async {
     await open(tester);
     await tester.tap(find.byTooltip('Изменить скидку'));
     await tester.pumpAndSettle();
-    for (final value in ['-1', '101', 'NaN', 'Infinity', '1.001', '']) {
+    for (final value in ['-1', '40.01', '50', '100', '101', 'NaN', 'Infinity', '1.001', '']) {
       await tester.enterText(find.byType(TextField), value);
       await tester.tap(find.text('Сохранить'));
       await tester.pumpAndSettle();
       expect(
-        find.text('Введите число от 0 до 100, до двух знаков после запятой'),
+        find.text('Введите скидку от 0 до 40%'),
         findsOneWidget,
       );
     }
     verifyNever(() => repo.updateClientDiscount('1', any()));
-    await tester.enterText(find.byType(TextField), '100');
+    await tester.enterText(find.byType(TextField), '40');
     await tester.tap(find.text('Сохранить'));
     await tester.pumpAndSettle();
-    verify(() => repo.updateClientDiscount('1', '100')).called(1);
+    verify(() => repo.updateClientDiscount('1', '40')).called(1);
   });
 
   testWidgets('read-only role sees value without edit controls', (tester) async {

@@ -1,5 +1,6 @@
-import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import '../../widgets/common/client_product_price.dart';
+import 'package:flutter/material.dart';
 
 import '../../core/theme.dart';
 import '../../models/models.dart';
@@ -210,12 +211,7 @@ class _ProductRow extends StatelessWidget {
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                Text(
-                  '${fmt.format(product.price)} ₽',
-                  style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13),
-                ),
-                if (product.basePrice != null) Text('Базовая: ${fmt.format(product.basePrice)} ₽', style: const TextStyle(fontSize: 10)),
-                if (product.personalPrice != null) Text('Персональная: ${fmt.format(product.personalPrice)} ₽', style: const TextStyle(fontSize: 10)),
+                ClientProductPrice(product: product),
                 const SizedBox(height: 4),
                 const Icon(Icons.add_circle_outline, size: 20, color: AppColors.brandRed),
               ],

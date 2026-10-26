@@ -160,6 +160,9 @@ class ApiClient {
 
   Future<Map<String, dynamic>> productQuote(List<String> ids) => _get('/products/quote/', params: {'ids': ids.join(',')});
 
+  Future<Map<String, dynamic>> orderQuote(List<Map<String, dynamic>> items) =>
+      _post('/orders/quote/', {'items': items});
+
   Future<Map<String, dynamic>> orderConfig() => _get('/order-config/');
 
   Future<(Paginated<Map<String, dynamic>>, List<String>)> products({

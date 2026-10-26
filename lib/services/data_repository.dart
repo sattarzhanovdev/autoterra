@@ -32,6 +32,9 @@ class ProductData {
   final double? basePrice;
   final double? personalPrice;
   final String priceSource;
+  final double discountPercent;
+  final double effectiveDiscountPercent;
+  final bool hasDiscount;
   final int quantity;
   final StockStatus status;
   final DateTime updatedAt;
@@ -64,6 +67,9 @@ class ProductData {
     this.basePrice,
     this.personalPrice,
     this.priceSource = 'base',
+    this.discountPercent = 0,
+    this.effectiveDiscountPercent = 0,
+    this.hasDiscount = false,
     required this.quantity,
     required this.status,
     required this.updatedAt,
@@ -256,6 +262,8 @@ class DataRepository {
       colorLabPending: (json['colorLabPending'] as num? ?? 0).toInt(),
     );
   }
+
+  Future<Map<String, dynamic>> orderQuote(List<Map<String, dynamic>> items) => _api.orderQuote(items);
 
   Future<OrderConfigData> orderConfig() async {
     final data = await _api.orderConfig();
@@ -1160,6 +1168,9 @@ class DataRepository {
       basePrice: json['basePrice'] == null ? null : _toDouble(json['basePrice']),
       personalPrice: json['personalPrice'] == null ? null : _toDouble(json['personalPrice']),
       priceSource: json['priceSource']?.toString() ?? 'base',
+      discountPercent: _toDouble(json['discountPercent']),
+      effectiveDiscountPercent: _toDouble(json['effectiveDiscountPercent'] ?? json['discountPercent']),
+      hasDiscount: json['hasDiscount'] as bool? ?? (_toDouble(json['basePrice']) > _toDouble(json['price'])),
       quantity: _toInt(json['quantity']),
       status: _stockStatus(json['status']?.toString() ?? 'inStock'),
       updatedAt: DateTime.tryParse(json['updatedAt']?.toString() ?? '') ?? DateTime.now(),

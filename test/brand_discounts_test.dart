@@ -111,7 +111,7 @@ void main() {
       await tester.tap(find.text('Сохранить'));
       await tester.pumpAndSettle();
       expect(
-        find.text('Введите процент от 0 до 100, до двух знаков после запятой'),
+        find.text('Введите процент от 0 до 40, до двух знаков после запятой'),
         findsOneWidget,
       );
     }
@@ -192,6 +192,14 @@ void main() {
     final api = ApiClient(
       client: MockClient((request) async {
         requests.add(request);
+        if (request.url.path.endsWith('/orders/quote/')) {
+          return http.Response(jsonEncode({'orderDiscount': {
+            'subtotalBeforeOrderDiscount': 900, 'orderDiscountPercent': 0,
+            'discountAmount': 0, 'total': 900, 'nextDiscountPercent': 3,
+            'nextThreshold': 10000, 'amountToNextThreshold': 9100, 'progress': 0.09,
+          }}), 200);
+        }
+
         Map<String, dynamic> response;
         if (request.url.path.endsWith('/brand-discounts/')) {
           if (request.method == 'PATCH') {

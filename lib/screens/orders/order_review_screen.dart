@@ -65,20 +65,6 @@ class _OrderReviewScreenState extends State<OrderReviewScreen> {
   bool get _hasAnyItem =>
       _quantities.values.any((q) => q > 0) || _added.isNotEmpty;
 
-  double get _adjustedTotal {
-    final order = _order;
-    if (order == null) return 0;
-    var sum = 0.0;
-    for (final item in order.items) {
-      final qty = _quantities[item.id] ?? item.quantity;
-      sum += item.price * qty;
-    }
-    for (final line in _added) {
-      sum += line.product.price * line.quantity;
-    }
-    return sum;
-  }
-
   @override
   void initState() {
     super.initState();
@@ -694,7 +680,13 @@ class _OrderReviewScreenState extends State<OrderReviewScreen> {
             _totalRow('Заказано клиентом', order.totalAmount, muted: true, strikethrough: true),
             const SizedBox(height: 6),
           ],
-          _totalRow(changed ? 'К подтверждению' : 'Сумма заказа', _adjustedTotal),
+          if (changed)
+            const Text(
+              'Итог будет пересчитан сервером с учётом скидки за объём при отправке корректировки.',
+              style: TextStyle(color: Colors.white, fontSize: 13),
+            )
+          else
+            _totalRow('Сумма заказа', order.totalAmount),
         ],
       ),
     );

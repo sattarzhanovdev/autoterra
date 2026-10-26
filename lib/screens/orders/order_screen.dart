@@ -9,6 +9,8 @@ import '../../services/pagination_controller.dart';
 import '../../widgets/common/premium_icon_badge.dart';
 import '../../widgets/common/product_photo.dart';
 import '../../widgets/common/shop_sale_price.dart';
+import '../../widgets/common/client_product_price.dart';
+import '../../widgets/common/order_discount_summary.dart';
 
 class OrderScreen extends StatefulWidget {
   final DataRepository? repository;
@@ -21,6 +23,39 @@ class OrderScreen extends StatefulWidget {
 
 class _OrderScreenState extends State<OrderScreen> with WidgetsBindingObserver {
   Timer? _priceTimer;
+  Timer? _quoteTimer;
+  Map<String, dynamic>? _orderDiscount;
+  String? _quoteError;
+  int _quoteRevision = 0;
+
+  List<Map<String, dynamic>> get _quoteItems => _qty.entries
+      .map((e) => <String, dynamic>{'productId': e.key, 'quantity': e.value}).toList();
+
+  void _scheduleQuote() {
+    _quoteTimer?.cancel();
+    _quoteRevision++;
+    _orderDiscount = null;
+    _quoteError = null;
+    if (_qty.isEmpty) return;
+    _quoteTimer = Timer(const Duration(milliseconds: 250), () => _loadOrderQuote());
+  }
+
+  Future<void> _loadOrderQuote({bool reportError = false}) async {
+    final revision = ++_quoteRevision;
+    if (_qty.isEmpty) return;
+    try {
+      final response = await _repo.orderQuote(_quoteItems);
+      if (!mounted || revision != _quoteRevision) return;
+      final details = Map<String, dynamic>.from(response['orderDiscount'] as Map);
+      setState(() { _orderDiscount = details; _quoteError = null; });
+    } catch (_) {
+      if (mounted && revision == _quoteRevision) {
+        setState(() { _orderDiscount = null; _quoteError = 'Не удалось рассчитать заказ'; });
+      }
+      if (reportError) rethrow;
+    }
+  }
+
   bool _syncingPrices = false;
   final _priceRevision = ValueNotifier<int>(0);
   static const _allCategories = 'Все';
@@ -101,7 +136,7 @@ class _OrderScreenState extends State<OrderScreen> with WidgetsBindingObserver {
                   Text('${current.brand} · ${current.sku}'),
                   if (current.description != null) Text(current.description!),
                   const SizedBox(height: 16),
-                  Text('Закупочная цена: ${_formatPrice(current.price)} ₽'),
+                  ClientProductPrice(product: current),
                   ShopSalePrice(product: current),
                   const SizedBox(height: 12),
                   TextButton(onPressed: () => Navigator.pop(context), child: const Text('Закрыть')),
@@ -114,14 +149,7 @@ class _OrderScreenState extends State<OrderScreen> with WidgetsBindingObserver {
     );
   }
 
-  double get _totalAmount {
-    var total = 0.0;
-    _qty.forEach((id, count) {
-      final product = _selected[id];
-      if (product != null) total += product.price * count;
-    });
-    return total;
-  }
+  double get _totalAmount => double.tryParse('${_orderDiscount?['total']}') ?? 0;
 
   @override
   void initState() {
@@ -162,6 +190,7 @@ class _OrderScreenState extends State<OrderScreen> with WidgetsBindingObserver {
   @override
   void dispose() {
     _priceTimer?.cancel();
+    _quoteTimer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     _priceRevision.dispose();
     _commentCtrl.dispose();
@@ -192,6 +221,7 @@ class _OrderScreenState extends State<OrderScreen> with WidgetsBindingObserver {
         updatedAt: DateTime.now(),
       );
     }
+    _scheduleQuote();
     _initialQty = Map.from(_qty);
     _initialComment = _commentCtrl.text;
     _initialDeliveryMethod = _deliveryMethod;
@@ -240,6 +270,7 @@ class _OrderScreenState extends State<OrderScreen> with WidgetsBindingObserver {
         _qty[product.id] = next;
         _selected[product.id] = product;
       }
+      _scheduleQuote();
       if (!isUnlimited && requested > maxQty) {
         _stockWarnings.add(product.id);
       } else if (isUnlimited || next < maxQty) {
@@ -273,6 +304,9 @@ class _OrderScreenState extends State<OrderScreen> with WidgetsBindingObserver {
     setState(() => _sending = true);
     try {
       await _syncPrices(reportError: true);
+      _quoteTimer?.cancel();
+      await _loadOrderQuote(reportError: true);
+      if (_orderDiscount == null) return;
       await _repo.createOrder(
         replaceOrderId: widget.initialOrder?.id,
         storeId: _selectedStoreId,
@@ -343,7 +377,7 @@ class _OrderScreenState extends State<OrderScreen> with WidgetsBindingObserver {
     for (final product in _catalog.items) {
       if (_selected.containsKey(product.id)) _selected[product.id] = product;
     }
-    setState(() {});
+    setState(() { _scheduleQuote(); });
     _priceRevision.value++;
   }
 
@@ -369,6 +403,7 @@ class _OrderScreenState extends State<OrderScreen> with WidgetsBindingObserver {
       _stockWarnings.addAll(_selected.keys.where((id) => !available.contains(id)));
       setState(() {});
       _priceRevision.value++;
+      await _loadOrderQuote(reportError: reportError);
     } catch (e) {
       if (reportError) rethrow;
       // Keep the existing cart during a transient connection failure.
@@ -700,7 +735,7 @@ class _OrderScreenState extends State<OrderScreen> with WidgetsBindingObserver {
   }
 
   Widget _requestForm(OrderConfigData data) {
-    final disabled = _sending || !_hasChanges || _totalQty == 0 || (data.stores.isNotEmpty && _selectedStoreId == null);
+    final disabled = _sending || _orderDiscount == null || !_hasChanges || _totalQty == 0 || (data.stores.isNotEmpty && _selectedStoreId == null);
     final store = _selectedStore(data.stores);
     final totalAmount = _totalAmount;
 
@@ -710,6 +745,12 @@ class _OrderScreenState extends State<OrderScreen> with WidgetsBindingObserver {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            if (_totalQty > 0) ...[
+              if (_orderDiscount != null) OrderDiscountSummary(details: _orderDiscount!)
+              else if (_quoteError != null) TextButton(onPressed: _loadOrderQuote, child: Text('$_quoteError. Повторить'))
+              else const LinearProgressIndicator(),
+              const SizedBox(height: 12),
+            ],
             const Text(
               'Отправка заказа',
               style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
@@ -734,7 +775,7 @@ class _OrderScreenState extends State<OrderScreen> with WidgetsBindingObserver {
                 ),
               ),
             ),
-            if (data.client.cashPaymentAllowed && _deliveryMethod == 'courier' && _paymentMethod == 'cash') ...[
+            if (_orderDiscount != null && data.client.cashPaymentAllowed && _deliveryMethod == 'courier' && _paymentMethod == 'cash') ...[
               const SizedBox(height: 16),
               Text('Наличными курьеру: ${_formatPrice(totalAmount)} ₽. Бонусы при этом способе оплаты не списываются.'),
             ],
@@ -793,7 +834,7 @@ class _OrderScreenState extends State<OrderScreen> with WidgetsBindingObserver {
                           ),
                         )
                       : Text(
-                          _totalQty == 0 ? 'Добавьте товар' : 'Отправить дистрибьютору · ${totalAmount.toStringAsFixed(0)} ₽',
+                          _totalQty == 0 ? 'Добавьте товар' : _orderDiscount == null ? 'Расчёт заказа…' : 'Отправить дистрибьютору · ${_formatPrice(totalAmount)} ₽',
                         ),
                 ),
               ),
@@ -1143,15 +1184,10 @@ class _OrderScreenState extends State<OrderScreen> with WidgetsBindingObserver {
               ),
               const SizedBox(height: 16),
               ShopSalePrice(product: item),
-              if (item.priceSource == 'personal_discount') const Text('Персональная скидка', style: TextStyle(color: AppColors.brandRed)),
-              if (item.priceSource == 'personal') const Text('Персональная цена', style: TextStyle(color: AppColors.brandRed)),
               Row(
                 children: [
                   Expanded(
-                    child: Text(
-                      '${item.markupPercent != null ? 'Закупочная цена: ' : ''}${_formatPrice(item.price)} ₽',
-                      style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: AppColors.brandBlack),
-                    ),
+                    child: ClientProductPrice(product: item),
                   ),
                   if (isOutOfStock)
                     const SizedBox(height: 36) // Empty space instead of the button
@@ -1242,8 +1278,7 @@ class _OrderScreenState extends State<OrderScreen> with WidgetsBindingObserver {
                       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                         Text(item.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w700)),
                         Text('${_formatPrice(item.price)} ₽/шт · ${_formatPrice(item.price * qty)} ₽'),
-                        if (item.priceSource == 'personal_discount') const Text('Персональная скидка', style: TextStyle(color: AppColors.brandRed)),
-                        if (item.priceSource == 'personal') const Text('Персональная цена', style: TextStyle(color: AppColors.brandRed, fontSize: 11)),
+                        ClientProductPrice(product: item),
                       ]),
                     ),
                     const SizedBox(width: 8),
