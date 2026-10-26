@@ -24,6 +24,7 @@ ProductData product({String clientId = '1', double? markup = 0, double price = 1
   volume: 1,
   price: price,
   basePrice: 1500,
+  hasDiscount: true,
   quantity: 10,
   status: StockStatus.inStock,
   updatedAt: DateTime(2026),

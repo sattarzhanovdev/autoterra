@@ -78,6 +78,7 @@ class _OrderScreenState extends State<OrderScreen> with WidgetsBindingObserver {
   String _search = '';
   String? _brandFilter;
   bool _inStockOnly = false;
+  bool _catalogRequested = false;
 
   String _selectedCategory = _allCategories;
   String? _selectedStoreId;
@@ -137,6 +138,7 @@ class _OrderScreenState extends State<OrderScreen> with WidgetsBindingObserver {
                   if (current.description != null) Text(current.description!),
                   const SizedBox(height: 16),
                   ClientProductPrice(product: current),
+                  Text(_stockLabel(current)),
                   ShopSalePrice(product: current),
                   const SizedBox(height: 12),
                   TextButton(onPressed: () => Navigator.pop(context), child: const Text('Закрыть')),
@@ -229,7 +231,19 @@ class _OrderScreenState extends State<OrderScreen> with WidgetsBindingObserver {
   }
 
   void _applyFilters() {
+    _catalogRequested = true;
     _catalog.setFilters(() {});
+  }
+
+  void _resetFilters() {
+    setState(() {
+      _selectedCategory = _allCategories;
+      _brandFilter = null;
+      _inStockOnly = false;
+      _search = '';
+      _searchCtrl.clear();
+    });
+    _applyFilters();
   }
 
   void _ensureStore(OrderConfigData data) {
@@ -252,7 +266,7 @@ class _OrderScreenState extends State<OrderScreen> with WidgetsBindingObserver {
   }
 
   void _changeQty(ProductData product, int delta) {
-    if (!_canOrder(product)) return;
+    if (delta > 0 && !_canOrder(product)) return;
     final current = _qty[product.id] ?? 0;
     
     // If onOrder and quantity is 0, allow ordering without a hard limit
@@ -416,7 +430,15 @@ class _OrderScreenState extends State<OrderScreen> with WidgetsBindingObserver {
     final next = _repo.orderConfig();
     setState(() { _future = next; });
     try {
-      await next;
+      final data = await next;
+      if (!mounted || _future != next) return;
+      setState(() {
+        if (!data.brands.contains(_brandFilter)) _brandFilter = null;
+        if (!data.categories.contains(_selectedCategory)) {
+          _selectedCategory = _allCategories;
+        }
+        _catalogRequested = true;
+      });
       await _catalog.refresh();
       await _syncPrices(reportError: true);
     } catch (_) {
@@ -874,6 +896,7 @@ class _OrderScreenState extends State<OrderScreen> with WidgetsBindingObserver {
               controller: _searchCtrl,
               onChanged: (value) {
                 _search = value.trim();
+                _catalogRequested = true;
                 // Дебаунс: запрос уходит на сервер, а не фильтрует страницу.
                 _catalog.refreshDebounced();
               },
@@ -926,6 +949,7 @@ class _OrderScreenState extends State<OrderScreen> with WidgetsBindingObserver {
               children: [
                 Expanded(
                   child: DropdownButtonFormField<String?>(
+                    key: ValueKey(_brandFilter),
                     initialValue: _brandFilter,
                     isExpanded: true,
                     decoration: const InputDecoration(
@@ -979,27 +1003,32 @@ class _OrderScreenState extends State<OrderScreen> with WidgetsBindingObserver {
       listenable: _catalog,
       builder: (context, _) {
         // Загрузка
-        if (_catalog.isLoading && _catalog.items.isEmpty) {
-          return const SliverPadding(
+        if (_catalog.isLoading) {
+          final updating = _catalogRequested || _catalog.hasLoadedOnce;
+          return SliverPadding(
             padding: EdgeInsets.symmetric(horizontal: 16),
             sliver: SliverToBoxAdapter(
               child: Padding(
-                padding: EdgeInsets.symmetric(vertical: 32),
-                child: Center(child: CircularProgressIndicator(color: AppColors.brandRed)),
+                padding: const EdgeInsets.symmetric(vertical: 32),
+                child: Column(children: [
+                  const CircularProgressIndicator(color: AppColors.brandRed),
+                  const SizedBox(height: 12),
+                  Text(updating ? 'Обновляем каталог...' : 'Загрузка товаров...'),
+                ]),
               ),
             ),
           );
         }
 
         // Ошибка
-        if (_catalog.error != null && _catalog.items.isEmpty) {
+        if (_catalog.error != null && !_catalog.isLoadingMore) {
           return SliverPadding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             sliver: SliverToBoxAdapter(
               child: Column(
                 children: [
                   Text(
-                    _catalog.error!.toString(),
+                    'Не удалось загрузить товары',
                     style: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
                     textAlign: TextAlign.center,
                   ),
@@ -1016,15 +1045,19 @@ class _OrderScreenState extends State<OrderScreen> with WidgetsBindingObserver {
 
         // Пусто
         if (_catalog.isEmpty) {
-          return const SliverPadding(
+          return SliverPadding(
             padding: EdgeInsets.symmetric(horizontal: 16),
             sliver: SliverToBoxAdapter(
               child: Padding(
-                padding: EdgeInsets.symmetric(vertical: 16),
-                child: Text(
-                  'Ничего не найдено',
-                  style: TextStyle(color: AppColors.textSecondary),
-                ),
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                child: Column(children: [
+                  const Text(
+                    'По выбранным фильтрам товары не найдены',
+                    style: TextStyle(color: AppColors.textSecondary),
+                  ),
+                  const SizedBox(height: 12),
+                  OutlinedButton(onPressed: _resetFilters, child: const Text('СБРОСИТЬ ФИЛЬТРЫ')),
+                ]),
               ),
             ),
           );
@@ -1048,7 +1081,7 @@ class _OrderScreenState extends State<OrderScreen> with WidgetsBindingObserver {
     return ListenableBuilder(
       listenable: _catalog,
       builder: (context, _) {
-        if (_catalog.items.isEmpty) return const SizedBox.shrink();
+        if (_catalog.items.isEmpty || _catalog.isLoading || _catalog.error != null) return const SizedBox.shrink();
 
         return Card(
           margin: EdgeInsets.zero,
@@ -1094,16 +1127,15 @@ class _OrderScreenState extends State<OrderScreen> with WidgetsBindingObserver {
   Widget _productTile(ProductData item) {
     final qty = _qty[item.id] ?? 0;
     final canOrder = _canOrder(item);
-    final effectiveRemaining = item.quantity - qty;
-    final showStockWarning = _stockWarnings.contains(item.id) || (item.quantity > 0 && qty >= item.quantity);
+    final showStockWarning = item.quantity > 0 && qty >= item.quantity;
 
     String stockStatusText;
     Color stockColor;
-    if (effectiveRemaining > 5) {
-      stockStatusText = 'В НАЛИЧИИ';
+    if (item.quantity > 5) {
+      stockStatusText = _stockLabel(item);
       stockColor = AppColors.success;
-    } else if (effectiveRemaining > 0) {
-      stockStatusText = 'МАЛО';
+    } else if (item.quantity > 0) {
+      stockStatusText = _stockLabel(item);
       stockColor = AppColors.warning;
     } else if (item.status == StockStatus.onOrder) {
       stockStatusText = 'ПОД ЗАКАЗ';
@@ -1215,11 +1247,15 @@ class _OrderScreenState extends State<OrderScreen> with WidgetsBindingObserver {
                     ),
                 ],
               ),
-              if (showStockWarning && canOrder && item.quantity > 0) ...[
+              if (qty > 0 && item.quantity > 0 && !showStockWarning) ...[
                 const SizedBox(height: 8),
-                const Text(
-                  'ДОСТИГНУТ МАКСИМАЛЬНЫЙ ОСТАТОК',
-                  style: TextStyle(color: AppColors.error, fontSize: 10, fontWeight: FontWeight.w900),
+                Text('Доступно: ${item.quantity} шт.', style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+              ],
+              if (showStockWarning && item.quantity > 0) ...[
+                const SizedBox(height: 8),
+                Text(
+                  'Достигнут максимальный остаток: ${item.quantity} шт.',
+                  style: const TextStyle(color: AppColors.error, fontSize: 10, fontWeight: FontWeight.w900),
                 ),
               ],
             ],
@@ -1293,6 +1329,12 @@ class _OrderScreenState extends State<OrderScreen> with WidgetsBindingObserver {
     );
   }
 
+  String _stockLabel(ProductData product) {
+    if (product.quantity > 5) return 'В НАЛИЧИИ · ${product.quantity} ШТ.';
+    if (product.quantity > 0) return 'МАЛО · ${product.quantity} ШТ.';
+    return product.status == StockStatus.onOrder ? 'ПОД ЗАКАЗ' : 'НЕТ В НАЛИЧИИ';
+  }
+
   String _formatPrice(double value) {
     if (value == value.roundToDouble()) return value.toInt().toString();
     return value.toStringAsFixed(2);
@@ -1300,33 +1342,40 @@ class _OrderScreenState extends State<OrderScreen> with WidgetsBindingObserver {
 
   Widget _qtyStepper(ProductData product, int qty) {
     final isUnlimited = product.status == StockStatus.onOrder && product.quantity == 0;
-    final reachedLimit = !isUnlimited && qty >= product.quantity;
+    final reachedLimit = !_canOrder(product) || (isUnlimited ? qty >= 999 : qty >= product.quantity);
 
-    return Container(
-      height: 36,
-      decoration: BoxDecoration(
-        border: Border.all(color: AppColors.border),
-        borderRadius: BorderRadius.zero,
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _qtyButton(Icons.remove, qty == 0, () => _changeQty(product, -1)),
-          SizedBox(
-            width: 32,
-            child: Text(
-              '$qty',
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontWeight: FontWeight.w800),
-            ),
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Text('В корзине', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700)),
+        const SizedBox(height: 4),
+        Container(
+          height: 36,
+          decoration: BoxDecoration(
+            border: Border.all(color: AppColors.border),
+            borderRadius: BorderRadius.zero,
           ),
-          _qtyButton(
-            Icons.add,
-            reachedLimit,
-            () => _changeQty(product, 1),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _qtyButton(Icons.remove, qty == 0, () => _changeQty(product, -1)),
+              SizedBox(
+                width: 32,
+                child: Text(
+                  '$qty',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontWeight: FontWeight.w800),
+                ),
+              ),
+              _qtyButton(
+                Icons.add,
+                reachedLimit,
+                () => _changeQty(product, 1),
+              ),
+            ],
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 

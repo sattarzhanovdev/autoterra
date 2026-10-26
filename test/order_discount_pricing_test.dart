@@ -19,6 +19,7 @@ ProductData product({
   double price = 780,
   double? base = 1000,
   double percent = 22,
+  bool? hasDiscount,
 }) => ProductData(
   id: '1',
   distributorId: '1',
@@ -30,7 +31,7 @@ ProductData product({
   price: price,
   basePrice: base,
   effectiveDiscountPercent: percent,
-  hasDiscount: percent > 0,
+  hasDiscount: hasDiscount ?? percent > 0,
   priceSource: 'personal_discount',
   quantity: 100,
   status: StockStatus.inStock,
@@ -140,6 +141,21 @@ void main() {
     final oldPrice = tester.widget<Text>(find.text('1\u00a0000,00 ₽'));
     expect(oldPrice.style?.decoration, TextDecoration.lineThrough);
     expect(find.text('780,00 ₽'), findsOneWidget);
+  });
+
+  testWidgets('explicit backend hasDiscount false hides discount details', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: ClientProductPrice(product: product(hasDiscount: false)),
+        ),
+      ),
+    );
+    expect(find.text('780,00 ₽'), findsOneWidget);
+    expect(find.text('1\u00a0000,00 ₽'), findsNothing);
+    expect(find.textContaining('Персональная скидка'), findsNothing);
   });
 
   testWidgets('no discount shows only one price and no zero badge', (

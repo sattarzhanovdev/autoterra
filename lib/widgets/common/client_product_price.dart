@@ -12,7 +12,7 @@ class ClientProductPrice extends StatelessWidget {
   Widget build(BuildContext context) {
     final fmt = NumberFormat('#,##0.00', 'ru_RU');
     final discounted =
-        product.basePrice != null && product.basePrice! > product.price;
+        product.hasDiscount && product.basePrice != null && product.basePrice! > product.price;
     final percent = NumberFormat(
       '0.##',
       'ru_RU',

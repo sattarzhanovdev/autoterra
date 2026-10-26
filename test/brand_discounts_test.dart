@@ -327,6 +327,9 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('ДОБАВИТЬ'));
     await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.text('Отправить дистрибьютору · 900 ₽'), 250, scrollable: find.byType(Scrollable).first);
     expect(find.text('Отправить дистрибьютору · 900 ₽'), findsOneWidget);
     await tester.ensureVisible(find.text('Отправить дистрибьютору · 900 ₽'));
     await tester.pumpAndSettle();

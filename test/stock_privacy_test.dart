@@ -23,7 +23,7 @@ void main() {
     );
   }
 
-  testWidgets('OrderScreen should obscure exact stock quantities and show status labels', (WidgetTester tester) async {
+  testWidgets('OrderScreen shows server stock quantities and status labels', (WidgetTester tester) async {
     // 1. Prepare Mock Data
     final mockConfig = OrderConfigData(
       client: Client(
@@ -74,18 +74,9 @@ void main() {
     await tester.pump(); // Start fetching
     await tester.pumpAndSettle(); // Finish loading
 
-    // 3. Verify Privacy
-    // Exact quantities (10 and 3) should NOT be present in the stock status area
-    // (We check for text patterns like "10 шт" or "3 шт")
-    expect(find.textContaining('10 шт'), findsNothing);
-    expect(find.textContaining('3 шт'), findsNothing);
-    expect(find.textContaining('10 шт.'), findsNothing);
-    expect(find.textContaining('3 шт.'), findsNothing);
+    expect(find.text('В НАЛИЧИИ · 10 ШТ.'), findsOneWidget);
+    expect(find.text('МАЛО · 3 ШТ.'), findsOneWidget);
 
-    // 4. Verify status labels
-    expect(find.text('В НАЛИЧИИ'), findsOneWidget);
-    expect(find.text('МАЛО'), findsOneWidget);
-    
     // Ensure titles are visible to confirm we are on the right screen
     expect(find.text('PRODUCT IN STOCK'), findsOneWidget);
     expect(find.text('PRODUCT LOW STOCK'), findsOneWidget);
