@@ -26,6 +26,9 @@ class _OrderScreenState extends State<OrderScreen> with WidgetsBindingObserver {
   Timer? _quoteTimer;
   Map<String, dynamic>? _orderDiscount;
   String? _quoteError;
+  Map<String, dynamic>? _bonus;
+  double _bonusRequested = 0;
+  bool _useBonus = false;
   int _quoteRevision = 0;
 
   List<Map<String, dynamic>> get _quoteItems => _qty.entries
@@ -34,9 +37,8 @@ class _OrderScreenState extends State<OrderScreen> with WidgetsBindingObserver {
   void _scheduleQuote() {
     _quoteTimer?.cancel();
     _quoteRevision++;
-    _orderDiscount = null;
     _quoteError = null;
-    if (_qty.isEmpty) return;
+    if (_qty.isEmpty) { _orderDiscount = null; _bonus = null; return; }
     _quoteTimer = Timer(const Duration(milliseconds: 250), () => _loadOrderQuote());
   }
 
@@ -44,13 +46,19 @@ class _OrderScreenState extends State<OrderScreen> with WidgetsBindingObserver {
     final revision = ++_quoteRevision;
     if (_qty.isEmpty) return;
     try {
-      final response = await _repo.orderQuote(_quoteItems);
+      final response = _useBonus
+          ? await _repo.orderQuote(_quoteItems, bonusAmount: _bonusRequested.toStringAsFixed(2))
+          : await _repo.orderQuote(_quoteItems);
       if (!mounted || revision != _quoteRevision) return;
       final details = Map<String, dynamic>.from(response['orderDiscount'] as Map);
-      setState(() { _orderDiscount = details; _quoteError = null; });
+      setState(() {
+        _orderDiscount = details;
+        _bonus = response['bonus'] is Map ? Map<String, dynamic>.from(response['bonus'] as Map) : null;
+        _quoteError = null;
+      });
     } catch (_) {
       if (mounted && revision == _quoteRevision) {
-        setState(() { _orderDiscount = null; _quoteError = 'Не удалось рассчитать заказ'; });
+        setState(() { _quoteError = _orderDiscount == null ? 'Не удалось рассчитать заказ' : null; });
       }
       if (reportError) rethrow;
     }
@@ -364,6 +372,7 @@ class _OrderScreenState extends State<OrderScreen> with WidgetsBindingObserver {
         deliveryMethod: _deliveryMethod,
         paymentMethod: data.client.cashPaymentAllowed && _deliveryMethod == 'courier' ? _paymentMethod : 'online',
         comment: _commentCtrl.text,
+        bonusAmount: _useBonus ? _bonusRequested.toStringAsFixed(2) : '0.00',
         items: _qty.entries.map((entry) => {'productId': entry.key, 'quantity': entry.value}).toList(),
       );
       if (!mounted) return;
@@ -825,63 +834,47 @@ class _OrderScreenState extends State<OrderScreen> with WidgetsBindingObserver {
     );
   }
 
-  /// Сколько бонусов закроет собираемый заказ.
-  ///
-  /// Именно прикидка, а не списание: бонус уходит со счёта на шаге оплаты, а
-  /// до неё дистрибьютор ещё может скорректировать состав заказа. Обещать
-  /// точную сумму здесь нельзя — но и молчать про бонусы до самой оплаты тоже.
   Widget _bonusPreview(double balance, double totalAmount) {
-    final fmt = NumberFormat('#,##0', 'ru_RU');
-    final covers = balance < totalAmount ? balance : totalAmount;
-    final rest = totalAmount - covers;
-
+    double number(String key, double fallback) => double.tryParse('${_bonus?[key]}') ?? fallback;
+    final maximum = number('maxAllowed', 0);
+    final selected = _useBonus ? _bonusRequested.clamp(0.0, maximum) : 0.0;
+    final applied = number('applied', 0);
+    final payable = number('payableTotal', totalAmount);
+    final fmt = NumberFormat('#,##0.00', 'ru_RU');
     return Container(
       padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppColors.canvas,
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Icon(Icons.savings_outlined, size: 18, color: AppColors.brandRed),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  'Бонусов на счёте: ${fmt.format(balance)} ₽',
-                  style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text('Спишется с этого заказа',
-                  style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
-              Text('−${fmt.format(covers)} ₽',
-                  style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13, color: AppColors.brandRed)),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text('К оплате', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
-              Text('${fmt.format(rest)} ₽',
-                  style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13)),
-            ],
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            'Списание произойдёт при оплате — сумму можно будет уменьшить.',
-            style: TextStyle(fontSize: 10, color: AppColors.textSecondary),
-          ),
+      decoration: BoxDecoration(color: AppColors.canvas, border: Border.all(color: AppColors.border)),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        const Text('Ваши бонусы', style: TextStyle(fontWeight: FontWeight.w700)),
+        Text('Баланс: ${fmt.format(number('balance', balance))} ₽'),
+        Text('Можно использовать в этом заказе: до ${fmt.format(maximum)} ₽'),
+        const Text('1 бонус = 1 ₽. Максимум 10% суммы после скидок.'),
+        Material(color: Colors.transparent, child: SwitchListTile(
+          contentPadding: EdgeInsets.zero,
+          title: const Text('Использовать бонусы'),
+          value: _useBonus,
+          onChanged: maximum <= 0 ? null : (value) => setState(() {
+            _useBonus = value;
+            _bonusRequested = value ? maximum : 0;
+            _scheduleQuote();
+          }),
+        )),
+        if (_useBonus) ...[
+          Slider(value: selected, min: 0, max: maximum > 0 ? maximum : 1,
+            onChanged: maximum <= 0 ? null : (value) => setState(() {
+              _bonusRequested = (value * 100).floor() / 100;
+              _scheduleQuote();
+            })),
+          Text('Выбрано: ${fmt.format(selected)} ₽'),
+          TextButton(onPressed: maximum <= 0 ? null : () => setState(() {
+            _bonusRequested = maximum; _scheduleQuote();
+          }), child: const Text('Использовать максимум')),
         ],
-      ),
+        Text('Сумма заказа: ${fmt.format(totalAmount)} ₽'),
+        Text('Бонусы: −${fmt.format(applied)} ₽'),
+        Text('К оплате: ${fmt.format(payable)} ₽', style: const TextStyle(fontWeight: FontWeight.w900)),
+        const Text('Списание произойдёт при оплате после повторной проверки суммы и баланса.'),
+      ]),
     );
   }
 

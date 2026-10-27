@@ -48,6 +48,7 @@ class CatalogRepository extends DataRepository {
     String? storeId,
     String? deliveryMethod,
     String paymentMethod = 'online',
+    String bonusAmount = '0.00',
     String? replaceOrderId,
     required List<Map<String, dynamic>> items,
     required String comment,
@@ -109,7 +110,7 @@ class CatalogRepository extends DataRepository {
 
   @override
   Future<Map<String, dynamic>> orderQuote(
-    List<Map<String, dynamic>> items,
+    List<Map<String, dynamic>> items, {String bonusAmount = '0.00'}
   ) async {
     final quantity = items.fold<int>(
       0,

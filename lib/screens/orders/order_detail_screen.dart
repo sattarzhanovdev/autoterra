@@ -165,10 +165,10 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
   /// следующий заказ, а не высадить весь баланс здесь.
   Future<double?> _askAboutBonus(Order order) {
     final fmt = NumberFormat('#,##0', 'ru_RU');
-    final maxBonus = order.bonusAvailable < order.totalAmount
+    final maxBonus = order.bonusMaxAllowed ?? (order.bonusAvailable < (order.totalAmount * 0.10 * 100).floor() / 100
         ? order.bonusAvailable
-        : order.totalAmount;
-    var chosen = maxBonus;
+        : (order.totalAmount * 0.10 * 100).floor() / 100);
+    var chosen = order.bonusRequested.clamp(0.0, maxBonus);
 
     return showDialog<double>(
       context: context,
@@ -178,7 +178,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
           return AlertDialog(
             shape: AppShapes.border(size: AppShapes.chamferSm),
             title: const Text(
-              'СПИСАТЬ БОНУСЫ',
+              'Использовать бонусы',
               style: TextStyle(fontWeight: FontWeight.w900, fontSize: 15),
             ),
             content: Column(
@@ -202,14 +202,14 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
                     color: AppColors.brandRed,
                   ),
                 ),
-                // Шаг в рубль: суммы небольшие, дробить копейки незачем.
+                // Keep fractional limits below the server maximum.
                 Slider(
                   value: chosen,
                   max: maxBonus,
-                  divisions: maxBonus >= 1 ? maxBonus.round() : null,
+
                   activeColor: AppColors.brandRed,
                   onChanged: (value) =>
-                      setDialogState(() => chosen = value.roundToDouble()),
+                      setDialogState(() => chosen = ((value * 100).floor() / 100).clamp(0.0, maxBonus)),
                 ),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,

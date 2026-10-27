@@ -1,3 +1,4 @@
+import 'services/app_update.dart';
 import 'screens/finance/yookassa_finance_screen.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -191,7 +192,7 @@ class AutoterraApp extends StatelessWidget {
       theme: AppTheme.light,
       routerConfig: _router,
       debugShowCheckedModeBanner: false,
-      builder: (context, child) => RoleSwitcherWrapper(child: child!),
+      builder: (context, child) => AppUpdateGate(navigatorKey: _rootNavigatorKey, child: RoleSwitcherWrapper(child: child!)),
     );
   }
 }

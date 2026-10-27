@@ -263,7 +263,7 @@ class DataRepository {
     );
   }
 
-  Future<Map<String, dynamic>> orderQuote(List<Map<String, dynamic>> items) => _api.orderQuote(items);
+  Future<Map<String, dynamic>> orderQuote(List<Map<String, dynamic>> items, {String bonusAmount = '0.00'}) => _api.orderQuote(items, bonusAmount: bonusAmount);
 
   Future<OrderConfigData> orderConfig() async {
     final data = await _api.orderConfig();
@@ -924,6 +924,7 @@ class DataRepository {
     String? storeId,
     String? deliveryMethod,
     String paymentMethod = 'online',
+    String bonusAmount = '0.00',
     String? replaceOrderId,
     required List<Map<String, dynamic>> items,
     required String comment,
@@ -932,6 +933,7 @@ class DataRepository {
       storeId: storeId, 
       deliveryMethod: deliveryMethod,
       paymentMethod: paymentMethod,
+      bonusAmount: bonusAmount,
       replaceOrderId: replaceOrderId,
       items: items, 
       comment: comment
@@ -1209,6 +1211,8 @@ class DataRepository {
       isPayable: json['isPayable'] == true,
       bonusAvailable: _toDouble(json['bonusAvailable']),
       bonusApplied: _toDouble(json['bonusApplied']),
+      bonusRequested: _toDouble(json['bonusRequested']),
+      bonusMaxAllowed: json['bonusMaxAllowed'] == null ? null : _toDouble(json['bonusMaxAllowed']),
       adjustments: _list(json['adjustments']).map((a) => _orderAdjustmentFromJson(a)).toList(),
       pendingPaymentUrl: json['pendingPayment'] is Map
           ? _toString((json['pendingPayment'] as Map)['confirmationUrl'])

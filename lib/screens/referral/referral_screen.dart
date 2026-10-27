@@ -10,6 +10,8 @@ import '../../services/pagination_controller.dart';
 import '../../widgets/common/paginated_list_view.dart';
 import '../../widgets/common/brand_icon.dart';
 import '../../core/constants.dart';
+import 'bonus_history_screen.dart';
+import '../../widgets/common/referral_progress.dart';
 
 class ReferralScreen extends StatefulWidget {
   final DataRepository? repository;
@@ -252,6 +254,8 @@ class _ReferralScreenState extends State<ReferralScreen> {
         header: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            _buildBalance(fmt),
+            const SizedBox(height: 16),
             _buildHowItWorks(fmt),
             const SizedBox(height: 16),
             _buildRefCode(context),
@@ -273,6 +277,7 @@ class _ReferralScreenState extends State<ReferralScreen> {
         ),
         itemBuilder: (context, referral, _) => _ReferralCard(
           referral: referral,
+          tiers: _tiers,
           fmt: fmt,
           onResend: () => _sendInvite(forName: referral.inviteeName),
         ),
@@ -307,12 +312,15 @@ class _ReferralScreenState extends State<ReferralScreen> {
         children: [
           const Text('КАК ЭТО РАБОТАЕТ', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14)),
           const SizedBox(height: 16),
-          _step('1', 'Отправьте СТО ссылку или ваш код приглашения.'),
-          _step('2', 'СТО регистрируется по приглашению. Для заявки по ИНН требуется подтверждение приглашённого СТО.'),
-          // Бонус — процент от подтверждённых закупок и выполненных заказов
-          // приглашённого, см. api/services/referral_bonus.py.
-          _step('3', 'Бонусы начисляются на ваш бонусный счёт за подтверждённые закупки и выполненные заказы приглашённого СТО.'),
-          _step('4', 'Ставка зависит от накопленного оборота каждого приглашённого СТО и определяется отдельно для каждого участника.'),
+          _step('1', 'Отправьте коллеге или представителю магазина автозапчастей или автосервиса свою ссылку или код приглашения.'),
+          _step('2', 'Приглашённый участник регистрируется по вашей ссылке или коду. Если он указывает ИНН, ему нужно подтвердить, что приглашение получил от вас.'),
+          _step('3', 'После подтверждения его заказов бонусы поступят на ваш бонусный счёт. Размер бонусов можно посмотреть в таблице заказов.'),
+          _step('4', 'Ставка рассчитывается отдельно для каждого приглашённого участника и зависит от общей суммы его заказов.'),
+          const Material(child: ExpansionTile(
+            tilePadding: EdgeInsets.zero,
+            title: Text('Условия программы', style: TextStyle(fontSize: 12)),
+            children: [Text('ООО «АвтоТерра Плюс» может изменять условия и ставки бонусной программы. Новые условия применяются только к заказам, подтверждённым после вступления изменений в силу. Ранее начисленные бонусы сохраняются. Актуальные ставки указаны в таблице бонусов.', style: TextStyle(fontSize: 11, height: 1.5))],
+          )),
           if (tiers.isNotEmpty) ...[
             const Divider(height: 24),
             const Text('СТАВКИ НАЧИСЛЕНИЯ БОНУСОВ', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 11)),
@@ -448,6 +456,20 @@ class _ReferralScreenState extends State<ReferralScreen> {
     );
   }
 
+  Widget _buildBalance(NumberFormat fmt) => Container(
+    width: double.infinity,
+    padding: const EdgeInsets.all(16),
+    decoration: BoxDecoration(color: Colors.white, border: Border.all(color: AppColors.border)),
+    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      const Text('Бонусный баланс', style: TextStyle(fontWeight: FontWeight.w900)),
+      Text('Доступно: ${fmt.format(double.tryParse('${_stats['bonusBalance']}') ?? 0)} ₽', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700)),
+      Text('Приглашённых: ${_stats['invitedCount'] ?? 0}'),
+      Text('Подтверждённый оборот: ${fmt.format(double.tryParse('${_stats['purchaseAmount']}') ?? 0)} ₽'),
+      Text('Всего начислено бонусов: ${fmt.format(double.tryParse('${_stats['totalEarned']}') ?? 0)} ₽'),
+      TextButton(onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => BonusHistoryScreen(repository: _repo))), child: const Text('История бонусов')),
+    ]),
+  );
+
   Widget _buildStats(NumberFormat fmt) {
     int stat(String key) => (_stats[key] as num? ?? 0).toInt();
     return Container(
@@ -477,6 +499,7 @@ class _ReferralScreenState extends State<ReferralScreen> {
 
 class _ReferralCard extends StatelessWidget {
   final Referral referral;
+  final List<({double from, double rate})> tiers;
   final NumberFormat fmt;
 
   /// Повторная отправка ссылки: пока СТО не зарегистрировалось, запись живёт
@@ -485,6 +508,7 @@ class _ReferralCard extends StatelessWidget {
 
   const _ReferralCard({
     required this.referral,
+    required this.tiers,
     required this.fmt,
     required this.onResend,
   });
@@ -501,13 +525,14 @@ class _ReferralCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(referral.inviteeName.toUpperCase(), style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13)),
+              Expanded(child: Text(referral.inviteeName.toUpperCase(), style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13))),
               if (referral.conditionMet) const Icon(Icons.verified, color: AppColors.success, size: 18),
             ],
           ),
           const SizedBox(height: 4),
           Text('ИНН: ${referral.inviteeInn} · ${referral.region.toUpperCase()}', style: const TextStyle(color: AppColors.textSecondary, fontSize: 10, fontWeight: FontWeight.bold)),
           const Divider(height: 24),
+          ReferralProgress(volume: referral.purchaseAmount, tiers: tiers),
           Row(
             children: [
               _stepIcon('РЕГИСТРАЦИЯ', referral.isRegistered),

@@ -606,11 +606,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
             const SizedBox(height: 16),
             TextFormField(
               controller: _referralCtrl,
+              autocorrect: false,
+              enableSuggestions: false,
+              textInputAction: TextInputAction.next,
               textCapitalization: TextCapitalization.characters,
               decoration: const InputDecoration(
-                labelText: 'КОД ПРИГЛАШЕНИЯ',
+                labelText: 'Реферальный код',
                 hintText: 'AT-XXXXXX',
-                helperText: 'Если вас пригласил другой автосервис',
+                helperText: 'Необязательно. Если вас пригласил коллега или магазин',
                 border: OutlineInputBorder(borderRadius: BorderRadius.zero),
               ),
             ),

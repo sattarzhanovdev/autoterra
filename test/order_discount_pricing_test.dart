@@ -342,7 +342,8 @@ void main() {
             expect(request.method, 'POST');
             expect(request.url.path, '/api/orders/quote/');
             expect(jsonDecode(request.body), {
-              'items': [
+              'bonusAmount': '0.00',
+                'items': [
                 {'productId': '1', 'quantity': 15},
               ],
             });

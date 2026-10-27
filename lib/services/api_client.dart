@@ -160,8 +160,10 @@ class ApiClient {
 
   Future<Map<String, dynamic>> productQuote(List<String> ids) => _get('/products/quote/', params: {'ids': ids.join(',')});
 
-  Future<Map<String, dynamic>> orderQuote(List<Map<String, dynamic>> items) =>
-      _post('/orders/quote/', {'items': items});
+  Future<Map<String, dynamic>> orderQuote(List<Map<String, dynamic>> items, {String bonusAmount = '0.00'}) =>
+      _post('/orders/quote/', {'items': items, 'bonusAmount': bonusAmount});
+
+  Future<Map<String, dynamic>> appVersion(String store, int build) => _get('/app-version/', params: {'store': store, 'build': '$build'});
 
   Future<Map<String, dynamic>> orderConfig() => _get('/order-config/');
 
@@ -212,6 +214,7 @@ class ApiClient {
     String? storeId,
     String? deliveryMethod,
     String paymentMethod = 'online',
+    String bonusAmount = '0.00',
     String? replaceOrderId,
     required List<Map<String, dynamic>> items,
     required String comment,
@@ -221,6 +224,7 @@ class ApiClient {
       'deliveryMethod': ?deliveryMethod,
       'paymentMethod': paymentMethod,
       'items': items,
+      'bonusAmount': bonusAmount,
       'comment': comment,
     });
   }
@@ -362,7 +366,7 @@ class ApiClient {
   Future<(Paginated<Map<String, dynamic>>, Map<String, dynamic>)> referrals({int page = 1, int pageSize = defaultPageSize}) async {
     final (items, raw) = await _getPageWithMeta('/referrals/', page: page, pageSize: pageSize);
     final stats = Map<String, dynamic>.from((raw['stats'] as Map?) ?? const {});
-    for (final key in ['referralCode', 'inviteLink', 'bonusThreshold', 'bonusGift']) {
+    for (final key in ['referralCode', 'inviteLink', 'bonusThreshold', 'bonusGift', 'bonusTiers', 'bonusBalance', 'activityMin']) {
       if (raw[key] != null) stats[key] = raw[key];
     }
     return (items, stats);
@@ -713,7 +717,11 @@ class ApiClient {
   }
 
   Future<Map<String, dynamic>> register(Map<String, dynamic> body) {
-    return _post('/auth/register/', body);
+    final normalized = Map<String, dynamic>.from(body);
+    final code = normalized['referralCode']?.toString().trim().toUpperCase() ?? '';
+    normalized.remove('referralCode');
+    if (code.isNotEmpty) normalized['referralCode'] = code;
+    return _post('/auth/register/', normalized);
   }
 
   /// Приглашённый подтверждает или отклоняет заявку на себя.

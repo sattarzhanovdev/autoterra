@@ -66,7 +66,7 @@ class _LearningMaterialsScreenState extends State<LearningMaterialsScreen> {
           Expanded(
             child: PaginatedListView<LearningMaterial>(
               controller: _controller,
-              emptyMessage: 'МАТЕРИАЛОВ ПОКА НЕТ',
+              emptyMessage: 'Материалы пока не добавлены',
               itemBuilder: (context, material, _) => _MaterialCard(material: material),
             ),
           ),

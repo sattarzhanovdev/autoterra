@@ -286,6 +286,8 @@ class Order {
   /// Бонус уменьшает сумму, которая уходит в ЮKassa.
   final double bonusAvailable;
   final double bonusApplied;
+  final double bonusRequested;
+  final double? bonusMaxAllowed;
   final List<OrderAdjustment> adjustments;
   /// Ссылка на страницу оплаты YooKassa, если платёж уже создан и ждёт оплаты.
   final String? pendingPaymentUrl;
@@ -321,6 +323,8 @@ class Order {
     this.isPayable = false,
     this.bonusAvailable = 0,
     this.bonusApplied = 0,
+    this.bonusRequested = 0,
+    this.bonusMaxAllowed,
     this.adjustments = const [],
     this.pendingPaymentUrl,
   });

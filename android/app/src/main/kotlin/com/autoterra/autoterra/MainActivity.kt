@@ -25,6 +25,29 @@ class MainActivity : FlutterActivity() {
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
 
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "autoterra/app-info")
+            .setMethodCallHandler { call, result ->
+                if (call.method != "getInfo") {
+                    result.notImplemented()
+                } else {
+                    try {
+                        val info = packageManager.getPackageInfo(packageName, 0)
+                        val build = if (Build.VERSION.SDK_INT >= 28) info.longVersionCode else info.versionCode.toLong()
+                        val installer = try {
+                            if (Build.VERSION.SDK_INT >= 30) packageManager.getInstallSourceInfo(packageName).installingPackageName else packageManager.getInstallerPackageName(packageName)
+                        } catch (_: Exception) { null }
+                        val store = when (installer) {
+                            "com.android.vending" -> "google_play"
+                            "ru.vk.store", "com.vk.store" -> "rustore"
+                            else -> null
+                        }
+                        result.success(mapOf("build" to build, "store" to store))
+                    } catch (error: Exception) {
+                        result.error("app_info", error.message, null)
+                    }
+                }
+            }
+
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, channelName)
             .setMethodCallHandler { call, result ->
                 when (call.method) {

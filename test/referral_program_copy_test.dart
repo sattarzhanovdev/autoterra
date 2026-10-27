@@ -35,10 +35,10 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(
-        find.textContaining('подтверждённые закупки и выполненные заказы'),
+        find.textContaining('После подтверждения его заказов'),
         findsOneWidget,
       );
-      expect(find.textContaining('каждого приглашённого СТО'), findsOneWidget);
+      expect(find.textContaining('каждого приглашённого участника'), findsOneWidget);
       expect(
         find.textContaining('Ранее начисленные бонусы учитываются'),
         findsOneWidget,

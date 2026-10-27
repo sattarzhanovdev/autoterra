@@ -1,9 +1,11 @@
+import '../../services/ai_presentation.dart';
 import 'package:flutter/material.dart';
 import '../../core/theme.dart';
 import '../../services/api_client.dart';
 
 class AiAssistantScreen extends StatefulWidget {
-  const AiAssistantScreen({super.key});
+  final ApiClient? api;
+  const AiAssistantScreen({super.key, this.api});
 
   @override
   State<AiAssistantScreen> createState() => _AiAssistantScreenState();
@@ -12,7 +14,7 @@ class AiAssistantScreen extends StatefulWidget {
 class _AiAssistantScreenState extends State<AiAssistantScreen> {
   final _msgCtrl = TextEditingController();
   final _scrollCtrl = ScrollController();
-  final _api = ApiClient();
+  late final ApiClient _api;
   final List<_Message> _messages = [
     _Message(
       text:
@@ -28,6 +30,12 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
     'Подберите комплект для кузовного ремонта',
     'Технология нанесения 2K лака',
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _api = widget.api ?? ApiClient();
+  }
 
   @override
   void dispose() {
@@ -47,19 +55,7 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
     String answer;
     try {
       final response = await _api.aiChatWithSources(text);
-      answer = response['answer'] as String;
-      final sources = (response['sources'] as List? ?? [])
-          .whereType<Map>()
-          .toList();
-      if (sources.isNotEmpty) {
-        final labels = sources.asMap().entries.map((entry) {
-          final source = entry.value;
-          final page = source['page'];
-          final section = source['section'] as String? ?? '';
-          return '[${entry.key + 1}] ${source['filename'] ?? source['title']}${page == null ? '' : ', стр. $page'}${section.isEmpty ? '' : ', $section'}';
-        });
-        answer += '\n\nИсточники:\n${labels.join('\n')}';
-      }
+      answer = cleanAiAnswer(response['answer'] as String);
     } catch (e) {
       answer =
           'AI-помощник сейчас недоступен. Попробуйте позже или отправьте вопрос технологу через раздел Вопрос-Ответ.';
