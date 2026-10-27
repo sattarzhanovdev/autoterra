@@ -86,7 +86,8 @@ class PaginationController<T> extends ChangeNotifier {
   }
 
   /// Перезагружает список с первой страницы.
-  Future<void> refresh() async {
+  Future<void> refresh({bool preservePages = false}) async {
+    final lastPage = preservePages ? _pageInfo.page : 1;
     _debounceTimer?.cancel();
     final generation = ++_generation;
 
@@ -95,11 +96,16 @@ class PaginationController<T> extends ChangeNotifier {
     _safeNotify();
 
     try {
-      final result = await fetchPage(1);
+      var result = await fetchPage(1);
+      final refreshed = [...result.items];
+      for (var page = 2; page <= lastPage && result.pageInfo.hasNext; page++) {
+        result = await fetchPage(page);
+        refreshed.addAll(result.items);
+      }
       if (_disposed || generation != _generation) return;
       _items
         ..clear()
-        ..addAll(result.items);
+        ..addAll(refreshed);
       _pageInfo = result.pageInfo;
       _hasLoadedOnce = true;
     } catch (e) {

@@ -1,3 +1,4 @@
+import '../../services/screen_refresh.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../services/data_repository.dart';
@@ -12,10 +13,16 @@ class BonusHistoryScreen extends StatefulWidget {
 }
 
 class _BonusHistoryScreenState extends State<BonusHistoryScreen> {
+  late final ScreenRefresh _liveRefresh;
+
   late final PaginationController<Map<String, dynamic>> _controller;
   @override
   void initState() {
     super.initState();
+    _liveRefresh = ScreenRefresh(
+      active: () => mounted && (ModalRoute.of(context)?.isCurrent ?? false),
+      refresh: () => _controller.refresh(preservePages: true),
+    );
     _controller = PaginationController(
       fetchPage: (page) async =>
           (await widget.repository.bonusAccount(page: page)).$1,
@@ -24,6 +31,7 @@ class _BonusHistoryScreenState extends State<BonusHistoryScreen> {
 
   @override
   void dispose() {
+    _liveRefresh.dispose();
     _controller.dispose();
     super.dispose();
   }

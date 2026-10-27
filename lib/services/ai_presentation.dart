@@ -1,4 +1,4 @@
-String cleanAiAnswer(String text) {
+String cleanAiAnswer(String text, {List<dynamic> sources = const []}) {
   text = text
       .split(
         RegExp(
@@ -8,13 +8,27 @@ String cleanAiAnswer(String text) {
         ),
       )
       .first;
-  text = text.replaceAll(RegExp(r'\[\^?\d+(?:\s*[,;–-]\s*\d+)*\]|【[^】]*】'), '');
-  text = text.replaceAllMapped(
-    RegExp(r'\[([^]]+)\]\(https?://[^)]+\)'),
-    (m) => m[1]!,
+  text = text.replaceAll(
+    RegExp(r'\[\^?\d+(?:\s*[,;–-]\s*\d+)*\]\(https?://[^)]+\)'),
+    '',
   );
+  text = text.replaceAll(RegExp(r'\[\^?\d+(?:\s*[,;–-]\s*\d+)*\]|【[^】]*】'), '');
+  for (final source in sources.whereType<Map>()) {
+    if (source['type'] == 'product') continue;
+    for (final key in ['url', 'fileUrl', 'downloadUrl', 'filename', 'title']) {
+      final value = source[key];
+      if (value is String && value.isNotEmpty) {
+        if (key.endsWith('Url') || key == 'url') {
+          text = text.replaceAll(
+            RegExp(r'\[[^]]*\]\(' + RegExp.escape(value) + r'\)'),
+            '',
+          );
+        }
+        text = text.replaceAll(value, '');
+      }
+    }
+  }
   return text
-      .replaceAll(RegExp(r'https?://\S+'), '')
       .replaceAllMapped(RegExp(r'[ \t]+([.,;:!?])'), (m) => m[1]!)
       .trim();
 }

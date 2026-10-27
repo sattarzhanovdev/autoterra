@@ -12,15 +12,16 @@ import '../../widgets/common/brand_icon.dart';
 class RegisterScreen extends StatefulWidget {
   /// Код из ссылки-приглашения `?ref=CODE`. Пусто — код вводят вручную.
   final String? referralCode;
+  final ApiClient? api;
 
-  const RegisterScreen({super.key, this.referralCode});
+  const RegisterScreen({super.key, this.referralCode, this.api});
 
   @override
   State<RegisterScreen> createState() => _RegisterScreenState();
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
-  final _api = ApiClient();
+  late final ApiClient _api;
   final _pageCtrl = PageController();
   int _currentPage = 0;
 
@@ -67,6 +68,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   void initState() {
     super.initState();
+    _api = widget.api ?? ApiClient();
     // push, а не go: форма остаётся под документом, и введённое не пропадёт.
     _termsTap = TapGestureRecognizer()
       ..onTap = () => context.push(AppRoutes.termsOfUse);
@@ -85,7 +87,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (mounted) setState(() => _loadingRegions = true);
     try {
       // Справочник целиком: он нужен выпадающему списку, а не ленте.
-      final regions = await fetchAllPages((page) => _api.getRegions(page: page));
+      final regions = await fetchAllPages(
+        (page) => _api.getRegions(page: page),
+      );
       if (mounted) {
         setState(() {
           _regions = regions;
@@ -174,9 +178,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
         // спросить об этом лучше сейчас, пока человек помнит, кто его звал.
         if (result["requires_approval"] != true) {
           await _askAboutPendingClaim(
-          PendingReferralClaim.fromJson(result['pendingReferral']),
-          result['token'] as String?,
-        );
+            PendingReferralClaim.fromJson(result['pendingReferral']),
+            result['token'] as String?,
+          );
         }
         if (!mounted) return;
         _showSuccessDialog(result['requires_approval'] == true);
@@ -231,6 +235,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
           backgroundColor: AppColors.brandRed,
         ),
       );
+    } finally {
+      if (mounted) setState(() => _loading = false);
     }
   }
 
@@ -254,7 +260,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
         shape: AppShapes.border(size: AppShapes.chamferSm),
         title: const Text(
           'ВАС ПРИГЛАСИЛИ?',
-          style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+          ),
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -492,7 +502,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
               decoration: const InputDecoration(labelText: 'Тип бизнеса'),
               items: const [
                 DropdownMenuItem(value: 'a', child: Text('Дилерский салон')),
-                DropdownMenuItem(value: 'b', child: Text('Автосервис с кузовным цехом')),
+                DropdownMenuItem(
+                  value: 'b',
+                  child: Text('Автосервис с кузовным цехом'),
+                ),
                 DropdownMenuItem(value: 'c', child: Text('Гаражный сервис')),
                 DropdownMenuItem(value: 's', child: Text('Магазин')),
               ],
@@ -520,7 +533,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
             const SizedBox(height: 16),
             DropdownButtonFormField<String>(
               initialValue: _selectedRegionId,
-              hint: Text(_loadingRegions ? 'ЗАГРУЗКА РЕГИОНОВ...' : 'ВЫБЕРИТЕ РЕГИОН'),
+              hint: Text(
+                _loadingRegions ? 'ЗАГРУЗКА РЕГИОНОВ...' : 'ВЫБЕРИТЕ РЕГИОН',
+              ),
               decoration: const InputDecoration(
                 labelText: 'РЕГИОН *',
                 border: OutlineInputBorder(borderRadius: BorderRadius.zero),
@@ -600,8 +615,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
             TextFormField(
               controller: _emailCtrl,
               keyboardType: TextInputType.emailAddress,
-              decoration: const InputDecoration(labelText: 'EMAIL *', border: OutlineInputBorder()),
-              validator: (v) => RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(v?.trim() ?? '') ? null : 'Введите корректный email',
+              decoration: const InputDecoration(
+                labelText: 'EMAIL *',
+                border: OutlineInputBorder(),
+              ),
+              validator: (v) =>
+                  RegExp(
+                    r'^[^\s@]+@[^\s@]+\.[^\s@]+$',
+                  ).hasMatch(v?.trim() ?? '')
+                  ? null
+                  : 'Введите корректный email',
             ),
             const SizedBox(height: 16),
             TextFormField(
@@ -613,7 +636,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
               decoration: const InputDecoration(
                 labelText: 'Реферальный код',
                 hintText: 'AT-XXXXXX',
-                helperText: 'Необязательно. Если вас пригласил коллега или магазин',
+                helperText:
+                    'Необязательно. Если вас пригласил коллега или магазин',
                 border: OutlineInputBorder(borderRadius: BorderRadius.zero),
               ),
             ),
@@ -645,7 +669,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
             SizedBox(
               height: 54,
               child: ElevatedButton(
-                onPressed: (_loading || !_termsAccepted || !_consentGiven) ? null : _register,
+                onPressed: (_loading || !_termsAccepted || !_consentGiven)
+                    ? null
+                    : _register,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.brandRed,
                   shape: AppShapes.border(size: AppShapes.chamferSm),
@@ -720,7 +746,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
             TextSpan(
               style: _legalTextStyle,
               children: [
-                const TextSpan(text: 'Как мы обрабатываем и защищаем данные — в '),
+                const TextSpan(
+                  text: 'Как мы обрабатываем и защищаем данные — в ',
+                ),
                 TextSpan(
                   text: 'Политике конфиденциальности',
                   style: _linkStyle,
@@ -762,7 +790,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: Text.rich(TextSpan(style: _legalTextStyle, children: spans)),
+              child: Text.rich(
+                TextSpan(style: _legalTextStyle, children: spans),
+              ),
             ),
           ],
         ),

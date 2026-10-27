@@ -53,7 +53,8 @@ class ApiClient {
 
   final http.Client _httpClient;
 
-  ApiClient({http.Client? client}) : _httpClient = client ?? _DefaultHttpClient();
+  ApiClient({http.Client? client})
+    : _httpClient = client ?? _DefaultHttpClient();
   static const _tokenKey = 'auth_token';
   static const _roleKey = 'user_role';
   static String? _token;
@@ -104,7 +105,7 @@ class ApiClient {
       'password': password,
     });
     _token = result['token'] as String?;
-    
+
     if (result.containsKey('user')) {
       final user = result['user'] as Map<String, dynamic>;
       _role = user['role'] as String?;
@@ -158,12 +159,19 @@ class ApiClient {
   Future<Map<String, dynamic>> updateMyMarkup(String percent) =>
       _patch('/me/markup/', {'markupPercent': percent});
 
-  Future<Map<String, dynamic>> productQuote(List<String> ids) => _get('/products/quote/', params: {'ids': ids.join(',')});
+  Future<Map<String, dynamic>> productQuote(List<String> ids) =>
+      _get('/products/quote/', params: {'ids': ids.join(',')});
 
-  Future<Map<String, dynamic>> orderQuote(List<Map<String, dynamic>> items, {String bonusAmount = '0.00'}) =>
-      _post('/orders/quote/', {'items': items, 'bonusAmount': bonusAmount});
+  Future<Map<String, dynamic>> orderQuote(
+    List<Map<String, dynamic>> items, {
+    String bonusAmount = '0.00',
+  }) => _post('/orders/quote/', {'items': items, 'bonusAmount': bonusAmount});
 
-  Future<Map<String, dynamic>> appVersion(String store, int build) => _get('/app-version/', params: {'store': store, 'build': '$build'});
+  Future<Map<String, dynamic>> appVersion(String store, int build) =>
+      _get('/app-version/', params: {'store': store, 'build': '$build'});
+
+  Future<String> catalogRevision() async =>
+      (await _get('/catalog-state/'))['catalogRevision'].toString();
 
   Future<Map<String, dynamic>> orderConfig() => _get('/order-config/');
 
@@ -192,21 +200,30 @@ class ApiClient {
     return (items, categories);
   }
 
-  Future<Paginated<Map<String, dynamic>>> stores({int page = 1, int pageSize = defaultPageSize}) {
+  Future<Paginated<Map<String, dynamic>>> stores({
+    int page = 1,
+    int pageSize = defaultPageSize,
+  }) {
     return _getPage('/stores/', page: page, pageSize: pageSize);
   }
 
   Future<Map<String, dynamic>> createStore(String name, String address) =>
       _post('/stores/', {'name': name, 'address': address});
 
-  Future<Map<String, dynamic>> updateStore(String storeId, String name, String address) =>
-      _patch('/stores/$storeId/', {'name': name, 'address': address});
+  Future<Map<String, dynamic>> updateStore(
+    String storeId,
+    String name,
+    String address,
+  ) => _patch('/stores/$storeId/', {'name': name, 'address': address});
 
   Future<void> deleteStore(String storeId) async {
     await _delete('/stores/$storeId/');
   }
 
-  Future<Paginated<Map<String, dynamic>>> orders({int page = 1, int pageSize = defaultPageSize}) {
+  Future<Paginated<Map<String, dynamic>>> orders({
+    int page = 1,
+    int pageSize = defaultPageSize,
+  }) {
     return _getPage('/orders/', page: page, pageSize: pageSize);
   }
 
@@ -219,14 +236,19 @@ class ApiClient {
     required List<Map<String, dynamic>> items,
     required String comment,
   }) {
-    return _post(replaceOrderId == null ? '/orders/create/' : '/orders/$replaceOrderId/replace/', {
-      'storeId': ?storeId,
-      'deliveryMethod': ?deliveryMethod,
-      'paymentMethod': paymentMethod,
-      'items': items,
-      'bonusAmount': bonusAmount,
-      'comment': comment,
-    });
+    return _post(
+      replaceOrderId == null
+          ? '/orders/create/'
+          : '/orders/$replaceOrderId/replace/',
+      {
+        'storeId': ?storeId,
+        'deliveryMethod': ?deliveryMethod,
+        'paymentMethod': paymentMethod,
+        'items': items,
+        'bonusAmount': bonusAmount,
+        'comment': comment,
+      },
+    );
   }
 
   Future<void> cancelOrder(String orderId) async {
@@ -241,7 +263,10 @@ class ApiClient {
   // ── Безопасный поток заказа ──────────────────────────────────────────────────
 
   /// Оператор подтверждает заказ как есть. [force] обходит проверку остатков.
-  Future<Map<String, dynamic>> confirmOrder(String orderId, {bool force = false}) {
+  Future<Map<String, dynamic>> confirmOrder(
+    String orderId, {
+    bool force = false,
+  }) {
     final suffix = force ? '?force=1' : '';
     return _post('/orders/$orderId/confirm/$suffix', {});
   }
@@ -263,7 +288,10 @@ class ApiClient {
   }
 
   /// Оператор отклоняет заказ с причиной.
-  Future<Map<String, dynamic>> rejectOrder(String orderId, {String reason = ''}) {
+  Future<Map<String, dynamic>> rejectOrder(
+    String orderId, {
+    String reason = '',
+  }) {
     return _post('/orders/$orderId/reject/', {'reason': reason});
   }
 
@@ -293,7 +321,11 @@ class ApiClient {
     int page = 1,
     int pageSize = defaultPageSize,
   }) async {
-    final (items, raw) = await _getPageWithMeta('/bonus-account/', page: page, pageSize: pageSize);
+    final (items, raw) = await _getPageWithMeta(
+      '/bonus-account/',
+      page: page,
+      pageSize: pageSize,
+    );
     return (items, (raw['balance'] as num? ?? 0).toDouble());
   }
 
@@ -301,7 +333,11 @@ class ApiClient {
     int page = 1,
     int pageSize = defaultPageSize,
   }) async {
-    final (items, raw) = await _getPageWithMeta('/purchases/', page: page, pageSize: pageSize);
+    final (items, raw) = await _getPageWithMeta(
+      '/purchases/',
+      page: page,
+      pageSize: pageSize,
+    );
     final stats = (raw['stats'] as Map?) ?? const {};
     return (items, Map<String, dynamic>.from(stats));
   }
@@ -340,7 +376,10 @@ class ApiClient {
     return _post('/courier-tasks/$id/cancel/', {});
   }
 
-  Future<Map<String, dynamic>> updateCourierTask(String id, Map<String, dynamic> body) {
+  Future<Map<String, dynamic>> updateCourierTask(
+    String id,
+    Map<String, dynamic> body,
+  ) {
     return _post('/courier-tasks/$id/update/', body);
   }
 
@@ -350,7 +389,10 @@ class ApiClient {
     return baseUrl.endsWith('/') ? '$baseUrl$path' : '$baseUrl/$path';
   }
 
-  Future<Map<String, dynamic>> managerDashboard({String? regionId, String? distributorId}) async {
+  Future<Map<String, dynamic>> managerDashboard({
+    String? regionId,
+    String? distributorId,
+  }) async {
     final params = <String, String>{};
     if (regionId != null) params['region'] = regionId;
     if (distributorId != null) params['distributor'] = distributorId;
@@ -363,10 +405,25 @@ class ApiClient {
 
   /// Рефералы плюс метаданные программы: сводка, личный код, ссылка-приглашение
   /// и условия подарка. Код приходит с сервера — он у каждого клиента свой.
-  Future<(Paginated<Map<String, dynamic>>, Map<String, dynamic>)> referrals({int page = 1, int pageSize = defaultPageSize}) async {
-    final (items, raw) = await _getPageWithMeta('/referrals/', page: page, pageSize: pageSize);
+  Future<(Paginated<Map<String, dynamic>>, Map<String, dynamic>)> referrals({
+    int page = 1,
+    int pageSize = defaultPageSize,
+  }) async {
+    final (items, raw) = await _getPageWithMeta(
+      '/referrals/',
+      page: page,
+      pageSize: pageSize,
+    );
     final stats = Map<String, dynamic>.from((raw['stats'] as Map?) ?? const {});
-    for (final key in ['referralCode', 'inviteLink', 'bonusThreshold', 'bonusGift', 'bonusTiers', 'bonusBalance', 'activityMin']) {
+    for (final key in [
+      'referralCode',
+      'inviteLink',
+      'bonusThreshold',
+      'bonusGift',
+      'bonusTiers',
+      'bonusBalance',
+      'activityMin',
+    ]) {
       if (raw[key] != null) stats[key] = raw[key];
     }
     return (items, stats);
@@ -386,11 +443,17 @@ class ApiClient {
     );
   }
 
-  Future<Paginated<Map<String, dynamic>>> tickets({int page = 1, int pageSize = defaultPageSize}) {
+  Future<Paginated<Map<String, dynamic>>> tickets({
+    int page = 1,
+    int pageSize = defaultPageSize,
+  }) {
     return _getPage('/tickets/', page: page, pageSize: pageSize);
   }
 
-  Future<Paginated<Map<String, dynamic>>> notifications({int page = 1, int pageSize = defaultPageSize}) {
+  Future<Paginated<Map<String, dynamic>>> notifications({
+    int page = 1,
+    int pageSize = defaultPageSize,
+  }) {
     return _getPage('/notifications/', page: page, pageSize: pageSize);
   }
 
@@ -401,23 +464,39 @@ class ApiClient {
   Future<Map<String, dynamic>> financeReport(Map<String, String> filters) =>
       _get('/finance/yookassa/', params: filters);
 
-  Future<Map<String, dynamic>> importFinanceRegistry(List<int> bytes, String name, {String? distributorId}) =>
-      _multipartPost('/finance/yookassa/import/', {
-        'distributor_id': ?distributorId,
-      }, bytes, name);
+  Future<Map<String, dynamic>> importFinanceRegistry(
+    List<int> bytes,
+    String name, {
+    String? distributorId,
+  }) => _multipartPost(
+    '/finance/yookassa/import/',
+    {'distributor_id': ?distributorId},
+    bytes,
+    name,
+  );
 
-  Future<({Uint8List bytes, String fileName})> exportFinance(Map<String, String> filters) async {
+  Future<({Uint8List bytes, String fileName})> exportFinance(
+    Map<String, String> filters,
+  ) async {
     final root = baseUrl.endsWith('/') ? baseUrl : '$baseUrl/';
-    final uri = Uri.parse('${root}finance/yookassa/export/').replace(queryParameters: filters);
-    final response = await _httpClient.get(uri, headers: _headers()).timeout(longTimeout);
+    final uri = Uri.parse(
+      '${root}finance/yookassa/export/',
+    ).replace(queryParameters: filters);
+    final response = await _httpClient
+        .get(uri, headers: _headers())
+        .timeout(longTimeout);
     if (response.statusCode != 200) {
       _decode(response);
       throw ApiException('Не удалось выгрузить отчет');
     }
-    return (bytes: response.bodyBytes, fileName: _fileNameFrom(response.headers['content-disposition'], 'xlsx'));
+    return (
+      bytes: response.bodyBytes,
+      fileName: _fileNameFrom(response.headers['content-disposition'], 'xlsx'),
+    );
   }
 
-  Future<Map<String, dynamic>> distributorReports() => _get('/distributor/reports/');
+  Future<Map<String, dynamic>> distributorReports() =>
+      _get('/distributor/reports/');
 
   Future<void> registerDeviceToken({
     required String token,
@@ -454,36 +533,77 @@ class ApiClient {
     return _getPage('/manager/clients/', page: page, pageSize: pageSize);
   }
 
-  Future<Map<String, dynamic>> clientCashPermission(String id) => _get('/clients/$id/cash-permission/');
-  Future<Map<String, dynamic>> updateClientCashPermission(String id, bool allowed) => _patch('/clients/$id/cash-permission/', {'cashPaymentAllowed': allowed});
-  Future<Map<String, dynamic>> chooseOrderCash(String id) => _post('/orders/$id/cash/', const {});
-  Future<Map<String, dynamic>> courierCollectCash(String id) => _post('/courier/tasks/$id/collect-cash/', const {});
+  Future<Map<String, dynamic>> clientCashPermission(String id) =>
+      _get('/clients/$id/cash-permission/');
+  Future<Map<String, dynamic>> updateClientCashPermission(
+    String id,
+    bool allowed,
+  ) => _patch('/clients/$id/cash-permission/', {'cashPaymentAllowed': allowed});
+  Future<Map<String, dynamic>> chooseOrderCash(String id) =>
+      _post('/orders/$id/cash/', const {});
+  Future<Map<String, dynamic>> courierCollectCash(String id) =>
+      _post('/courier/tasks/$id/collect-cash/', const {});
 
-  Future<Map<String, dynamic>> approveClient(String id) => _post('/manager/clients/$id/approve/', {});
+  Future<Map<String, dynamic>> approveClient(String id) =>
+      _post('/manager/clients/$id/approve/', {});
 
-  Future<Map<String, dynamic>> clientSettings(String id) => _get('/clients/$id/settings/');
-  Future<Map<String, dynamic>> updateClientSettings(String id, Map<String, dynamic> values) => _patch('/clients/$id/settings/', values);
-  Future<Map<String, dynamic>> updateDistributorProfile(Map<String, dynamic> values) => _patch('/distributor/profile/', values);
+  Future<Map<String, dynamic>> clientSettings(String id) =>
+      _get('/clients/$id/settings/');
+  Future<Map<String, dynamic>> updateClientSettings(
+    String id,
+    Map<String, dynamic> values,
+  ) => _patch('/clients/$id/settings/', values);
+  Future<Map<String, dynamic>> updateDistributorProfile(
+    Map<String, dynamic> values,
+  ) => _patch('/distributor/profile/', values);
 
-  Future<Paginated<Map<String, dynamic>>> clientBrandDiscounts(String id, {int page = 1, String? search, bool discountsOnly = false}) => _getPage('/clients/$id/brand-discounts/', page: page, filters: {'search': search, 'discountsOnly': discountsOnly.toString()});
-  Future<Map<String, dynamic>> saveBrandDiscounts(String id, List<Map<String, dynamic>> discounts) => _patch('/clients/$id/brand-discounts/', {'discounts': discounts});
-  Future<Map<String, dynamic>> deleteBrandDiscount(String id, String brand) => _deleteJson('/clients/$id/brand-discounts/', {'brand': brand});
+  Future<Paginated<Map<String, dynamic>>> clientBrandDiscounts(
+    String id, {
+    int page = 1,
+    String? search,
+    bool discountsOnly = false,
+  }) => _getPage(
+    '/clients/$id/brand-discounts/',
+    page: page,
+    filters: {'search': search, 'discountsOnly': discountsOnly.toString()},
+  );
+  Future<Map<String, dynamic>> saveBrandDiscounts(
+    String id,
+    List<Map<String, dynamic>> discounts,
+  ) => _patch('/clients/$id/brand-discounts/', {'discounts': discounts});
+  Future<Map<String, dynamic>> deleteBrandDiscount(String id, String brand) =>
+      _deleteJson('/clients/$id/brand-discounts/', {'brand': brand});
 
   Future<Map<String, dynamic>> clientDiscount(String clientId) =>
       _get('/clients/$clientId/discount/');
 
-  Future<Map<String, dynamic>> updateClientDiscount(String clientId, String? percent) =>
-      _patch('/clients/$clientId/discount/', {'personalDiscountPercent': percent});
-
-  Future<Paginated<Map<String, dynamic>>> clientPrices(String clientId, {
-    int page = 1, String? search, bool overridesOnly = true,
-  }) => _getPage('/clients/$clientId/prices/', page: page, filters: {
-    'search': search, 'overridesOnly': overridesOnly.toString(),
+  Future<Map<String, dynamic>> updateClientDiscount(
+    String clientId,
+    String? percent,
+  ) => _patch('/clients/$clientId/discount/', {
+    'personalDiscountPercent': percent,
   });
 
-  Future<Map<String, dynamic>> saveClientPrice(String clientId, String productId, {
-    required String price, required bool isActive,
-  }) => _patch('/clients/$clientId/prices/$productId/', {'price': price, 'isActive': isActive});
+  Future<Paginated<Map<String, dynamic>>> clientPrices(
+    String clientId, {
+    int page = 1,
+    String? search,
+    bool overridesOnly = true,
+  }) => _getPage(
+    '/clients/$clientId/prices/',
+    page: page,
+    filters: {'search': search, 'overridesOnly': overridesOnly.toString()},
+  );
+
+  Future<Map<String, dynamic>> saveClientPrice(
+    String clientId,
+    String productId, {
+    required String price,
+    required bool isActive,
+  }) => _patch('/clients/$clientId/prices/$productId/', {
+    'price': price,
+    'isActive': isActive,
+  });
 
   Future<void> deleteClientPrice(String clientId, String productId) async {
     await _delete('/clients/$clientId/prices/$productId/');
@@ -493,19 +613,30 @@ class ApiClient {
     return _get('/manager/clients/$clientId/unified/');
   }
 
-  Future<Paginated<Map<String, dynamic>>> managerClientOrders(String clientId, {int page = 1}) =>
-      _getPage('/manager/clients/$clientId/orders/', page: page);
+  Future<Paginated<Map<String, dynamic>>> managerClientOrders(
+    String clientId, {
+    int page = 1,
+  }) => _getPage('/manager/clients/$clientId/orders/', page: page);
 
-  Future<Paginated<Map<String, dynamic>>> managerClientPurchases(String clientId, {int page = 1}) =>
-      _getPage('/manager/clients/$clientId/purchases/', page: page);
+  Future<Paginated<Map<String, dynamic>>> managerClientPurchases(
+    String clientId, {
+    int page = 1,
+  }) => _getPage('/manager/clients/$clientId/purchases/', page: page);
 
-  Future<Paginated<Map<String, dynamic>>> managerOrders({int page = 1, String? status}) =>
-      _getPage('/manager/orders/', page: page, filters: {'status': status});
+  Future<Paginated<Map<String, dynamic>>> managerOrders({
+    int page = 1,
+    String? status,
+  }) => _getPage('/manager/orders/', page: page, filters: {'status': status});
 
-  Future<Map<String, dynamic>> managerRemoveClient(String clientId, String name, {bool archive = false}) =>
-      archive
-          ? _post('/manager/clients/$clientId/remove/', {'confirmName': name})
-          : _deleteJson('/manager/clients/$clientId/remove/', {'confirmName': name});
+  Future<Map<String, dynamic>> managerRemoveClient(
+    String clientId,
+    String name, {
+    bool archive = false,
+  }) => archive
+      ? _post('/manager/clients/$clientId/remove/', {'confirmName': name})
+      : _deleteJson('/manager/clients/$clientId/remove/', {
+          'confirmName': name,
+        });
 
   Future<Paginated<Map<String, dynamic>>> managerClientsFiltered({
     int page = 1,
@@ -534,7 +665,10 @@ class ApiClient {
     return _post('/manager/clients/', body);
   }
 
-  Future<Map<String, dynamic>> managerUpdateClientStatus(String clientId, String status) {
+  Future<Map<String, dynamic>> managerUpdateClientStatus(
+    String clientId,
+    String status,
+  ) {
     return _post('/manager/clients/$clientId/status/', {'status': status});
   }
 
@@ -550,7 +684,10 @@ class ApiClient {
     );
   }
 
-  Future<Map<String, dynamic>> managerAddContactHistory(String clientId, Map<String, dynamic> body) {
+  Future<Map<String, dynamic>> managerAddContactHistory(
+    String clientId,
+    Map<String, dynamic> body,
+  ) {
     return _post('/manager/clients/$clientId/history/', body);
   }
 
@@ -571,7 +708,10 @@ class ApiClient {
     return _post('/manager/tasks/', body);
   }
 
-  Future<Map<String, dynamic>> managerUpdateTask(String taskId, Map<String, dynamic> body) {
+  Future<Map<String, dynamic>> managerUpdateTask(
+    String taskId,
+    Map<String, dynamic> body,
+  ) {
     return _post('/manager/tasks/$taskId/', body);
   }
 
@@ -596,7 +736,9 @@ class ApiClient {
     );
   }
 
-  Future<Map<String, dynamic>> adminCreateManagerTask(Map<String, dynamic> body) {
+  Future<Map<String, dynamic>> adminCreateManagerTask(
+    Map<String, dynamic> body,
+  ) {
     return _post('/admin/manager-tasks/', body);
   }
 
@@ -616,9 +758,19 @@ class ApiClient {
     );
   }
 
-  Future<Map<String, dynamic>> createExpertTicket(Map<String, dynamic> body, {List<int>? fileBytes, String? fileName}) {
+  Future<Map<String, dynamic>> createExpertTicket(
+    Map<String, dynamic> body, {
+    List<int>? fileBytes,
+    String? fileName,
+  }) {
     if (fileBytes != null && fileName != null) {
-      return _multipartPost('/tickets/create/', body, fileBytes, fileName, fileField: 'photo');
+      return _multipartPost(
+        '/tickets/create/',
+        body,
+        fileBytes,
+        fileName,
+        fileField: 'photo',
+      );
     }
     return _post('/tickets/create/', body);
   }
@@ -640,7 +792,10 @@ class ApiClient {
     return _post('/knowledge-cards/create/', body);
   }
 
-  Future<Map<String, dynamic>> updateKnowledgeCard(String id, Map<String, dynamic> body) {
+  Future<Map<String, dynamic>> updateKnowledgeCard(
+    String id,
+    Map<String, dynamic> body,
+  ) {
     return _post('/knowledge-cards/$id/update/', body);
   }
 
@@ -685,8 +840,11 @@ class ApiClient {
         ? '${baseUrl}knowledge-documents/upload/'
         : '$baseUrl/knowledge-documents/upload/';
     final abort = Completer<void>();
-    final request = http.AbortableMultipartRequest('POST', Uri.parse(path),
-        abortTrigger: abort.future);
+    final request = http.AbortableMultipartRequest(
+      'POST',
+      Uri.parse(path),
+      abortTrigger: abort.future,
+    );
     if (_token != null) request.headers['Authorization'] = 'Bearer $_token';
     var sent = 0;
     request.files.add(
@@ -706,10 +864,13 @@ class ApiClient {
       return await (() async {
         final response = await _httpClient.send(request);
         return _decode(await http.Response.fromStream(response));
-      })().timeout(longTimeout, onTimeout: () {
-        if (!abort.isCompleted) abort.complete();
-        throw TimeoutException('Превышено время загрузки');
-      });
+      })().timeout(
+        longTimeout,
+        onTimeout: () {
+          if (!abort.isCompleted) abort.complete();
+          throw TimeoutException('Превышено время загрузки');
+        },
+      );
     } catch (e) {
       _handleError(e);
       rethrow;
@@ -718,7 +879,8 @@ class ApiClient {
 
   Future<Map<String, dynamic>> register(Map<String, dynamic> body) {
     final normalized = Map<String, dynamic>.from(body);
-    final code = normalized['referralCode']?.toString().trim().toUpperCase() ?? '';
+    final code =
+        normalized['referralCode']?.toString().trim().toUpperCase() ?? '';
     normalized.remove('referralCode');
     if (code.isNotEmpty) normalized['referralCode'] = code;
     return _post('/auth/register/', normalized);
@@ -733,31 +895,55 @@ class ApiClient {
     required bool confirmed,
     String? authToken,
   }) {
-    return _post(
-      '/referrals/$referralId/confirm/',
-      {'confirmed': confirmed},
-      authToken: authToken,
-    );
+    return _post('/referrals/$referralId/confirm/', {
+      'confirmed': confirmed,
+    }, authToken: authToken);
   }
 
-  Future<Paginated<Map<String, dynamic>>> getRegions({int page = 1, int pageSize = defaultPageSize}) {
+  Future<Paginated<Map<String, dynamic>>> getRegions({
+    int page = 1,
+    int pageSize = defaultPageSize,
+  }) {
     return _getPage('/regions/', page: page, pageSize: pageSize);
   }
 
-  Future<Paginated<Map<String, dynamic>>> getDistributors({int page = 1, int pageSize = defaultPageSize}) {
+  Future<Paginated<Map<String, dynamic>>> getDistributors({
+    int page = 1,
+    int pageSize = defaultPageSize,
+  }) {
     return _getPage('/distributors/', page: page, pageSize: pageSize);
   }
 
-  Future<Map<String, dynamic>> createPurchase(Map<String, dynamic> body, {List<int>? fileBytes, String? fileName}) {
+  Future<Map<String, dynamic>> createPurchase(
+    Map<String, dynamic> body, {
+    List<int>? fileBytes,
+    String? fileName,
+  }) {
     if (fileBytes != null && fileName != null) {
-      return _multipartPost('/purchases/create/', body, fileBytes, fileName, fileField: 'document');
+      return _multipartPost(
+        '/purchases/create/',
+        body,
+        fileBytes,
+        fileName,
+        fileField: 'document',
+      );
     }
     return _post('/purchases/create/', body);
   }
 
-  Future<Map<String, dynamic>> createColorRequest(Map<String, dynamic> body, {List<int>? fileBytes, String? fileName}) {
+  Future<Map<String, dynamic>> createColorRequest(
+    Map<String, dynamic> body, {
+    List<int>? fileBytes,
+    String? fileName,
+  }) {
     if (fileBytes != null && fileName != null) {
-      return _multipartPost('/color-requests/create/', body, fileBytes, fileName, fileField: 'photo');
+      return _multipartPost(
+        '/color-requests/create/',
+        body,
+        fileBytes,
+        fileName,
+        fileField: 'photo',
+      );
     }
     return _post('/color-requests/create/', body);
   }
@@ -779,12 +965,14 @@ class ApiClient {
   }) async {
     try {
       final normalizedPath = path.startsWith('/') ? path.substring(1) : path;
-      final fullUrl = baseUrl.endsWith('/') ? '$baseUrl$normalizedPath' : '$baseUrl/$normalizedPath';
+      final fullUrl = baseUrl.endsWith('/')
+          ? '$baseUrl$normalizedPath'
+          : '$baseUrl/$normalizedPath';
       final request = http.MultipartRequest('POST', Uri.parse(fullUrl));
       if (_token != null) {
         request.headers['Authorization'] = 'Bearer $_token';
       }
-      
+
       body.forEach((key, value) {
         if (value is List || value is Map) {
           request.fields[key] = jsonEncode(value);
@@ -793,12 +981,14 @@ class ApiClient {
         }
       });
 
-      request.files.add(http.MultipartFile.fromBytes(
-        fileField,
-        fileBytes,
-        filename: fileName,
-        contentType: _mediaTypeForFile(fileName),
-      ));
+      request.files.add(
+        http.MultipartFile.fromBytes(
+          fileField,
+          fileBytes,
+          filename: fileName,
+          contentType: _mediaTypeForFile(fileName),
+        ),
+      );
 
       final streamedResponse = await request.send().timeout(longTimeout);
       final response = await http.Response.fromStream(streamedResponse);
@@ -825,7 +1015,10 @@ class ApiClient {
       case 'pdf':
         return MediaType('application', 'pdf');
       case 'docx':
-        return MediaType('application', 'vnd.openxmlformats-officedocument.wordprocessingml.document');
+        return MediaType(
+          'application',
+          'vnd.openxmlformats-officedocument.wordprocessingml.document',
+        );
       case 'txt':
         return MediaType('text', 'plain');
       case 'mp4':
@@ -833,7 +1026,10 @@ class ApiClient {
       case 'mov':
         return MediaType('video', 'quicktime');
       case 'xlsx':
-        return MediaType('application', 'vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        return MediaType(
+          'application',
+          'vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        );
       case 'xls':
         return MediaType('application', 'vnd.ms-excel');
       default:
@@ -866,7 +1062,9 @@ class ApiClient {
   }) async {
     final path = '/courier/tasks/$taskId/status/';
     final normalizedPath = path.startsWith('/') ? path.substring(1) : path;
-    final fullUrl = baseUrl.endsWith('/') ? '$baseUrl$normalizedPath' : '$baseUrl/$normalizedPath';
+    final fullUrl = baseUrl.endsWith('/')
+        ? '$baseUrl$normalizedPath'
+        : '$baseUrl/$normalizedPath';
     if (imageBytes != null && fileName != null) {
       try {
         final request = http.MultipartRequest('POST', Uri.parse(fullUrl));
@@ -877,11 +1075,13 @@ class ApiClient {
         if (courierComment != null) {
           request.fields['courier_comment'] = courierComment;
         }
-        request.files.add(http.MultipartFile.fromBytes(
-          'proof_photo',
-          imageBytes,
-          filename: fileName,
-        ));
+        request.files.add(
+          http.MultipartFile.fromBytes(
+            'proof_photo',
+            imageBytes,
+            filename: fileName,
+          ),
+        );
         final streamedResponse = await request.send().timeout(longTimeout);
         final response = await http.Response.fromStream(streamedResponse);
         return _decode(response);
@@ -910,7 +1110,11 @@ class ApiClient {
     );
   }
 
-  Future<Map<String, dynamic>> verifyPurchase(String id, {required String status, String? reason}) {
+  Future<Map<String, dynamic>> verifyPurchase(
+    String id, {
+    required String status,
+    String? reason,
+  }) {
     return _patch('/distributor/purchases/$id/verify/', {
       'status': status,
       'rejection_reason': ?reason,
@@ -931,7 +1135,14 @@ class ApiClient {
       '/distributor/orders/',
       page: page,
       pageSize: pageSize,
-      filters: {'status': status, 'search': search, 'region': regionId, 'distributor': distributorId, 'dateFrom': dateFrom, 'dateTo': dateTo},
+      filters: {
+        'status': status,
+        'search': search,
+        'region': regionId,
+        'distributor': distributorId,
+        'dateFrom': dateFrom,
+        'dateTo': dateTo,
+      },
     );
   }
 
@@ -945,14 +1156,16 @@ class ApiClient {
       '/distributor/delivery-tasks/',
       page: page,
       pageSize: pageSize,
-      filters: {
-        'status': status,
-        'active': activeOnly ? 'true' : null,
-      },
+      filters: {'status': status, 'active': activeOnly ? 'true' : null},
     );
   }
 
-  Future<Map<String, dynamic>> updateDeliveryStatus(String taskId, {String? status, String? courierId, String? reason}) async {
+  Future<Map<String, dynamic>> updateDeliveryStatus(
+    String taskId, {
+    String? status,
+    String? courierId,
+    String? reason,
+  }) async {
     return _post('/distributor/delivery-tasks/$taskId/status/', {
       'status': ?status,
       'courierId': ?courierId,
@@ -984,10 +1197,18 @@ class ApiClient {
     return _getPage('/distributor/couriers/', page: page, pageSize: pageSize);
   }
 
-  Future<Map<String, dynamic>> distributorIntegration() => _get('/distributor/integration/');
-  Future<Map<String, dynamic>> generateIntegrationToken() => _post('/distributor/integration/generate/', {});
+  Future<Map<String, dynamic>> distributorIntegration() =>
+      _get('/distributor/integration/');
+  Future<Map<String, dynamic>> generateIntegrationToken() =>
+      _post('/distributor/integration/generate/', {});
 
-  Future<Map<String, dynamic>> updateOrderStatus(String id, {required String status, String? reason, String? courierId, String? estimatedDeliveryDate}) {
+  Future<Map<String, dynamic>> updateOrderStatus(
+    String id, {
+    required String status,
+    String? reason,
+    String? courierId,
+    String? estimatedDeliveryDate,
+  }) {
     return _patch('/distributor/orders/$id/status/', {
       'status': status,
       'rejection_reason': ?reason,
@@ -1015,10 +1236,16 @@ class ApiClient {
     int page = 1,
     int pageSize = defaultPageSize,
   }) {
-    return _getPage('/admin/integration/tokens/', page: page, pageSize: pageSize);
+    return _getPage(
+      '/admin/integration/tokens/',
+      page: page,
+      pageSize: pageSize,
+    );
   }
 
-  Future<Map<String, dynamic>> adminIntegrationGenerate(String distributorId) async {
+  Future<Map<String, dynamic>> adminIntegrationGenerate(
+    String distributorId,
+  ) async {
     return _post('/admin/integration/generate/$distributorId/', {});
   }
 
@@ -1029,7 +1256,12 @@ class ApiClient {
     return _getPage('/admin/integration/logs/', page: page, pageSize: pageSize);
   }
 
-  Future<Map<String, dynamic>> adminAnalytics({String? regionId, String? distributorId, String? dateFrom, String? dateTo}) async {
+  Future<Map<String, dynamic>> adminAnalytics({
+    String? regionId,
+    String? distributorId,
+    String? dateFrom,
+    String? dateTo,
+  }) async {
     String path = '/admin/analytics/';
     final params = <String>[];
     if (regionId != null) params.add('region=$regionId');
@@ -1040,7 +1272,10 @@ class ApiClient {
     return _get(path);
   }
 
-  Future<Map<String, dynamic>> test1CIntegration(List<dynamic> payload, String integrationToken) async {
+  Future<Map<String, dynamic>> test1CIntegration(
+    List<dynamic> payload,
+    String integrationToken,
+  ) async {
     try {
       final fullUrl = baseUrl.endsWith('/')
           ? '${baseUrl}integration/erp/stock-update/?dry_run=true'
@@ -1048,7 +1283,10 @@ class ApiClient {
       final response = await _httpClient
           .post(
             Uri.parse(fullUrl),
-            headers: {'Content-Type': 'application/json', 'X-Integration-Token': integrationToken},
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Integration-Token': integrationToken,
+            },
             body: jsonEncode(payload),
           )
           .timeout(longTimeout);
@@ -1060,7 +1298,9 @@ class ApiClient {
   }
 
   Future<void> distributorStockUpload(List<Map<String, dynamic>> items) async {
-    await _post('/distributor/stock/upload/', {'items': items}, timeout: longTimeout);
+    await _post('/distributor/stock/upload/', {
+      'items': items,
+    }, timeout: longTimeout);
   }
 
   /// Загрузка ассортимента сырым Excel-файлом (шаблон WB «Общие характеристики»).
@@ -1069,7 +1309,13 @@ class ApiClient {
     List<int> fileBytes,
     String fileName,
   ) {
-    return _multipartPost('/distributor/stock/upload-file/', {}, fileBytes, fileName, fileField: 'file');
+    return _multipartPost(
+      '/distributor/stock/upload-file/',
+      {},
+      fileBytes,
+      fileName,
+      fileField: 'file',
+    );
   }
 
   Future<Map<String, dynamic>> addProduct(Map<String, dynamic> body) async {
@@ -1086,21 +1332,23 @@ class ApiClient {
       '/distributor/color-requests/',
       page: page,
       pageSize: pageSize,
-      filters: {
-        'status': status,
-        'active': activeOnly ? 'true' : null,
-      },
+      filters: {'status': status, 'active': activeOnly ? 'true' : null},
     );
   }
 
-  Future<Map<String, dynamic>> distributorUpdateColorRequest(String id, Map<String, dynamic> body) async {
+  Future<Map<String, dynamic>> distributorUpdateColorRequest(
+    String id,
+    Map<String, dynamic> body,
+  ) async {
     return _post('/distributor/color-requests/$id/status/', body);
   }
 
   Future<Map<String, dynamic>> _patch(String path, dynamic body) async {
     try {
       final normalizedPath = path.startsWith('/') ? path.substring(1) : path;
-      final fullUrl = baseUrl.endsWith('/') ? '$baseUrl$normalizedPath' : '$baseUrl/$normalizedPath';
+      final fullUrl = baseUrl.endsWith('/')
+          ? '$baseUrl$normalizedPath'
+          : '$baseUrl/$normalizedPath';
       final response = await _httpClient
           .patch(
             Uri.parse(fullUrl),
@@ -1132,7 +1380,9 @@ class ApiClient {
     }
 
     final normalizedPath = 'clients/export/';
-    final fullUrl = baseUrl.endsWith('/') ? '$baseUrl$normalizedPath' : '$baseUrl/$normalizedPath';
+    final fullUrl = baseUrl.endsWith('/')
+        ? '$baseUrl$normalizedPath'
+        : '$baseUrl/$normalizedPath';
     final uri = Uri.parse(fullUrl).replace(queryParameters: params);
 
     // Файл может собираться дольше обычного запроса — список бывает большой.
@@ -1145,7 +1395,9 @@ class ApiClient {
       String message = 'Не удалось выгрузить список (${response.statusCode})';
       try {
         final decoded = jsonDecode(utf8.decode(response.bodyBytes));
-        if (decoded is Map && decoded['detail'] != null) message = '${decoded['detail']}';
+        if (decoded is Map && decoded['detail'] != null) {
+          message = '${decoded['detail']}';
+        }
       } catch (_) {}
       throw ApiException(message);
     }
@@ -1157,16 +1409,23 @@ class ApiClient {
   }
 
   static String _fileNameFrom(String? contentDisposition, String format) {
-    final match = RegExp(r'filename="([^"]+)"').firstMatch(contentDisposition ?? '');
+    final match = RegExp(
+      r'filename="([^"]+)"',
+    ).firstMatch(contentDisposition ?? '');
     if (match != null) return match.group(1)!;
     final date = DateTime.now().toIso8601String().split('T').first;
     return 'autoterra-clients-$date.$format';
   }
 
-  Future<Map<String, dynamic>> _get(String path, {Map<String, String>? params}) async {
+  Future<Map<String, dynamic>> _get(
+    String path, {
+    Map<String, String>? params,
+  }) async {
     try {
       final normalizedPath = path.startsWith('/') ? path.substring(1) : path;
-      final fullUrl = baseUrl.endsWith('/') ? '$baseUrl$normalizedPath' : '$baseUrl/$normalizedPath';
+      final fullUrl = baseUrl.endsWith('/')
+          ? '$baseUrl$normalizedPath'
+          : '$baseUrl/$normalizedPath';
       final uri = Uri.parse(fullUrl).replace(queryParameters: params);
 
       // Один автоматический повтор: обрыв по дороге до Cloudflare — обычное
@@ -1202,10 +1461,7 @@ class ApiClient {
     int pageSize = defaultPageSize,
     Map<String, String?>? filters,
   }) async {
-    final params = <String, String>{
-      'page': '$page',
-      'page_size': '$pageSize',
-    };
+    final params = <String, String>{'page': '$page', 'page_size': '$pageSize'};
     filters?.forEach((key, value) {
       if (value != null && value.isNotEmpty) params[key] = value;
     });
@@ -1215,16 +1471,14 @@ class ApiClient {
 
   /// Как [_getPage], но дополнительно отдаёт сырой ответ — нужно там, где
   /// рядом со списком приходят агрегаты (`stats`, `categories`, `unreadCount`).
-  Future<(Paginated<Map<String, dynamic>>, Map<String, dynamic>)> _getPageWithMeta(
+  Future<(Paginated<Map<String, dynamic>>, Map<String, dynamic>)>
+  _getPageWithMeta(
     String path, {
     int page = 1,
     int pageSize = defaultPageSize,
     Map<String, String?>? filters,
   }) async {
-    final params = <String, String>{
-      'page': '$page',
-      'page_size': '$pageSize',
-    };
+    final params = <String, String>{'page': '$page', 'page_size': '$pageSize'};
     filters?.forEach((key, value) {
       if (value != null && value.isNotEmpty) params[key] = value;
     });
@@ -1240,7 +1494,9 @@ class ApiClient {
   }) async {
     try {
       final normalizedPath = path.startsWith('/') ? path.substring(1) : path;
-      final fullUrl = baseUrl.endsWith('/') ? '$baseUrl$normalizedPath' : '$baseUrl/$normalizedPath';
+      final fullUrl = baseUrl.endsWith('/')
+          ? '$baseUrl$normalizedPath'
+          : '$baseUrl/$normalizedPath';
       final response = await _httpClient
           .post(
             Uri.parse(fullUrl),
@@ -1258,7 +1514,9 @@ class ApiClient {
   Future<Map<String, dynamic>> _delete(String path) async {
     try {
       final normalizedPath = path.startsWith('/') ? path.substring(1) : path;
-      final fullUrl = baseUrl.endsWith('/') ? '$baseUrl$normalizedPath' : '$baseUrl/$normalizedPath';
+      final fullUrl = baseUrl.endsWith('/')
+          ? '$baseUrl$normalizedPath'
+          : '$baseUrl/$normalizedPath';
       final response = await _httpClient
           .delete(Uri.parse(fullUrl), headers: _headers())
           .timeout(defaultTimeout);
@@ -1269,13 +1527,22 @@ class ApiClient {
     }
   }
 
-  Future<Map<String, dynamic>> _deleteJson(String path, Map<String, dynamic> body) async {
+  Future<Map<String, dynamic>> _deleteJson(
+    String path,
+    Map<String, dynamic> body,
+  ) async {
     try {
       final normalizedPath = path.startsWith('/') ? path.substring(1) : path;
-      final fullUrl = baseUrl.endsWith('/') ? '$baseUrl$normalizedPath' : '$baseUrl/$normalizedPath';
-      final response = await _httpClient.delete(
-        Uri.parse(fullUrl), headers: _headers(), body: jsonEncode(body),
-      ).timeout(defaultTimeout);
+      final fullUrl = baseUrl.endsWith('/')
+          ? '$baseUrl$normalizedPath'
+          : '$baseUrl/$normalizedPath';
+      final response = await _httpClient
+          .delete(
+            Uri.parse(fullUrl),
+            headers: _headers(),
+            body: jsonEncode(body),
+          )
+          .timeout(defaultTimeout);
       return _decode(response);
     } catch (e) {
       _handleError(e);
@@ -1296,11 +1563,17 @@ class ApiClient {
 
   void _handleError(Object e) {
     final errStr = e.toString().toLowerCase();
-    if (errStr.contains('socketexception') || errStr.contains('host lookup') || errStr.contains('connection refused')) {
-      throw const ApiException('Сервер недоступен. Проверьте интернет-соединение или статус сервера.');
+    if (errStr.contains('socketexception') ||
+        errStr.contains('host lookup') ||
+        errStr.contains('connection refused')) {
+      throw const ApiException(
+        'Сервер недоступен. Проверьте интернет-соединение или статус сервера.',
+      );
     }
     if (errStr.contains('timeoutexception')) {
-      throw const ApiException('Превышено время ожидания. Сервер отвечает слишком долго.');
+      throw const ApiException(
+        'Превышено время ожидания. Сервер отвечает слишком долго.',
+      );
     }
   }
 
@@ -1341,14 +1614,18 @@ class ApiClient {
       decoded = jsonDecode(bodyString);
     } catch (e) {
       // If it's not JSON, it might be an HTML error page from the server
-      final snippet = bodyString.length > 100 ? '${bodyString.substring(0, 100)}...' : bodyString;
+      final snippet = bodyString.length > 100
+          ? '${bodyString.substring(0, 100)}...'
+          : bodyString;
       throw ApiException(
         'Server returned non-JSON response (Status ${response.statusCode})',
         'Snippet: $snippet',
       );
     }
 
-    if (response.statusCode == 403 && decoded is Map && decoded['code'] == 'account_not_active') {
+    if (response.statusCode == 403 &&
+        decoded is Map &&
+        decoded['code'] == 'account_not_active') {
       onAccountRestricted?.call(decoded['status']?.toString() ?? 'new');
     }
     if (response.statusCode < 200 || response.statusCode >= 300) {

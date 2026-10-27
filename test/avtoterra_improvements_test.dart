@@ -12,6 +12,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'order_catalog_ux_test.dart' as fixture;
+import 'order_discount_pricing_test.dart' as pricing;
 
 class RefreshRepository extends fixture.CatalogRepository {
   Completer<Map<String, dynamic>>? pending;
@@ -215,6 +216,7 @@ void main() {
       expect(find.byType(OrderDiscountSummary), findsOneWidget);
       final calls = repo.calls;
       repo.pending = Completer();
+      repo.items = [pricing.product(price: 80)];
       for (var i = 0; i < 42; i++) {
         await tester.pump(const Duration(milliseconds: 500));
         expect(find.byType(OrderDiscountSummary), findsOneWidget);

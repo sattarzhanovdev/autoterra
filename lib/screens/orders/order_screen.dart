@@ -23,6 +23,26 @@ class OrderScreen extends StatefulWidget {
 
 class _OrderScreenState extends State<OrderScreen> with WidgetsBindingObserver {
   Timer? _priceTimer;
+  Timer? _catalogTimer;
+  bool _refreshingCatalog = false;
+  bool _batchingPrices = false;
+  String? _lastCatalogRevision;
+  final Set<String> _unavailableIds = {};
+
+  bool _financialChange(ProductData? old, ProductData next) =>
+      old == null ||
+      old.price != next.price ||
+      old.basePrice != next.basePrice ||
+      old.effectiveDiscountPercent != next.effectiveDiscountPercent;
+
+  bool get _cartBlocked =>
+      _unavailableIds.isNotEmpty ||
+      _qty.entries.any((e) {
+        final product = _selected[e.key];
+        if (product == null) return true;
+        return product.status != StockStatus.onOrder &&
+            e.value > product.quantity;
+      });
   Timer? _quoteTimer;
   Map<String, dynamic>? _orderDiscount;
   String? _quoteError;
@@ -32,14 +52,22 @@ class _OrderScreenState extends State<OrderScreen> with WidgetsBindingObserver {
   int _quoteRevision = 0;
 
   List<Map<String, dynamic>> get _quoteItems => _qty.entries
-      .map((e) => <String, dynamic>{'productId': e.key, 'quantity': e.value}).toList();
+      .map((e) => <String, dynamic>{'productId': e.key, 'quantity': e.value})
+      .toList();
 
   void _scheduleQuote() {
     _quoteTimer?.cancel();
     _quoteRevision++;
     _quoteError = null;
-    if (_qty.isEmpty) { _orderDiscount = null; _bonus = null; return; }
-    _quoteTimer = Timer(const Duration(milliseconds: 250), () => _loadOrderQuote());
+    if (_qty.isEmpty) {
+      _orderDiscount = null;
+      _bonus = null;
+      return;
+    }
+    _quoteTimer = Timer(
+      const Duration(milliseconds: 250),
+      () => _loadOrderQuote(),
+    );
   }
 
   Future<void> _loadOrderQuote({bool reportError = false}) async {
@@ -47,18 +75,29 @@ class _OrderScreenState extends State<OrderScreen> with WidgetsBindingObserver {
     if (_qty.isEmpty) return;
     try {
       final response = _useBonus
-          ? await _repo.orderQuote(_quoteItems, bonusAmount: _bonusRequested.toStringAsFixed(2))
+          ? await _repo.orderQuote(
+              _quoteItems,
+              bonusAmount: _bonusRequested.toStringAsFixed(2),
+            )
           : await _repo.orderQuote(_quoteItems);
       if (!mounted || revision != _quoteRevision) return;
-      final details = Map<String, dynamic>.from(response['orderDiscount'] as Map);
+      final details = Map<String, dynamic>.from(
+        response['orderDiscount'] as Map,
+      );
       setState(() {
         _orderDiscount = details;
-        _bonus = response['bonus'] is Map ? Map<String, dynamic>.from(response['bonus'] as Map) : null;
+        _bonus = response['bonus'] is Map
+            ? Map<String, dynamic>.from(response['bonus'] as Map)
+            : null;
         _quoteError = null;
       });
     } catch (_) {
       if (mounted && revision == _quoteRevision) {
-        setState(() { _quoteError = _orderDiscount == null ? 'Не удалось рассчитать заказ' : null; });
+        setState(() {
+          _quoteError = _orderDiscount == null
+              ? 'Не удалось рассчитать заказ'
+              : null;
+        });
       }
       if (reportError) rethrow;
     }
@@ -66,8 +105,14 @@ class _OrderScreenState extends State<OrderScreen> with WidgetsBindingObserver {
 
   bool _syncingPrices = false;
   final _priceRevision = ValueNotifier<int>(0);
-  static const _buildName = String.fromEnvironment('FLUTTER_BUILD_NAME', defaultValue: 'dev');
-  static const _buildNumber = String.fromEnvironment('FLUTTER_BUILD_NUMBER', defaultValue: 'dev');
+  static const _buildName = String.fromEnvironment(
+    'FLUTTER_BUILD_NAME',
+    defaultValue: 'dev',
+  );
+  static const _buildNumber = String.fromEnvironment(
+    'FLUTTER_BUILD_NUMBER',
+    defaultValue: 'dev',
+  );
   static const _allCategories = 'Все';
 
   final _commentCtrl = TextEditingController();
@@ -112,7 +157,7 @@ class _OrderScreenState extends State<OrderScreen> with WidgetsBindingObserver {
 
   bool get _hasChanges {
     if (widget.initialOrder == null) return _totalQty > 0;
-    
+
     // Compare quantities
     if (_initialQty == null) return false;
     if (_qty.length != _initialQty!.length) return true;
@@ -136,7 +181,10 @@ class _OrderScreenState extends State<OrderScreen> with WidgetsBindingObserver {
       builder: (context) => ValueListenableBuilder<int>(
         valueListenable: _priceRevision,
         builder: (context, revision, child) {
-          final current = _selected[product.id] ?? _catalog.items.where((p) => p.id == product.id).firstOrNull ?? product;
+          final current =
+              _selected[product.id] ??
+              _catalog.items.where((p) => p.id == product.id).firstOrNull ??
+              product;
           return SafeArea(
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(24),
@@ -144,10 +192,20 @@ class _OrderScreenState extends State<OrderScreen> with WidgetsBindingObserver {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(current.name, style: Theme.of(context).textTheme.titleLarge),
+                  Text(
+                    current.name,
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
                   const SizedBox(height: 12),
-                  ProductThumb(images: current.images, size: 120,
-                    onTap: () => showProductGallery(context, images: current.images, title: current.name)),
+                  ProductThumb(
+                    images: current.images,
+                    size: 120,
+                    onTap: () => showProductGallery(
+                      context,
+                      images: current.images,
+                      title: current.name,
+                    ),
+                  ),
                   const SizedBox(height: 12),
                   Text('${current.brand} · ${current.sku}'),
                   if (current.description != null) Text(current.description!),
@@ -156,7 +214,10 @@ class _OrderScreenState extends State<OrderScreen> with WidgetsBindingObserver {
                   Text(_stockLabel(current)),
                   ShopSalePrice(product: current),
                   const SizedBox(height: 12),
-                  TextButton(onPressed: () => Navigator.pop(context), child: const Text('Закрыть')),
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('Закрыть'),
+                  ),
                 ],
               ),
             ),
@@ -166,7 +227,8 @@ class _OrderScreenState extends State<OrderScreen> with WidgetsBindingObserver {
     );
   }
 
-  double get _totalAmount => double.tryParse('${_orderDiscount?['total']}') ?? 0;
+  double get _totalAmount =>
+      double.tryParse('${_orderDiscount?['total']}') ?? 0;
 
   @override
   void initState() {
@@ -177,7 +239,9 @@ class _OrderScreenState extends State<OrderScreen> with WidgetsBindingObserver {
       fetchPage: (page) => _repo.products(
         page: page,
         search: _search.isEmpty ? null : _search,
-        category: _selectedCategory == _allCategories ? null : _selectedCategory,
+        category: _selectedCategory == _allCategories
+            ? null
+            : _selectedCategory,
         brand: _brandFilter,
         inStockOnly: _inStockOnly,
       ),
@@ -186,8 +250,27 @@ class _OrderScreenState extends State<OrderScreen> with WidgetsBindingObserver {
     _catalog.addListener(_updateCartFromCatalog);
     WidgetsBinding.instance.addObserver(this);
     _priceTimer = Timer.periodic(const Duration(seconds: 5), (_) {
-      if (WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed && !_sending) {
+      if (WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed &&
+          !_sending) {
         _syncPrices();
+      }
+    });
+
+    _catalogTimer = Timer.periodic(const Duration(seconds: 45), (_) async {
+      if (!mounted ||
+          _sending ||
+          WidgetsBinding.instance.lifecycleState != AppLifecycleState.resumed) {
+        return;
+      }
+      try {
+        final revision = await _repo.catalogRevision();
+        if (mounted && revision != _lastCatalogRevision) {
+          await _refresh(background: true);
+        } else if (mounted) {
+          await _loadOrderQuote();
+        }
+      } catch (_) {
+        if (mounted) await _refresh(background: true);
       }
     });
 
@@ -197,7 +280,7 @@ class _OrderScreenState extends State<OrderScreen> with WidgetsBindingObserver {
       _paymentMethod = widget.initialOrder!.paymentMethod;
       _prefillFromOrder(widget.initialOrder!);
     }
-    
+
     // Listen to comments to track changes in real-time
     _commentCtrl.addListener(() {
       if (mounted) setState(() {});
@@ -206,6 +289,7 @@ class _OrderScreenState extends State<OrderScreen> with WidgetsBindingObserver {
 
   @override
   void dispose() {
+    _catalogTimer?.cancel();
     _priceTimer?.cancel();
     _quoteTimer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
@@ -266,7 +350,9 @@ class _OrderScreenState extends State<OrderScreen> with WidgetsBindingObserver {
   void _ensureStore(OrderConfigData data) {
     if (_selectedStoreId == null && widget.initialOrder != null) {
       // Find matching store by name/address if possible, or ID
-      final matching = data.stores.where((s) => s.name == widget.initialOrder!.storeName).firstOrNull;
+      final matching = data.stores
+          .where((s) => s.name == widget.initialOrder!.storeName)
+          .firstOrNull;
       if (matching != null) {
         _selectedStoreId = matching.id;
       }
@@ -285,7 +371,8 @@ class _OrderScreenState extends State<OrderScreen> with WidgetsBindingObserver {
   int _remainingToAdd(ProductData product) {
     if (!_canOrder(product)) return 0;
     final limit = product.status == StockStatus.onOrder && product.quantity == 0
-        ? 999 : product.quantity;
+        ? 999
+        : product.quantity;
     return (limit - (_qty[product.id] ?? 0)).clamp(0, limit);
   }
 
@@ -299,7 +386,10 @@ class _OrderScreenState extends State<OrderScreen> with WidgetsBindingObserver {
     final remaining = _remainingToAdd(product);
     if (remaining == 0) return;
     setState(() {
-      _quantityToAdd[product.id] = (_pendingQuantity(product) + delta).clamp(1, remaining);
+      _quantityToAdd[product.id] = (_pendingQuantity(product) + delta).clamp(
+        1,
+        remaining,
+      );
     });
   }
 
@@ -307,24 +397,25 @@ class _OrderScreenState extends State<OrderScreen> with WidgetsBindingObserver {
     final count = _pendingQuantity(product);
     if (count == 0) return;
     _changeQty(product, count);
-
   }
 
   void _changeQty(ProductData product, int delta) {
     if (delta > 0 && !_canOrder(product)) return;
     final current = _qty[product.id] ?? 0;
-    
+
     // If onOrder and quantity is 0, allow ordering without a hard limit
     // If status is inStock/low, limit by current quantity
-    final isUnlimited = product.status == StockStatus.onOrder && product.quantity == 0;
+    final isUnlimited =
+        product.status == StockStatus.onOrder && product.quantity == 0;
     final maxQty = isUnlimited ? 999 : product.quantity;
-    
+
     final requested = current + delta;
     final next = requested.clamp(0, maxQty);
     setState(() {
       if (next == 0) {
         _qty.remove(product.id);
         _selected.remove(product.id);
+        _unavailableIds.remove(product.id);
       } else {
         _qty[product.id] = next;
         _selected[product.id] = product;
@@ -341,7 +432,9 @@ class _OrderScreenState extends State<OrderScreen> with WidgetsBindingObserver {
   bool _canOrder(ProductData product) {
     if (product.status == StockStatus.outOfStock) return false;
     // If quantity is 0, only allow if explicitly 'onOrder'
-    if (product.quantity <= 0 && product.status != StockStatus.onOrder) return false;
+    if (product.quantity <= 0 && product.status != StockStatus.onOrder) {
+      return false;
+    }
     return true;
   }
 
@@ -355,7 +448,9 @@ class _OrderScreenState extends State<OrderScreen> with WidgetsBindingObserver {
   Future<void> _submit(OrderConfigData data) async {
     if (_totalQty == 0) return;
     if (data.stores.isNotEmpty && _selectedStoreId == null) {
-      final msg = _deliveryMethod == 'courier' ? 'Выберите адрес для доставки' : 'Выберите магазин для самовывоза';
+      final msg = _deliveryMethod == 'courier'
+          ? 'Выберите адрес для доставки'
+          : 'Выберите магазин для самовывоза';
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
       return;
     }
@@ -363,6 +458,9 @@ class _OrderScreenState extends State<OrderScreen> with WidgetsBindingObserver {
     setState(() => _sending = true);
     try {
       await _syncPrices(reportError: true);
+      if (_cartBlocked) {
+        throw StateError('Товар недоступен или превышен остаток');
+      }
       _quoteTimer?.cancel();
       await _loadOrderQuote(reportError: true);
       if (_orderDiscount == null) return;
@@ -370,15 +468,24 @@ class _OrderScreenState extends State<OrderScreen> with WidgetsBindingObserver {
         replaceOrderId: widget.initialOrder?.id,
         storeId: _selectedStoreId,
         deliveryMethod: _deliveryMethod,
-        paymentMethod: data.client.cashPaymentAllowed && _deliveryMethod == 'courier' ? _paymentMethod : 'online',
+        paymentMethod:
+            data.client.cashPaymentAllowed && _deliveryMethod == 'courier'
+            ? _paymentMethod
+            : 'online',
         comment: _commentCtrl.text,
         bonusAmount: _useBonus ? _bonusRequested.toStringAsFixed(2) : '0.00',
-        items: _qty.entries.map((entry) => {'productId': entry.key, 'quantity': entry.value}).toList(),
+        items: _qty.entries
+            .map((entry) => {'productId': entry.key, 'quantity': entry.value})
+            .toList(),
       );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(widget.initialOrder != null ? 'Заказ обновлен' : 'Заказ отправлен дистрибьютору'),
+          content: Text(
+            widget.initialOrder != null
+                ? 'Заказ обновлен'
+                : 'Заказ отправлен дистрибьютору',
+          ),
           backgroundColor: AppColors.success,
         ),
       );
@@ -400,9 +507,14 @@ class _OrderScreenState extends State<OrderScreen> with WidgetsBindingObserver {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Отменить заказ?'),
-        content: const Text('Заказ будет аннулирован, товары вернутся на склад.'),
+        content: const Text(
+          'Заказ будет аннулирован, товары вернутся на склад.',
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('НЕТ')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('НЕТ'),
+          ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
@@ -419,7 +531,10 @@ class _OrderScreenState extends State<OrderScreen> with WidgetsBindingObserver {
       await _repo.cancelOrder(widget.initialOrder!.id);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Заказ отменен'), backgroundColor: AppColors.info),
+        const SnackBar(
+          content: Text('Заказ отменен'),
+          backgroundColor: AppColors.info,
+        ),
       );
       Navigator.pop(context);
     } catch (e) {
@@ -433,62 +548,126 @@ class _OrderScreenState extends State<OrderScreen> with WidgetsBindingObserver {
   }
 
   void _updateCartFromCatalog() {
-    if (!mounted) return;
+    if (!mounted || _batchingPrices) return;
+    var changed = false;
     for (final product in _catalog.items) {
-      if (_selected.containsKey(product.id)) _selected[product.id] = product;
+      if (_selected.containsKey(product.id)) {
+        changed = _financialChange(_selected[product.id], product) || changed;
+        _selected[product.id] = product;
+      }
     }
-    setState(() { _scheduleQuote(); });
+    setState(() {
+      if (changed) _scheduleQuote();
+    });
     _priceRevision.value++;
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) _refresh();
+    if (state == AppLifecycleState.resumed) _refresh(background: true);
   }
 
-  Future<void> _syncPrices({bool reportError = false}) async {
+  Future<void> _syncPrices({
+    bool reportError = false,
+    bool refreshQuote = false,
+  }) async {
     if (_syncingPrices || !mounted) return;
-    final ids = {..._selected.keys, ..._catalog.items.map((p) => p.id)}.toList();
+    final ids = {
+      ..._selected.keys,
+      ..._catalog.items.map((p) => p.id),
+    }.toList();
     if (ids.isEmpty) return;
     _syncingPrices = true;
     try {
-      final products = await _repo.productQuote(ids);
+      final products = <ProductData>[];
+      for (var i = 0; i < ids.length; i += 200) {
+        products.addAll(
+          await _repo.productQuote(
+            ids.sublist(i, (i + 200).clamp(0, ids.length)),
+          ),
+        );
+      }
       if (!mounted) return;
-      for (final product in products) {
-        if (_selected.containsKey(product.id)) _selected[product.id] = product;
-        _catalog.replaceWhere((p) => p.id == product.id, product);
+      var changed = false;
+      _batchingPrices = true;
+      try {
+        for (final product in products) {
+          if (_selected.containsKey(product.id)) {
+            changed =
+                _financialChange(_selected[product.id], product) || changed;
+            _selected[product.id] = product;
+          }
+          _catalog.replaceWhere((p) => p.id == product.id, product);
+        }
+      } finally {
+        _batchingPrices = false;
       }
       final available = products.map((p) => p.id).toSet();
-      // Never silently remove an unavailable cart item or submit stale prices.
-      _stockWarnings.addAll(_selected.keys.where((id) => !available.contains(id)));
+      _unavailableIds
+        ..clear()
+        ..addAll(_selected.keys.where((id) => !available.contains(id)));
+      _catalog.removeWhere((p) => !available.contains(p.id));
       setState(() {});
       _priceRevision.value++;
-      await _loadOrderQuote(reportError: reportError);
+      if (changed || refreshQuote) {
+        _quoteTimer?.cancel();
+        await _loadOrderQuote(reportError: reportError);
+      }
     } catch (e) {
       if (reportError) rethrow;
-      // Keep the existing cart during a transient connection failure.
     } finally {
       _syncingPrices = false;
     }
   }
 
-  Future<void> _refresh() async {
-    final next = _repo.orderConfig();
-    setState(() { _future = next; });
+  Future<void> _refresh({bool background = false}) async {
+    if (_refreshingCatalog) return;
+    _refreshingCatalog = true;
     try {
-      final data = await next;
-      if (!mounted || _future != next) return;
+      final data = await _repo.orderConfig();
+      if (!mounted) return;
+      final filtersChanged =
+          (_brandFilter != null && !data.brands.contains(_brandFilter)) ||
+          (_selectedCategory != _allCategories &&
+              !data.categories.contains(_selectedCategory));
       setState(() {
         if (!data.brands.contains(_brandFilter)) _brandFilter = null;
         if (!data.categories.contains(_selectedCategory)) {
           _selectedCategory = _allCategories;
         }
-        _catalogRequested = true;
+        _future = Future.value(data);
       });
-      await _catalog.refresh();
-      await _syncPrices(reportError: true);
+      _batchingPrices = true;
+      try {
+        await _catalog.refresh(preservePages: !filtersChanged);
+      } finally {
+        _batchingPrices = false;
+      }
+      if (_catalog.error != null) throw _catalog.error!;
+      await _syncPrices(reportError: true, refreshQuote: true);
+      if (!mounted) return;
+      _lastCatalogRevision = data.catalogRevision;
+      if (filtersChanged && !background) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Фильтры обновлены вместе с ассортиментом'),
+          ),
+        );
+      }
     } catch (_) {
-      // FutureBuilder and the catalog controller display their retry states.
+      if (mounted && !background) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Не удалось обновить данные. Повторить'),
+            action: SnackBarAction(
+              label: 'ПОВТОРИТЬ',
+              onPressed: () => _refresh(),
+            ),
+          ),
+        );
+      }
+    } finally {
+      _refreshingCatalog = false;
     }
   }
 
@@ -555,9 +734,11 @@ class _OrderScreenState extends State<OrderScreen> with WidgetsBindingObserver {
             preferredSize: Size.fromHeight(20),
             child: Padding(
               padding: EdgeInsets.only(bottom: 5),
-              child: Text('Версия $_buildName · сборка $_buildNumber',
+              child: Text(
+                'Версия $_buildName · сборка $_buildNumber',
                 key: ValueKey('installed-build-label'),
-                style: TextStyle(fontSize: 11, color: Colors.white70)),
+                style: TextStyle(fontSize: 11, color: Colors.white70),
+              ),
             ),
           ),
           leading: _showCheckout
@@ -588,6 +769,7 @@ class _OrderScreenState extends State<OrderScreen> with WidgetsBindingObserver {
               );
             }
             final data = snapshot.data!;
+            _lastCatalogRevision ??= data.catalogRevision;
             _ensureStore(data);
             return RefreshIndicator(
               onRefresh: _refresh,
@@ -614,6 +796,38 @@ class _OrderScreenState extends State<OrderScreen> with WidgetsBindingObserver {
                         if (!_showCheckout) _catalogFooter(),
                         const SizedBox(height: 16),
                         _selectedCard(),
+                        for (final entry in _qty.entries)
+                          if (_unavailableIds.contains(entry.key))
+                            Text(
+                              '${_selected[entry.key]?.name}: Товар больше недоступен',
+                              style: const TextStyle(color: AppColors.error),
+                            )
+                          else if (_selected[entry.key] != null &&
+                              _selected[entry.key]!.status !=
+                                  StockStatus.onOrder &&
+                              entry.value > _selected[entry.key]!.quantity)
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  '${_selected[entry.key]!.name}: доступно ${_selected[entry.key]!.quantity} шт., в корзине ${entry.value}',
+                                  style: const TextStyle(
+                                    color: AppColors.error,
+                                  ),
+                                ),
+                                if (_selected[entry.key]!.quantity > 0)
+                                  TextButton(
+                                    onPressed: () => setState(() {
+                                      _qty[entry.key] =
+                                          _selected[entry.key]!.quantity;
+                                      _scheduleQuote();
+                                    }),
+                                    child: Text(
+                                      'Уменьшить до ${_selected[entry.key]!.quantity} шт.',
+                                    ),
+                                  ),
+                              ],
+                            ),
                         const SizedBox(height: 16),
                         _deliveryMethodCard(data),
                         if (data.client.cashPaymentAllowed &&
@@ -660,9 +874,17 @@ class _OrderScreenState extends State<OrderScreen> with WidgetsBindingObserver {
             const SizedBox(height: 12),
             Row(
               children: [
-                _methodBtn('courier', 'ДОСТАВКА', Icons.local_shipping_outlined),
+                _methodBtn(
+                  'courier',
+                  'ДОСТАВКА',
+                  Icons.local_shipping_outlined,
+                ),
                 const SizedBox(width: 12),
-                _methodBtn('self_pickup', 'САМОВЫВОЗ', Icons.storefront_outlined),
+                _methodBtn(
+                  'self_pickup',
+                  'САМОВЫВОЗ',
+                  Icons.storefront_outlined,
+                ),
               ],
             ),
           ],
@@ -685,7 +907,11 @@ class _OrderScreenState extends State<OrderScreen> with WidgetsBindingObserver {
           ),
           child: Column(
             children: [
-              Icon(icon, color: active ? Colors.white : AppColors.brandBlack, size: 20),
+              Icon(
+                icon,
+                color: active ? Colors.white : AppColors.brandBlack,
+                size: 20,
+              ),
               const SizedBox(height: 4),
               Text(
                 label,
@@ -762,9 +988,9 @@ class _OrderScreenState extends State<OrderScreen> with WidgetsBindingObserver {
             const SizedBox(height: 4),
             if (stores.isEmpty)
               Text(
-                isCourier 
-                  ? 'У вас не добавлены магазины/адреса. Добавьте их в профиле, чтобы указать точку доставки.'
-                  : 'Магазин пока не назначен. Заказ уйдёт дистрибьютору, он уточнит выдачу.',
+                isCourier
+                    ? 'У вас не добавлены магазины/адреса. Добавьте их в профиле, чтобы указать точку доставки.'
+                    : 'Магазин пока не назначен. Заказ уйдёт дистрибьютору, он уточнит выдачу.',
                 style: const TextStyle(color: AppColors.textSecondary),
               )
             else if (stores.length == 1)
@@ -794,7 +1020,9 @@ class _OrderScreenState extends State<OrderScreen> with WidgetsBindingObserver {
         margin: const EdgeInsets.only(top: 10),
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: selected ? AppColors.brandRed.withValues(alpha: 0.05) : Colors.white,
+          color: selected
+              ? AppColors.brandRed.withValues(alpha: 0.05)
+              : Colors.white,
           border: Border.all(
             color: selected ? AppColors.brandRed : AppColors.border,
             width: selected ? 1.5 : 1,
@@ -827,7 +1055,8 @@ class _OrderScreenState extends State<OrderScreen> with WidgetsBindingObserver {
                 ],
               ),
             ),
-            if (selected) const Icon(Icons.check_circle, color: AppColors.brandRed),
+            if (selected)
+              const Icon(Icons.check_circle, color: AppColors.brandRed),
           ],
         ),
       ),
@@ -835,7 +1064,8 @@ class _OrderScreenState extends State<OrderScreen> with WidgetsBindingObserver {
   }
 
   Widget _bonusPreview(double balance, double totalAmount) {
-    double number(String key, double fallback) => double.tryParse('${_bonus?[key]}') ?? fallback;
+    double number(String key, double fallback) =>
+        double.tryParse('${_bonus?[key]}') ?? fallback;
     final maximum = number('maxAllowed', 0);
     final selected = _useBonus ? _bonusRequested.clamp(0.0, maximum) : 0.0;
     final applied = number('applied', 0);
@@ -843,43 +1073,80 @@ class _OrderScreenState extends State<OrderScreen> with WidgetsBindingObserver {
     final fmt = NumberFormat('#,##0.00', 'ru_RU');
     return Container(
       padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(color: AppColors.canvas, border: Border.all(color: AppColors.border)),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        const Text('Ваши бонусы', style: TextStyle(fontWeight: FontWeight.w700)),
-        Text('Баланс: ${fmt.format(number('balance', balance))} ₽'),
-        Text('Можно использовать в этом заказе: до ${fmt.format(maximum)} ₽'),
-        const Text('1 бонус = 1 ₽. Максимум 10% суммы после скидок.'),
-        Material(color: Colors.transparent, child: SwitchListTile(
-          contentPadding: EdgeInsets.zero,
-          title: const Text('Использовать бонусы'),
-          value: _useBonus,
-          onChanged: maximum <= 0 ? null : (value) => setState(() {
-            _useBonus = value;
-            _bonusRequested = value ? maximum : 0;
-            _scheduleQuote();
-          }),
-        )),
-        if (_useBonus) ...[
-          Slider(value: selected, min: 0, max: maximum > 0 ? maximum : 1,
-            onChanged: maximum <= 0 ? null : (value) => setState(() {
-              _bonusRequested = (value * 100).floor() / 100;
-              _scheduleQuote();
-            })),
-          Text('Выбрано: ${fmt.format(selected)} ₽'),
-          TextButton(onPressed: maximum <= 0 ? null : () => setState(() {
-            _bonusRequested = maximum; _scheduleQuote();
-          }), child: const Text('Использовать максимум')),
+      decoration: BoxDecoration(
+        color: AppColors.canvas,
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Ваши бонусы',
+            style: TextStyle(fontWeight: FontWeight.w700),
+          ),
+          Text('Баланс: ${fmt.format(number('balance', balance))} ₽'),
+          Text('Можно использовать в этом заказе: до ${fmt.format(maximum)} ₽'),
+          const Text('1 бонус = 1 ₽. Максимум 10% суммы после скидок.'),
+          Material(
+            color: Colors.transparent,
+            child: SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Использовать бонусы'),
+              value: _useBonus,
+              onChanged: maximum <= 0
+                  ? null
+                  : (value) => setState(() {
+                      _useBonus = value;
+                      _bonusRequested = value ? maximum : 0;
+                      _scheduleQuote();
+                    }),
+            ),
+          ),
+          if (_useBonus) ...[
+            Slider(
+              value: selected,
+              min: 0,
+              max: maximum > 0 ? maximum : 1,
+              onChanged: maximum <= 0
+                  ? null
+                  : (value) => setState(() {
+                      _bonusRequested = (value * 100).floor() / 100;
+                      _scheduleQuote();
+                    }),
+            ),
+            Text('Выбрано: ${fmt.format(selected)} ₽'),
+            TextButton(
+              onPressed: maximum <= 0
+                  ? null
+                  : () => setState(() {
+                      _bonusRequested = maximum;
+                      _scheduleQuote();
+                    }),
+              child: const Text('Использовать максимум'),
+            ),
+          ],
+          Text('Сумма заказа: ${fmt.format(totalAmount)} ₽'),
+          Text('Бонусы: −${fmt.format(applied)} ₽'),
+          Text(
+            'К оплате: ${fmt.format(payable)} ₽',
+            style: const TextStyle(fontWeight: FontWeight.w900),
+          ),
+          const Text(
+            'Списание произойдёт при оплате после повторной проверки суммы и баланса.',
+          ),
         ],
-        Text('Сумма заказа: ${fmt.format(totalAmount)} ₽'),
-        Text('Бонусы: −${fmt.format(applied)} ₽'),
-        Text('К оплате: ${fmt.format(payable)} ₽', style: const TextStyle(fontWeight: FontWeight.w900)),
-        const Text('Списание произойдёт при оплате после повторной проверки суммы и баланса.'),
-      ]),
+      ),
     );
   }
 
   Widget _requestForm(OrderConfigData data) {
-    final disabled = _sending || _orderDiscount == null || !_hasChanges || _totalQty == 0 || (data.stores.isNotEmpty && _selectedStoreId == null);
+    final disabled =
+        _cartBlocked ||
+        _sending ||
+        _orderDiscount == null ||
+        !_hasChanges ||
+        _totalQty == 0 ||
+        (data.stores.isNotEmpty && _selectedStoreId == null);
     final store = _selectedStore(data.stores);
     final totalAmount = _totalAmount;
 
@@ -890,9 +1157,15 @@ class _OrderScreenState extends State<OrderScreen> with WidgetsBindingObserver {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             if (_totalQty > 0) ...[
-              if (_orderDiscount != null) OrderDiscountSummary(details: _orderDiscount!)
-              else if (_quoteError != null) TextButton(onPressed: _loadOrderQuote, child: Text('$_quoteError. Повторить'))
-              else const LinearProgressIndicator(),
+              if (_orderDiscount != null)
+                OrderDiscountSummary(details: _orderDiscount!)
+              else if (_quoteError != null)
+                TextButton(
+                  onPressed: _loadOrderQuote,
+                  child: Text('$_quoteError. Повторить'),
+                )
+              else
+                const LinearProgressIndicator(),
               const SizedBox(height: 12),
             ],
             const Text(
@@ -902,9 +1175,16 @@ class _OrderScreenState extends State<OrderScreen> with WidgetsBindingObserver {
             const SizedBox(height: 6),
             Text(
               _deliveryMethod == 'courier'
-                  ? (store == null ? 'Укажите адрес для курьера.' : 'Доставка на адрес: ${store.address}')
-                  : (store == null ? 'Выберите ваш объект для оформления.' : 'Заказ для объекта: ${store.name}'),
-              style: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
+                  ? (store == null
+                        ? 'Укажите адрес для курьера.'
+                        : 'Доставка на адрес: ${store.address}')
+                  : (store == null
+                        ? 'Выберите ваш объект для оформления.'
+                        : 'Заказ для объекта: ${store.name}'),
+              style: const TextStyle(
+                color: AppColors.textSecondary,
+                fontSize: 13,
+              ),
             ),
             const SizedBox(height: 14),
             TextFormField(
@@ -919,11 +1199,22 @@ class _OrderScreenState extends State<OrderScreen> with WidgetsBindingObserver {
                 ),
               ),
             ),
-            if (_orderDiscount != null && data.client.cashPaymentAllowed && _deliveryMethod == 'courier' && _paymentMethod == 'cash') ...[
+            if (_orderDiscount != null &&
+                data.client.cashPaymentAllowed &&
+                _deliveryMethod == 'courier' &&
+                _paymentMethod == 'cash') ...[
               const SizedBox(height: 16),
-              Text('Наличными курьеру: ${_formatPrice(totalAmount)} ₽. Бонусы при этом способе оплаты не списываются.'),
+              Text(
+                'Наличными курьеру: ${_formatPrice(totalAmount)} ₽. Бонусы при этом способе оплаты не списываются.',
+              ),
             ],
-            if (data.bonusBalance > 0 && totalAmount > 0 && !(data.client.cashPaymentAllowed && _deliveryMethod == 'courier' && _paymentMethod == 'cash')) ...[
+            if ((double.tryParse('${_bonus?['balance']}') ??
+                        data.bonusBalance) >
+                    0 &&
+                totalAmount > 0 &&
+                !(data.client.cashPaymentAllowed &&
+                    _deliveryMethod == 'courier' &&
+                    _paymentMethod == 'cash')) ...[
               const SizedBox(height: 16),
               _bonusPreview(data.bonusBalance, totalAmount),
             ],
@@ -940,7 +1231,13 @@ class _OrderScreenState extends State<OrderScreen> with WidgetsBindingObserver {
                           foregroundColor: AppColors.error,
                           side: const BorderSide(color: AppColors.error),
                         ),
-                        child: const Text('ОТМЕНИТЬ ЗАКАЗ', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 11)),
+                        child: const Text(
+                          'ОТМЕНИТЬ ЗАКАЗ',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w900,
+                            fontSize: 11,
+                          ),
+                        ),
                       ),
                     ),
                   ),
@@ -954,9 +1251,18 @@ class _OrderScreenState extends State<OrderScreen> with WidgetsBindingObserver {
                             ? const SizedBox(
                                 width: 18,
                                 height: 18,
-                                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
                               )
-                            : const Text('ПОДТВЕРДИТЬ', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 11)),
+                            : const Text(
+                                'ПОДТВЕРДИТЬ',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w900,
+                                  fontSize: 11,
+                                ),
+                              ),
                       ),
                     ),
                   ),
@@ -978,7 +1284,11 @@ class _OrderScreenState extends State<OrderScreen> with WidgetsBindingObserver {
                           ),
                         )
                       : Text(
-                          _totalQty == 0 ? 'Добавьте товар' : _orderDiscount == null ? 'Расчёт заказа…' : 'Отправить дистрибьютору · ${_formatPrice(totalAmount)} ₽',
+                          _totalQty == 0
+                              ? 'Добавьте товар'
+                              : _orderDiscount == null
+                              ? 'Расчёт заказа…'
+                              : 'Отправить дистрибьютору · ${_formatPrice(totalAmount)} ₽',
                         ),
                 ),
               ),
@@ -1004,6 +1314,17 @@ class _OrderScreenState extends State<OrderScreen> with WidgetsBindingObserver {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            if (_catalog.isLoading && _catalog.hasLoadedOnce) ...[
+              const LinearProgressIndicator(),
+              const Text('Обновляем каталог...'),
+            ],
+            if (_catalog.error != null && _catalog.items.isNotEmpty) ...[
+              const Text('Не удалось обновить данные. Повторить'),
+              TextButton(
+                onPressed: () => _catalog.refresh(),
+                child: const Text('ПОВТОРИТЬ'),
+              ),
+            ],
             const Text(
               'Ассортимент',
               style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
@@ -1056,7 +1377,9 @@ class _OrderScreenState extends State<OrderScreen> with WidgetsBindingObserver {
                     },
                     selectedColor: AppColors.brandRed.withValues(alpha: 0.14),
                     labelStyle: TextStyle(
-                      color: selected ? AppColors.brandRed : AppColors.textPrimary,
+                      color: selected
+                          ? AppColors.brandRed
+                          : AppColors.textPrimary,
                       fontWeight: FontWeight.w700,
                     ),
                     side: BorderSide(
@@ -1077,12 +1400,21 @@ class _OrderScreenState extends State<OrderScreen> with WidgetsBindingObserver {
                     decoration: const InputDecoration(
                       labelText: 'Бренд',
                       isDense: true,
-                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 10,
+                      ),
                     ),
                     items: [
-                      const DropdownMenuItem<String?>(value: null, child: Text('Все бренды')),
+                      const DropdownMenuItem<String?>(
+                        value: null,
+                        child: Text('Все бренды'),
+                      ),
                       ...data.brands.map(
-                        (brand) => DropdownMenuItem<String?>(value: brand, child: Text(brand)),
+                        (brand) => DropdownMenuItem<String?>(
+                          value: brand,
+                          child: Text(brand),
+                        ),
                       ),
                     ],
                     onChanged: (value) {
@@ -1101,7 +1433,9 @@ class _OrderScreenState extends State<OrderScreen> with WidgetsBindingObserver {
                   },
                   selectedColor: AppColors.brandRed.withValues(alpha: 0.14),
                   labelStyle: TextStyle(
-                    color: _inStockOnly ? AppColors.brandRed : AppColors.textPrimary,
+                    color: _inStockOnly
+                        ? AppColors.brandRed
+                        : AppColors.textPrimary,
                     fontWeight: FontWeight.w700,
                   ),
                   side: BorderSide(
@@ -1116,7 +1450,6 @@ class _OrderScreenState extends State<OrderScreen> with WidgetsBindingObserver {
     );
   }
 
-
   /// Виртуализированный список товаров каталога. Используется SliverList.builder,
   /// который создаёт виджеты только для видимых элементов — без лагов при
   /// накоплении страниц.
@@ -1125,25 +1458,31 @@ class _OrderScreenState extends State<OrderScreen> with WidgetsBindingObserver {
       listenable: _catalog,
       builder: (context, _) {
         // Загрузка
-        if (_catalog.isLoading) {
+        if (_catalog.isLoading && _catalog.items.isEmpty) {
           final updating = _catalogRequested || _catalog.hasLoadedOnce;
           return SliverPadding(
             padding: EdgeInsets.symmetric(horizontal: 16),
             sliver: SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 32),
-                child: Column(children: [
-                  const CircularProgressIndicator(color: AppColors.brandRed),
-                  const SizedBox(height: 12),
-                  Text(updating ? 'Обновляем каталог...' : 'Загрузка товаров...'),
-                ]),
+                child: Column(
+                  children: [
+                    const CircularProgressIndicator(color: AppColors.brandRed),
+                    const SizedBox(height: 12),
+                    Text(
+                      updating ? 'Обновляем каталог...' : 'Загрузка товаров...',
+                    ),
+                  ],
+                ),
               ),
             ),
           );
         }
 
         // Ошибка
-        if (_catalog.error != null && !_catalog.isLoadingMore) {
+        if (_catalog.error != null &&
+            _catalog.items.isEmpty &&
+            !_catalog.isLoadingMore) {
           return SliverPadding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             sliver: SliverToBoxAdapter(
@@ -1151,7 +1490,10 @@ class _OrderScreenState extends State<OrderScreen> with WidgetsBindingObserver {
                 children: [
                   Text(
                     'Не удалось загрузить товары',
-                    style: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
+                    style: const TextStyle(
+                      color: AppColors.textSecondary,
+                      fontSize: 13,
+                    ),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 12),
@@ -1172,14 +1514,19 @@ class _OrderScreenState extends State<OrderScreen> with WidgetsBindingObserver {
             sliver: SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 16),
-                child: Column(children: [
-                  const Text(
-                    'По выбранным фильтрам товары не найдены',
-                    style: TextStyle(color: AppColors.textSecondary),
-                  ),
-                  const SizedBox(height: 12),
-                  OutlinedButton(onPressed: _resetFilters, child: const Text('СБРОСИТЬ ФИЛЬТРЫ')),
-                ]),
+                child: Column(
+                  children: [
+                    const Text(
+                      'По выбранным фильтрам товары не найдены',
+                      style: TextStyle(color: AppColors.textSecondary),
+                    ),
+                    const SizedBox(height: 12),
+                    OutlinedButton(
+                      onPressed: _resetFilters,
+                      child: const Text('СБРОСИТЬ ФИЛЬТРЫ'),
+                    ),
+                  ],
+                ),
               ),
             ),
           );
@@ -1203,7 +1550,11 @@ class _OrderScreenState extends State<OrderScreen> with WidgetsBindingObserver {
     return ListenableBuilder(
       listenable: _catalog,
       builder: (context, _) {
-        if (_catalog.items.isEmpty || _catalog.isLoading || _catalog.error != null) return const SizedBox.shrink();
+        if (_catalog.items.isEmpty ||
+            _catalog.isLoading ||
+            _catalog.error != null) {
+          return const SizedBox.shrink();
+        }
 
         return Card(
           margin: EdgeInsets.zero,
@@ -1236,7 +1587,10 @@ class _OrderScreenState extends State<OrderScreen> with WidgetsBindingObserver {
                           ),
                           child: Text(
                             'ПОКАЗАТЬ ЕЩЁ (${_catalog.items.length} ИЗ ${_catalog.totalCount})',
-                            style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12),
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w900,
+                              fontSize: 12,
+                            ),
                           ),
                         ),
                 )
@@ -1546,11 +1900,21 @@ class _OrderScreenState extends State<OrderScreen> with WidgetsBindingObserver {
                     ),
                     const SizedBox(width: 8),
                     Expanded(
-                      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                        Text(item.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w700)),
-                        Text('${_formatPrice(item.price)} ₽/шт · ${_formatPrice(item.price * qty)} ₽'),
-                        ClientProductPrice(product: item),
-                      ]),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            item.name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontWeight: FontWeight.w700),
+                          ),
+                          Text(
+                            '${_formatPrice(item.price)} ₽/шт · ${_formatPrice(item.price * qty)} ₽',
+                          ),
+                          ClientProductPrice(product: item),
+                        ],
+                      ),
                     ),
                     const SizedBox(width: 8),
                     _qtyStepper(item, qty),
@@ -1567,7 +1931,9 @@ class _OrderScreenState extends State<OrderScreen> with WidgetsBindingObserver {
   String _stockLabel(ProductData product) {
     if (product.quantity > 5) return 'В НАЛИЧИИ · ${product.quantity} ШТ.';
     if (product.quantity > 0) return 'МАЛО · ${product.quantity} ШТ.';
-    return product.status == StockStatus.onOrder ? 'ПОД ЗАКАЗ' : 'НЕТ В НАЛИЧИИ';
+    return product.status == StockStatus.onOrder
+        ? 'ПОД ЗАКАЗ'
+        : 'НЕТ В НАЛИЧИИ';
   }
 
   String _formatPrice(double value) {
@@ -1576,14 +1942,20 @@ class _OrderScreenState extends State<OrderScreen> with WidgetsBindingObserver {
   }
 
   Widget _qtyStepper(ProductData product, int qty) {
-    final isUnlimited = product.status == StockStatus.onOrder && product.quantity == 0;
-    final reachedLimit = !_canOrder(product) || (isUnlimited ? qty >= 999 : qty >= product.quantity);
+    final isUnlimited =
+        product.status == StockStatus.onOrder && product.quantity == 0;
+    final reachedLimit =
+        !_canOrder(product) ||
+        (isUnlimited ? qty >= 999 : qty >= product.quantity);
 
     return Column(
       key: ValueKey('basket-quantity-${product.id}'),
       mainAxisSize: MainAxisSize.min,
       children: [
-        const Text('В корзине', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700)),
+        const Text(
+          'В корзине',
+          style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
+        ),
         const SizedBox(height: 4),
         Container(
           height: 36,
@@ -1603,11 +1975,7 @@ class _OrderScreenState extends State<OrderScreen> with WidgetsBindingObserver {
                   style: const TextStyle(fontWeight: FontWeight.w800),
                 ),
               ),
-              _qtyButton(
-                Icons.add,
-                reachedLimit,
-                () => _changeQty(product, 1),
-              ),
+              _qtyButton(Icons.add, reachedLimit, () => _changeQty(product, 1)),
             ],
           ),
         ),
@@ -1639,7 +2007,13 @@ class _ErrorState extends StatelessWidget {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
-        child: Column(mainAxisSize: MainAxisSize.min, children: [Text(message, textAlign: TextAlign.center), TextButton(onPressed: onRetry, child: const Text('Повторить'))]),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(message, textAlign: TextAlign.center),
+            TextButton(onPressed: onRetry, child: const Text('Повторить')),
+          ],
+        ),
       ),
     );
   }
@@ -1657,8 +2031,17 @@ class InfoRow extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: const TextStyle(color: AppColors.textSecondary, fontSize: 13)),
-          Text(value, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+          Text(
+            label,
+            style: const TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 13,
+            ),
+          ),
+          Text(
+            value,
+            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+          ),
         ],
       ),
     );

@@ -1,3 +1,4 @@
+import '../../services/screen_refresh.dart';
 import '../clients/cash_payment_widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -35,20 +36,25 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
   Order? _order;
   String? _loadError;
   bool _busy = false;
+  late final ScreenRefresh _liveRefresh;
   bool _changed = false;
   bool _loading = false;
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addObserver(this);
+    _liveRefresh = ScreenRefresh(
+      active: () => mounted && (ModalRoute.of(context)?.isCurrent ?? false),
+      refresh: _load,
+    );
+
     _order = widget.initialOrder;
     _load();
   }
 
   @override
   void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
+    _liveRefresh.dispose();
     super.dispose();
   }
 
@@ -165,9 +171,11 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
   /// следующий заказ, а не высадить весь баланс здесь.
   Future<double?> _askAboutBonus(Order order) {
     final fmt = NumberFormat('#,##0', 'ru_RU');
-    final maxBonus = order.bonusMaxAllowed ?? (order.bonusAvailable < (order.totalAmount * 0.10 * 100).floor() / 100
-        ? order.bonusAvailable
-        : (order.totalAmount * 0.10 * 100).floor() / 100);
+    final maxBonus =
+        order.bonusMaxAllowed ??
+        (order.bonusAvailable < (order.totalAmount * 0.10 * 100).floor() / 100
+            ? order.bonusAvailable
+            : (order.totalAmount * 0.10 * 100).floor() / 100);
     var chosen = order.bonusRequested.clamp(0.0, maxBonus);
 
     return showDialog<double>(
@@ -208,8 +216,12 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
                   max: maxBonus,
 
                   activeColor: AppColors.brandRed,
-                  onChanged: (value) =>
-                      setDialogState(() => chosen = ((value * 100).floor() / 100).clamp(0.0, maxBonus)),
+                  onChanged: (value) => setDialogState(
+                    () => chosen = ((value * 100).floor() / 100).clamp(
+                      0.0,
+                      maxBonus,
+                    ),
+                  ),
                 ),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -393,7 +405,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
   }
 
   Widget _buildBody(Order? order) {
-    if (_loadError != null) {
+    if (_loadError != null && order == null) {
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(24),
@@ -431,7 +443,10 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.all(16),
         children: [
-          _OrderProgress(status: order.status, cash: order.paymentMethod == 'cash'),
+          _OrderProgress(
+            status: order.status,
+            cash: order.paymentMethod == 'cash',
+          ),
           const SizedBox(height: 16),
 
           // Корректировка — самое важное на экране, поэтому идёт первой.
@@ -504,10 +519,25 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
   Widget? _buildActions(Order order) {
     final children = <Widget>[];
     if (order.paymentMethod == 'cash') {
-      children.add(_Hint(order.cashCollected ? 'Наличные получены курьером.' : 'Оплата наличными курьеру: ${_fmt.format(order.totalAmount)} ₽ при доставке.'));
+      children.add(
+        _Hint(
+          order.cashCollected
+              ? 'Наличные получены курьером.'
+              : 'Оплата наличными курьеру: ${_fmt.format(order.totalAmount)} ₽ при доставке.',
+        ),
+      );
     }
     if (order.canChooseCash && order.pendingPaymentUrl == null) {
-      children.add(OrderCashChoiceButton(order: order, repository: _repo, onChanged: (updated) => setState(() { _order = updated; _changed = true; })));
+      children.add(
+        OrderCashChoiceButton(
+          order: order,
+          repository: _repo,
+          onChanged: (updated) => setState(() {
+            _order = updated;
+            _changed = true;
+          }),
+        ),
+      );
     }
 
     switch (order.status) {
@@ -529,18 +559,22 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
         );
       case OrderStatus.accepted:
         children.add(const _Hint("Ожидается подтверждение заказа оператором."));
-        children.add(_textButton("ОТМЕНИТЬ ЗАКАЗ", _cancel, isDestructive: true));
+        children.add(
+          _textButton("ОТМЕНИТЬ ЗАКАЗ", _cancel, isDestructive: true),
+        );
       case OrderStatus.confirmed:
-        if (order.paymentMethod == 'cash') children.add(const _Hint('Заказ передан в сборку.'));
+        if (order.paymentMethod == 'cash') {
+          children.add(const _Hint('Заказ передан в сборку.'));
+        }
         if (order.isPayable) {
           children.add(
-          _primaryButton(
-            order.pendingPaymentUrl != null
-                ? 'ПРОДОЛЖИТЬ ОПЛАТУ В ЮKASSA'
-                : 'ОПЛАТИТЬ ${_fmt.format(order.totalAmount)} ₽',
-            _pay,
-          ),
-        );
+            _primaryButton(
+              order.pendingPaymentUrl != null
+                  ? 'ПРОДОЛЖИТЬ ОПЛАТУ В ЮKASSA'
+                  : 'ОПЛАТИТЬ ${_fmt.format(order.totalAmount)} ₽',
+              _pay,
+            ),
+          );
         }
         children.add(
           _textButton('ОТМЕНИТЬ ЗАКАЗ', _cancel, isDestructive: true),
@@ -632,18 +666,23 @@ class _OrderProgress extends StatelessWidget {
   final bool cash;
   const _OrderProgress({required this.status, this.cash = false});
 
-  List<(String, List<OrderStatus>)> get _steps => cash ? const [
-    ('ОФОРМЛЕН', [OrderStatus.newOrder, OrderStatus.adjusted]),
-    ('В СБОРКЕ', [OrderStatus.confirmed, OrderStatus.accepted, OrderStatus.paid]),
-    ('В ПУТИ', [OrderStatus.shipped]),
-    ('ДОСТАВЛЕН', [OrderStatus.fulfilled]),
-  ] : const [
-    ('ОФОРМЛЕН', [OrderStatus.newOrder, OrderStatus.adjusted]),
-    ('ПОДТВЕРЖДЁН', [OrderStatus.confirmed, OrderStatus.accepted]),
-    ('ОПЛАЧЕН', [OrderStatus.paid]),
-    ('В ПУТИ', [OrderStatus.shipped]),
-    ('ДОСТАВЛЕН', [OrderStatus.fulfilled]),
-  ];
+  List<(String, List<OrderStatus>)> get _steps => cash
+      ? const [
+          ('ОФОРМЛЕН', [OrderStatus.newOrder, OrderStatus.adjusted]),
+          (
+            'В СБОРКЕ',
+            [OrderStatus.confirmed, OrderStatus.accepted, OrderStatus.paid],
+          ),
+          ('В ПУТИ', [OrderStatus.shipped]),
+          ('ДОСТАВЛЕН', [OrderStatus.fulfilled]),
+        ]
+      : const [
+          ('ОФОРМЛЕН', [OrderStatus.newOrder, OrderStatus.adjusted]),
+          ('ПОДТВЕРЖДЁН', [OrderStatus.confirmed, OrderStatus.accepted]),
+          ('ОПЛАЧЕН', [OrderStatus.paid]),
+          ('В ПУТИ', [OrderStatus.shipped]),
+          ('ДОСТАВЛЕН', [OrderStatus.fulfilled]),
+        ];
 
   int get _currentIndex {
     for (var i = 0; i < _steps.length; i++) {

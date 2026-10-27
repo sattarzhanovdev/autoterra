@@ -110,8 +110,9 @@ class CatalogRepository extends DataRepository {
 
   @override
   Future<Map<String, dynamic>> orderQuote(
-    List<Map<String, dynamic>> items, {String bonusAmount = '0.00'}
-  ) async {
+    List<Map<String, dynamic>> items, {
+    String bonusAmount = '0.00',
+  }) async {
     final quantity = items.fold<int>(
       0,
       (sum, row) => sum + (row['quantity'] as int),
@@ -223,7 +224,7 @@ void main() {
       final installedBuild = tester.widget<Text>(
         find.byKey(const ValueKey('installed-build-label')),
       );
-      expect(installedBuild.data, contains('Версия 1.0.0'));
+      expect(installedBuild.data, contains('Версия 1.0.1'));
       expect(
         installedBuild.data,
         contains(
@@ -603,7 +604,11 @@ void main() {
       expect(find.text('Обновляем каталог...'), findsOneWidget);
       second.completeError(Exception('network unavailable'));
       await tester.pumpAndSettle();
-      expect(find.text('Не удалось загрузить товары'), findsOneWidget);
+      expect(
+        find.text('Не удалось обновить данные. Повторить'),
+        findsOneWidget,
+      );
+      expect(find.text('00202 SM БЫСТРОСЪЕМНЫЙ'), findsOneWidget);
       repo.load = null;
       await tester.tap(find.text('ПОВТОРИТЬ'));
       await tester.pumpAndSettle();

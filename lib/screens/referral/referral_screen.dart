@@ -1,3 +1,4 @@
+import '../../services/screen_refresh.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
@@ -22,6 +23,8 @@ class ReferralScreen extends StatefulWidget {
 }
 
 class _ReferralScreenState extends State<ReferralScreen> {
+  late final ScreenRefresh _liveRefresh;
+
   late final PaginationController<Referral> _controller;
   late final DataRepository _repo;
 
@@ -32,6 +35,10 @@ class _ReferralScreenState extends State<ReferralScreen> {
   @override
   void initState() {
     super.initState();
+    _liveRefresh = ScreenRefresh(
+      active: () => mounted && (ModalRoute.of(context)?.isCurrent ?? false),
+      refresh: () => _controller.refresh(preservePages: true),
+    );
     _repo = widget.repository ?? DataRepository();
     _controller = PaginationController<Referral>(
       fetchPage: (page) async {
@@ -44,6 +51,7 @@ class _ReferralScreenState extends State<ReferralScreen> {
 
   @override
   void dispose() {
+    _liveRefresh.dispose();
     _controller.dispose();
     super.dispose();
   }
@@ -94,7 +102,9 @@ class _ReferralScreenState extends State<ReferralScreen> {
 
   void _toast(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   Future<void> _showAddDialog() async {
@@ -114,7 +124,8 @@ class _ReferralScreenState extends State<ReferralScreen> {
           // Клавиатура — viewInsets, системная навигация Android — viewPadding.
           // Без второго кнопка «ДОБАВИТЬ» уезжает под кнопки навигации.
           padding: EdgeInsets.only(
-            bottom: MediaQuery.viewInsetsOf(sheetContext).bottom +
+            bottom:
+                MediaQuery.viewInsetsOf(sheetContext).bottom +
                 MediaQuery.viewPaddingOf(sheetContext).bottom,
           ),
           child: SingleChildScrollView(
@@ -143,7 +154,11 @@ class _ReferralScreenState extends State<ReferralScreen> {
                       'заказы после подтверждения приглашения.\n\n'
                       'После сохранения откроется «Поделиться», чтобы вы могли '
                       'отправить ссылку приглашённому СТО.',
-                      style: TextStyle(fontSize: 11, height: 1.4, color: AppColors.textSecondary),
+                      style: TextStyle(
+                        fontSize: 11,
+                        height: 1.4,
+                        color: AppColors.textSecondary,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -162,7 +177,9 @@ class _ReferralScreenState extends State<ReferralScreen> {
                   TextFormField(
                     controller: nameCtrl,
                     textCapitalization: TextCapitalization.words,
-                    decoration: const InputDecoration(labelText: 'НАЗВАНИЕ СТО *'),
+                    decoration: const InputDecoration(
+                      labelText: 'НАЗВАНИЕ СТО *',
+                    ),
                   ),
                   if (error != null) ...[
                     const SizedBox(height: 12),
@@ -188,11 +205,16 @@ class _ReferralScreenState extends State<ReferralScreen> {
                               // считаем — в базе полно СТО с номерами, которые
                               // её не проходят.
                               if (inn.length != 10 && inn.length != 12) {
-                                setSheetState(() => error = 'ИНН — 10 цифр для организации, 12 для ИП');
+                                setSheetState(
+                                  () => error =
+                                      'ИНН — 10 цифр для организации, 12 для ИП',
+                                );
                                 return;
                               }
                               if (name.isEmpty) {
-                                setSheetState(() => error = 'Укажите название СТО');
+                                setSheetState(
+                                  () => error = 'Укажите название СТО',
+                                );
                                 return;
                               }
                               setSheetState(() {
@@ -204,7 +226,9 @@ class _ReferralScreenState extends State<ReferralScreen> {
                                   'inviteeInn': inn,
                                   'inviteeName': name,
                                 });
-                                if (sheetContext.mounted) Navigator.pop(sheetContext, name);
+                                if (sheetContext.mounted) {
+                                  Navigator.pop(sheetContext, name);
+                                }
                               } catch (e) {
                                 // У ApiException toString() — это уже текст с
                                 // сервера («Нельзя пригласить самого себя» и
@@ -215,12 +239,17 @@ class _ReferralScreenState extends State<ReferralScreen> {
                                 });
                               }
                             },
-                      style: ElevatedButton.styleFrom(backgroundColor: AppColors.brandRed),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.brandRed,
+                      ),
                       child: busy
                           ? const SizedBox(
                               width: 18,
                               height: 18,
-                              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
                             )
                           : const Text('ДОБАВИТЬ И ОТПРАВИТЬ'),
                     ),
@@ -265,10 +294,19 @@ class _ReferralScreenState extends State<ReferralScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('МОИ ПРИГЛАШЕНИЯ', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13)),
+                const Text(
+                  'МОИ ПРИГЛАШЕНИЯ',
+                  style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13),
+                ),
                 TextButton(
                   onPressed: _showAddDialog,
-                  child: const Text('ДОБАВИТЬ +', style: TextStyle(color: AppColors.brandRed, fontWeight: FontWeight.bold)),
+                  child: const Text(
+                    'ДОБАВИТЬ +',
+                    style: TextStyle(
+                      color: AppColors.brandRed,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -292,10 +330,12 @@ class _ReferralScreenState extends State<ReferralScreen> {
     if (raw is! List) return const [];
     return raw
         .whereType<Map<String, dynamic>>()
-        .map((item) => (
-              from: (item['from'] as num? ?? 0).toDouble(),
-              rate: (item['rate'] as num? ?? 0).toDouble(),
-            ))
+        .map(
+          (item) => (
+            from: (item['from'] as num? ?? 0).toDouble(),
+            rate: (item['rate'] as num? ?? 0).toDouble(),
+          ),
+        )
         .toList();
   }
 
@@ -306,24 +346,52 @@ class _ReferralScreenState extends State<ReferralScreen> {
 
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: Colors.white, border: Border.all(color: AppColors.border)),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(color: AppColors.border),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('КАК ЭТО РАБОТАЕТ', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14)),
+          const Text(
+            'КАК ЭТО РАБОТАЕТ',
+            style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14),
+          ),
           const SizedBox(height: 16),
-          _step('1', 'Отправьте коллеге или представителю магазина автозапчастей или автосервиса свою ссылку или код приглашения.'),
-          _step('2', 'Приглашённый участник регистрируется по вашей ссылке или коду. Если он указывает ИНН, ему нужно подтвердить, что приглашение получил от вас.'),
-          _step('3', 'После подтверждения его заказов бонусы поступят на ваш бонусный счёт. Размер бонусов можно посмотреть в таблице заказов.'),
-          _step('4', 'Ставка рассчитывается отдельно для каждого приглашённого участника и зависит от общей суммы его заказов.'),
-          const Material(child: ExpansionTile(
-            tilePadding: EdgeInsets.zero,
-            title: Text('Условия программы', style: TextStyle(fontSize: 12)),
-            children: [Text('ООО «АвтоТерра Плюс» может изменять условия и ставки бонусной программы. Новые условия применяются только к заказам, подтверждённым после вступления изменений в силу. Ранее начисленные бонусы сохраняются. Актуальные ставки указаны в таблице бонусов.', style: TextStyle(fontSize: 11, height: 1.5))],
-          )),
+          _step(
+            '1',
+            'Отправьте коллеге или представителю магазина автозапчастей или автосервиса свою ссылку или код приглашения.',
+          ),
+          _step(
+            '2',
+            'Приглашённый участник регистрируется по вашей ссылке или коду. Если он указывает ИНН, ему нужно подтвердить, что приглашение получил от вас.',
+          ),
+          _step(
+            '3',
+            'После подтверждения его заказов бонусы поступят на ваш бонусный счёт. Размер бонусов можно посмотреть в таблице заказов.',
+          ),
+          _step(
+            '4',
+            'Ставка рассчитывается отдельно для каждого приглашённого участника и зависит от общей суммы его заказов.',
+          ),
+          const Material(
+            child: ExpansionTile(
+              tilePadding: EdgeInsets.zero,
+              title: Text('Условия программы', style: TextStyle(fontSize: 12)),
+              children: [
+                Text(
+                  'ООО «АвтоТерра Плюс» может изменять условия и ставки бонусной программы. Новые условия применяются только к заказам, подтверждённым после вступления изменений в силу. Ранее начисленные бонусы сохраняются. Актуальные ставки указаны в таблице бонусов.',
+                  style: TextStyle(fontSize: 11, height: 1.5),
+                ),
+              ],
+            ),
+          ),
           if (tiers.isNotEmpty) ...[
             const Divider(height: 24),
-            const Text('СТАВКИ НАЧИСЛЕНИЯ БОНУСОВ', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 11)),
+            const Text(
+              'СТАВКИ НАЧИСЛЕНИЯ БОНУСОВ',
+              style: TextStyle(fontWeight: FontWeight.w900, fontSize: 11),
+            ),
             const SizedBox(height: 8),
             ...tiers.map(
               (tier) => Padding(
@@ -332,12 +400,22 @@ class _ReferralScreenState extends State<ReferralScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      tier.from == 0 && tiers.length > 1 ? 'До ${fmt.format(tiers[1].from)} ₽' : 'От ${fmt.format(tier.from)} ₽',
-                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.textSecondary),
+                      tier.from == 0 && tiers.length > 1
+                          ? 'До ${fmt.format(tiers[1].from)} ₽'
+                          : 'От ${fmt.format(tier.from)} ₽',
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textSecondary,
+                      ),
                     ),
                     Text(
                       '${NumberFormat('0.##', 'ru_RU').format(tier.rate)}%',
-                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: AppColors.brandRed),
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w900,
+                        color: AppColors.brandRed,
+                      ),
                     ),
                   ],
                 ),
@@ -347,8 +425,12 @@ class _ReferralScreenState extends State<ReferralScreen> {
           if (tiers.isNotEmpty) ...[
             const SizedBox(height: 8),
             const Text(
-              'При переходе на следующую ступень ставка применяется ко всему накопленному обороту этого СТО. Ранее начисленные бонусы учитываются при перерасчёте.',
-              style: TextStyle(fontSize: 11, height: 1.4, color: AppColors.textSecondary),
+              'Ставка новой подтверждённой операции зависит от накопленного оборота приглашённого. Ранее начисленные бонусы не пересчитываются.',
+              style: TextStyle(
+                fontSize: 11,
+                height: 1.4,
+                color: AppColors.textSecondary,
+              ),
             ),
           ],
           if (_activityMin != null) ...[
@@ -359,7 +441,11 @@ class _ReferralScreenState extends State<ReferralScreen> {
               child: Text(
                 'Для сохранения бонусного баланса ваш собственный подтверждённый оборот должен составлять не менее ${fmt.format(_activityMin)} ₽ за календарный месяц. '
                 'При невыполнении условия накопленный бонусный баланс аннулируется.',
-                style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: AppColors.textSecondary),
+                style: const TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w900,
+                  color: AppColors.textSecondary,
+                ),
               ),
             ),
           ],
@@ -373,9 +459,28 @@ class _ReferralScreenState extends State<ReferralScreen> {
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
         children: [
-          Container(width: 20, height: 20, color: AppColors.brandRed, child: Center(child: Text(n, style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)))),
+          Container(
+            width: 20,
+            height: 20,
+            color: AppColors.brandRed,
+            child: Center(
+              child: Text(
+                n,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
           const SizedBox(width: 12),
-          Expanded(child: Text(text, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold))),
+          Expanded(
+            child: Text(
+              text,
+              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+            ),
+          ),
         ],
       ),
     );
@@ -387,30 +492,56 @@ class _ReferralScreenState extends State<ReferralScreen> {
 
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: AppColors.brandBlack, border: Border.all(color: AppColors.brandBlack)),
+      decoration: BoxDecoration(
+        color: AppColors.brandBlack,
+        border: Border.all(color: AppColors.brandBlack),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('ВАШ РЕФЕРАЛЬНЫЙ КОД', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: Colors.white)),
+          const Text(
+            'ВАШ РЕФЕРАЛЬНЫЙ КОД',
+            style: TextStyle(
+              fontWeight: FontWeight.w900,
+              fontSize: 12,
+              color: Colors.white,
+            ),
+          ),
           const SizedBox(height: 12),
           if (code == null)
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 8),
               child: Text(
                 'Загружаем…',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.white54),
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                  color: Colors.white54,
+                ),
               ),
             )
           else ...[
             Row(
               children: [
-                Expanded(child: Text(code, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 24, color: AppColors.brandRed, letterSpacing: 2))),
+                Expanded(
+                  child: Text(
+                    code,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w900,
+                      fontSize: 24,
+                      color: AppColors.brandRed,
+                      letterSpacing: 2,
+                    ),
+                  ),
+                ),
                 IconButton(
                   tooltip: 'Скопировать код',
                   icon: const Icon(Icons.copy, color: Colors.white),
                   onPressed: () {
                     Clipboard.setData(ClipboardData(text: code));
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('КОД СКОПИРОВАН')));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('КОД СКОПИРОВАН')),
+                    );
                   },
                 ),
               ],
@@ -422,7 +553,9 @@ class _ReferralScreenState extends State<ReferralScreen> {
               InkWell(
                 onTap: () {
                   Clipboard.setData(ClipboardData(text: link));
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('ССЫЛКА СКОПИРОВАНА')));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('ССЫЛКА СКОПИРОВАНА')),
+                  );
                 },
                 child: Row(
                   children: [
@@ -431,7 +564,10 @@ class _ReferralScreenState extends State<ReferralScreen> {
                     Expanded(
                       child: Text(
                         link,
-                        style: const TextStyle(fontSize: 10, color: Colors.white54),
+                        style: const TextStyle(
+                          fontSize: 10,
+                          color: Colors.white54,
+                        ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -447,7 +583,10 @@ class _ReferralScreenState extends State<ReferralScreen> {
                 onPressed: () => _sendInvite(),
                 icon: const Icon(Icons.share, size: 16),
                 label: const Text('ПОДЕЛИТЬСЯ ССЫЛКОЙ'),
-                style: ElevatedButton.styleFrom(backgroundColor: AppColors.brandRed, shape: const BeveledRectangleBorder()),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.brandRed,
+                  shape: const BeveledRectangleBorder(),
+                ),
               ),
             ),
           ],
@@ -459,22 +598,48 @@ class _ReferralScreenState extends State<ReferralScreen> {
   Widget _buildBalance(NumberFormat fmt) => Container(
     width: double.infinity,
     padding: const EdgeInsets.all(16),
-    decoration: BoxDecoration(color: Colors.white, border: Border.all(color: AppColors.border)),
-    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      const Text('Бонусный баланс', style: TextStyle(fontWeight: FontWeight.w900)),
-      Text('Доступно: ${fmt.format(double.tryParse('${_stats['bonusBalance']}') ?? 0)} ₽', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700)),
-      Text('Приглашённых: ${_stats['invitedCount'] ?? 0}'),
-      Text('Подтверждённый оборот: ${fmt.format(double.tryParse('${_stats['purchaseAmount']}') ?? 0)} ₽'),
-      Text('Всего начислено бонусов: ${fmt.format(double.tryParse('${_stats['totalEarned']}') ?? 0)} ₽'),
-      TextButton(onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => BonusHistoryScreen(repository: _repo))), child: const Text('История бонусов')),
-    ]),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      border: Border.all(color: AppColors.border),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Бонусный баланс',
+          style: TextStyle(fontWeight: FontWeight.w900),
+        ),
+        Text(
+          'Доступно: ${fmt.format(double.tryParse('${_stats['bonusBalance']}') ?? 0)} ₽',
+          style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700),
+        ),
+        Text('Приглашённых: ${_stats['invitedCount'] ?? 0}'),
+        Text(
+          'Подтверждённый оборот: ${fmt.format(double.tryParse('${_stats['purchaseAmount']}') ?? 0)} ₽',
+        ),
+        Text(
+          'Всего начислено бонусов: ${fmt.format(double.tryParse('${_stats['totalEarned']}') ?? 0)} ₽',
+        ),
+        TextButton(
+          onPressed: () => Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => BonusHistoryScreen(repository: _repo),
+            ),
+          ),
+          child: const Text('История бонусов'),
+        ),
+      ],
+    ),
   );
 
   Widget _buildStats(NumberFormat fmt) {
     int stat(String key) => (_stats[key] as num? ?? 0).toInt();
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: Colors.white, border: Border.all(color: AppColors.border)),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(color: AppColors.border),
+      ),
       child: Row(
         children: [
           _stat('СТО', '${stat('invitedCount')}'),
@@ -489,8 +654,22 @@ class _ReferralScreenState extends State<ReferralScreen> {
     return Expanded(
       child: Column(
         children: [
-          Text(value, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 20, color: AppColors.brandBlack)),
-          Text(label, style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: AppColors.textSecondary)),
+          Text(
+            value,
+            style: const TextStyle(
+              fontWeight: FontWeight.w900,
+              fontSize: 20,
+              color: AppColors.brandBlack,
+            ),
+          ),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 9,
+              fontWeight: FontWeight.bold,
+              color: AppColors.textSecondary,
+            ),
+          ),
         ],
       ),
     );
@@ -518,19 +697,38 @@ class _ReferralCard extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: Colors.white, border: Border.all(color: AppColors.border)),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(color: AppColors.border),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Expanded(child: Text(referral.inviteeName.toUpperCase(), style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13))),
-              if (referral.conditionMet) const Icon(Icons.verified, color: AppColors.success, size: 18),
+              Expanded(
+                child: Text(
+                  referral.inviteeName.toUpperCase(),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w900,
+                    fontSize: 13,
+                  ),
+                ),
+              ),
+              if (referral.conditionMet)
+                const Icon(Icons.verified, color: AppColors.success, size: 18),
             ],
           ),
           const SizedBox(height: 4),
-          Text('ИНН: ${referral.inviteeInn} · ${referral.region.toUpperCase()}', style: const TextStyle(color: AppColors.textSecondary, fontSize: 10, fontWeight: FontWeight.bold)),
+          Text(
+            'ИНН: ${referral.inviteeInn} · ${referral.region.toUpperCase()}',
+            style: const TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
           const Divider(height: 24),
           ReferralProgress(volume: referral.purchaseAmount, tiers: tiers),
           Row(
@@ -552,7 +750,8 @@ class _ReferralCard extends StatelessWidget {
             _giftBanner(
               icon: Icons.help_outline,
               color: AppColors.textSecondary,
-              text: 'Ожидается подтверждение приглашения от СТО. До подтверждения бонусы по этому приглашению не начисляются.',
+              text:
+                  'Ожидается подтверждение приглашения от СТО. До подтверждения бонусы по этому приглашению не начисляются.',
             ),
           ],
           if (referral.confirmationDeclined) ...[
@@ -560,7 +759,8 @@ class _ReferralCard extends StatelessWidget {
             _giftBanner(
               icon: Icons.person_off_outlined,
               color: AppColors.brandRed,
-              text: 'Приглашённое СТО не подтвердило связь с вами. Бонусы по этому приглашению не начисляются.',
+              text:
+                  'Приглашённое СТО не подтвердило связь с вами. Бонусы по этому приглашению не начисляются.',
             ),
           ],
           // Пока СТО не зарегистрировалось, запись никак ему не видна: система
@@ -573,7 +773,11 @@ class _ReferralCard extends StatelessWidget {
               color: AppColors.canvas,
               child: Row(
                 children: [
-                  const Icon(Icons.schedule_send, size: 14, color: AppColors.textSecondary),
+                  const Icon(
+                    Icons.schedule_send,
+                    size: 14,
+                    color: AppColors.textSecondary,
+                  ),
                   const SizedBox(width: 8),
                   const Expanded(
                     child: Text(
@@ -611,14 +815,24 @@ class _ReferralCard extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Expanded(child: Text(
-                  'Подтверждённый оборот: ${fmt.format(referral.purchaseAmount)} ₽ · ставка ${NumberFormat('0.##', 'ru_RU').format(referral.bonusRate)}%',
-                  style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.textSecondary),
-                )),
+                Expanded(
+                  child: Text(
+                    'Подтверждённый оборот: ${fmt.format(referral.purchaseAmount)} ₽ · ставка ${NumberFormat('0.##', 'ru_RU').format(referral.bonusRate)}%',
+                    style: const TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ),
                 const SizedBox(width: 8),
                 Text(
                   '+${fmt.format(referral.bonusEarned)} ₽',
-                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: AppColors.brandRed),
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w900,
+                    color: AppColors.brandRed,
+                  ),
                 ),
               ],
             ),
@@ -653,7 +867,11 @@ class _ReferralCard extends StatelessWidget {
           Expanded(
             child: Text(
               text,
-              style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w900),
+              style: TextStyle(
+                color: color,
+                fontSize: 11,
+                fontWeight: FontWeight.w900,
+              ),
             ),
           ),
         ],
@@ -665,14 +883,27 @@ class _ReferralCard extends StatelessWidget {
     return Expanded(
       child: Column(
         children: [
-          Icon(done ? Icons.check_box : Icons.check_box_outline_blank, size: 16, color: done ? AppColors.brandBlack : AppColors.border),
+          Icon(
+            done ? Icons.check_box : Icons.check_box_outline_blank,
+            size: 16,
+            color: done ? AppColors.brandBlack : AppColors.border,
+          ),
           const SizedBox(height: 4),
-          Text(label, style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: done ? AppColors.brandBlack : AppColors.textHint)),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 8,
+              fontWeight: FontWeight.w900,
+              color: done ? AppColors.brandBlack : AppColors.textHint,
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _arrow() => const Padding(padding: EdgeInsets.symmetric(horizontal: 4), child: Icon(BrandIcons.arrowRight, size: 10, color: AppColors.border));
+  Widget _arrow() => const Padding(
+    padding: EdgeInsets.symmetric(horizontal: 4),
+    child: Icon(BrandIcons.arrowRight, size: 10, color: AppColors.border),
+  );
 }
-

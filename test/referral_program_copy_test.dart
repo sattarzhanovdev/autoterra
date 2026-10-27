@@ -38,9 +38,12 @@ void main() {
         find.textContaining('После подтверждения его заказов'),
         findsOneWidget,
       );
-      expect(find.textContaining('каждого приглашённого участника'), findsOneWidget);
       expect(
-        find.textContaining('Ранее начисленные бонусы учитываются'),
+        find.textContaining('каждого приглашённого участника'),
+        findsOneWidget,
+      );
+      expect(
+        find.textContaining('Ранее начисленные бонусы не пересчитываются'),
         findsOneWidget,
       );
       expect(find.text('0,75%'), findsOneWidget);

@@ -55,7 +55,10 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
     String answer;
     try {
       final response = await _api.aiChatWithSources(text);
-      answer = cleanAiAnswer(response['answer'] as String);
+      answer = cleanAiAnswer(
+        response['answer'] as String,
+        sources: response['sources'] as List? ?? const [],
+      );
     } catch (e) {
       answer =
           'AI-помощник сейчас недоступен. Попробуйте позже или отправьте вопрос технологу через раздел Вопрос-Ответ.';

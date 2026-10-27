@@ -10,10 +10,12 @@ import '../../widgets/common/premium_icon_badge.dart';
 /// Обучающие материалы (п. 10 ТЗ): уроки, чек-листы, видео, инструкции и
 /// записи вебинаров. Клиент их только читает — ведутся они из админки.
 class LearningMaterialsScreen extends StatefulWidget {
-  const LearningMaterialsScreen({super.key});
+  final DataRepository? repository;
+  const LearningMaterialsScreen({super.key, this.repository});
 
   @override
-  State<LearningMaterialsScreen> createState() => _LearningMaterialsScreenState();
+  State<LearningMaterialsScreen> createState() =>
+      _LearningMaterialsScreenState();
 }
 
 class _LearningMaterialsScreenState extends State<LearningMaterialsScreen> {
@@ -35,10 +37,8 @@ class _LearningMaterialsScreenState extends State<LearningMaterialsScreen> {
   void initState() {
     super.initState();
     _controller = PaginationController<LearningMaterial>(
-      fetchPage: (page) => DataRepository().learningMaterials(
-        page: page,
-        kind: _kind.isEmpty ? null : _kind,
-      ),
+      fetchPage: (page) => (widget.repository ?? DataRepository())
+          .learningMaterials(page: page, kind: _kind.isEmpty ? null : _kind),
     );
   }
 
@@ -67,7 +67,8 @@ class _LearningMaterialsScreenState extends State<LearningMaterialsScreen> {
             child: PaginatedListView<LearningMaterial>(
               controller: _controller,
               emptyMessage: 'Материалы пока не добавлены',
-              itemBuilder: (context, material, _) => _MaterialCard(material: material),
+              itemBuilder: (context, material, _) =>
+                  _MaterialCard(material: material),
             ),
           ),
         ],
@@ -88,7 +89,10 @@ class _LearningMaterialsScreenState extends State<LearningMaterialsScreen> {
             child: GestureDetector(
               onTap: () => _selectKind(entry.key),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 8,
+                ),
                 decoration: BoxDecoration(
                   color: active ? AppColors.brandBlack : Colors.white,
                   border: Border.all(
@@ -178,13 +182,19 @@ class _MaterialCard extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                     material.title,
-                    style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w800,
+                      fontSize: 14,
+                    ),
                   ),
                   if (material.summary.isNotEmpty) ...[
                     const SizedBox(height: 4),
                     Text(
                       material.summary,
-                      style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                      style: const TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 12,
+                      ),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -217,7 +227,8 @@ class _MaterialSheet extends StatelessWidget {
 
   Future<void> _launch(BuildContext context, String url) async {
     final uri = Uri.tryParse(url);
-    final opened = uri != null &&
+    final opened =
+        uri != null &&
         await launchUrl(uri, mode: LaunchMode.externalApplication);
     if (!opened && context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -265,12 +276,19 @@ class _MaterialSheet extends StatelessWidget {
           if (material.summary.isNotEmpty) ...[
             Text(
               material.summary,
-              style: const TextStyle(fontSize: 13, height: 1.5, fontWeight: FontWeight.w600),
+              style: const TextStyle(
+                fontSize: 13,
+                height: 1.5,
+                fontWeight: FontWeight.w600,
+              ),
             ),
             const SizedBox(height: 16),
           ],
           if (material.body.isNotEmpty)
-            Text(material.body, style: const TextStyle(fontSize: 13, height: 1.6)),
+            Text(
+              material.body,
+              style: const TextStyle(fontSize: 13, height: 1.6),
+            ),
           if (material.videoUrl != null) ...[
             const SizedBox(height: 20),
             SizedBox(
@@ -294,7 +312,9 @@ class _MaterialSheet extends StatelessWidget {
                 onPressed: () => _launch(context, material.fileUrl!),
                 icon: const Icon(Icons.download_outlined, size: 18),
                 label: const Text('СКАЧАТЬ ФАЙЛ'),
-                style: OutlinedButton.styleFrom(shape: const BeveledRectangleBorder()),
+                style: OutlinedButton.styleFrom(
+                  shape: const BeveledRectangleBorder(),
+                ),
               ),
             ),
           ],
