@@ -521,7 +521,7 @@ void main() {
   ) async {
     final repo = CatalogRepository()..brands = ['DeKor'];
     await open(tester, repo);
-    await tester.tap(find.byType(DropdownButtonFormField<String?>));
+    await tester.tap(find.byKey(const ValueKey('catalog-brand-filter')));
     await tester.pumpAndSettle();
     await tester.tap(find.text('DeKor').last);
     await tester.pumpAndSettle();
@@ -531,7 +531,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(repo.requests.last['brand'], isNull);
     expect(find.text('DeKor'), findsNothing);
-    await tester.tap(find.byType(DropdownButtonFormField<String?>));
+    await tester.tap(find.byKey(const ValueKey('catalog-brand-filter')));
     await tester.pumpAndSettle();
     expect(find.text('DeKar'), findsOneWidget);
     expect(tester.takeException(), isNull);
@@ -544,7 +544,7 @@ void main() {
       await open(tester, repo);
       await tester.tap(find.widgetWithText(ChoiceChip, 'Круги'));
       await tester.pumpAndSettle();
-      await tester.tap(find.byType(DropdownButtonFormField<String?>));
+      await tester.tap(find.byKey(const ValueKey('catalog-brand-filter')));
       await tester.pumpAndSettle();
       await tester.tap(find.text('AutoTerra').last);
       await tester.pumpAndSettle();

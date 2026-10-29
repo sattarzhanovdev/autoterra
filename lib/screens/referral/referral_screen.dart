@@ -155,7 +155,7 @@ class _ReferralScreenState extends State<ReferralScreen> {
                       'После сохранения откроется «Поделиться», чтобы вы могли '
                       'отправить ссылку приглашённому СТО.',
                       style: TextStyle(
-                        fontSize: 11,
+                        fontSize: 14,
                         height: 1.4,
                         color: AppColors.textSecondary,
                       ),
@@ -187,7 +187,7 @@ class _ReferralScreenState extends State<ReferralScreen> {
                       error!,
                       style: const TextStyle(
                         color: AppColors.brandRed,
-                        fontSize: 11,
+                        fontSize: 14,
                         fontWeight: FontWeight.w900,
                       ),
                     ),
@@ -294,9 +294,11 @@ class _ReferralScreenState extends State<ReferralScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
-                  'МОИ ПРИГЛАШЕНИЯ',
-                  style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13),
+                const Expanded(
+                  child: Text(
+                    'МОИ ПРИГЛАШЕНИЯ',
+                    style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14),
+                  ),
                 ),
                 TextButton(
                   onPressed: _showAddDialog,
@@ -377,11 +379,11 @@ class _ReferralScreenState extends State<ReferralScreen> {
           const Material(
             child: ExpansionTile(
               tilePadding: EdgeInsets.zero,
-              title: Text('Условия программы', style: TextStyle(fontSize: 12)),
+              title: Text('Условия программы', style: TextStyle(fontSize: 14)),
               children: [
                 Text(
                   'ООО «АвтоТерра Плюс» может изменять условия и ставки бонусной программы. Новые условия применяются только к заказам, подтверждённым после вступления изменений в силу. Ранее начисленные бонусы сохраняются. Актуальные ставки указаны в таблице бонусов.',
-                  style: TextStyle(fontSize: 11, height: 1.5),
+                  style: TextStyle(fontSize: 14, height: 1.5),
                 ),
               ],
             ),
@@ -390,7 +392,7 @@ class _ReferralScreenState extends State<ReferralScreen> {
             const Divider(height: 24),
             const Text(
               'СТАВКИ НАЧИСЛЕНИЯ БОНУСОВ',
-              style: TextStyle(fontWeight: FontWeight.w900, fontSize: 11),
+              style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14),
             ),
             const SizedBox(height: 8),
             ...tiers.map(
@@ -399,20 +401,23 @@ class _ReferralScreenState extends State<ReferralScreen> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      tier.from == 0 && tiers.length > 1
-                          ? 'До ${fmt.format(tiers[1].from)} ₽'
-                          : 'От ${fmt.format(tier.from)} ₽',
-                      style: const TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.textSecondary,
+                    Expanded(
+                      child: Text(
+                        tier.from == 0 && tiers.length > 1
+                            ? 'До ${fmt.format(tiers[1].from)} ₽'
+                            : 'От ${fmt.format(tier.from)} ₽',
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textSecondary,
+                        ),
                       ),
                     ),
+                    const SizedBox(width: 12),
                     Text(
                       '${NumberFormat('0.##', 'ru_RU').format(tier.rate)}%',
                       style: const TextStyle(
-                        fontSize: 11,
+                        fontSize: 14,
                         fontWeight: FontWeight.w900,
                         color: AppColors.brandRed,
                       ),
@@ -427,7 +432,7 @@ class _ReferralScreenState extends State<ReferralScreen> {
             const Text(
               'Ставка новой подтверждённой операции зависит от накопленного оборота приглашённого. Ранее начисленные бонусы не пересчитываются.',
               style: TextStyle(
-                fontSize: 11,
+                fontSize: 14,
                 height: 1.4,
                 color: AppColors.textSecondary,
               ),
@@ -442,7 +447,7 @@ class _ReferralScreenState extends State<ReferralScreen> {
                 'Для сохранения бонусного баланса ваш собственный подтверждённый оборот должен составлять не менее ${fmt.format(_activityMin)} ₽ за календарный месяц. '
                 'При невыполнении условия накопленный бонусный баланс аннулируется.',
                 style: const TextStyle(
-                  fontSize: 10,
+                  fontSize: 14,
                   fontWeight: FontWeight.w900,
                   color: AppColors.textSecondary,
                 ),
@@ -458,17 +463,18 @@ class _ReferralScreenState extends State<ReferralScreen> {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            width: 20,
-            height: 20,
+            constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+            padding: const EdgeInsets.all(4),
             color: AppColors.brandRed,
             child: Center(
               child: Text(
                 n,
                 style: const TextStyle(
                   color: Colors.white,
-                  fontSize: 10,
+                  fontSize: 14,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -478,7 +484,7 @@ class _ReferralScreenState extends State<ReferralScreen> {
           Expanded(
             child: Text(
               text,
-              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
             ),
           ),
         ],
@@ -503,7 +509,7 @@ class _ReferralScreenState extends State<ReferralScreen> {
             'ВАШ РЕФЕРАЛЬНЫЙ КОД',
             style: TextStyle(
               fontWeight: FontWeight.w900,
-              fontSize: 12,
+              fontSize: 14,
               color: Colors.white,
             ),
           ),
@@ -565,7 +571,7 @@ class _ReferralScreenState extends State<ReferralScreen> {
                       child: Text(
                         link,
                         style: const TextStyle(
-                          fontSize: 10,
+                          fontSize: 14,
                           color: Colors.white54,
                         ),
                         maxLines: 1,
@@ -665,7 +671,7 @@ class _ReferralScreenState extends State<ReferralScreen> {
           Text(
             label,
             style: const TextStyle(
-              fontSize: 9,
+              fontSize: 14,
               fontWeight: FontWeight.bold,
               color: AppColors.textSecondary,
             ),
@@ -725,7 +731,7 @@ class _ReferralCard extends StatelessWidget {
             'ИНН: ${referral.inviteeInn} · ${referral.region.toUpperCase()}',
             style: const TextStyle(
               color: AppColors.textSecondary,
-              fontSize: 10,
+              fontSize: 14,
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -784,7 +790,7 @@ class _ReferralCard extends StatelessWidget {
                       'Ожидается регистрация СТО. Отправьте ссылку-приглашение.',
                       style: TextStyle(
                         color: AppColors.textSecondary,
-                        fontSize: 10,
+                        fontSize: 14,
                         fontWeight: FontWeight.w900,
                       ),
                     ),
@@ -798,7 +804,7 @@ class _ReferralCard extends StatelessWidget {
                         'ОТПРАВИТЬ',
                         style: TextStyle(
                           color: AppColors.brandRed,
-                          fontSize: 10,
+                          fontSize: 14,
                           fontWeight: FontWeight.w900,
                         ),
                       ),
@@ -819,7 +825,7 @@ class _ReferralCard extends StatelessWidget {
                   child: Text(
                     'Подтверждённый оборот: ${fmt.format(referral.purchaseAmount)} ₽ · ставка ${NumberFormat('0.##', 'ru_RU').format(referral.bonusRate)}%',
                     style: const TextStyle(
-                      fontSize: 10,
+                      fontSize: 14,
                       fontWeight: FontWeight.bold,
                       color: AppColors.textSecondary,
                     ),
@@ -829,7 +835,7 @@ class _ReferralCard extends StatelessWidget {
                 Text(
                   '+${fmt.format(referral.bonusEarned)} ₽',
                   style: const TextStyle(
-                    fontSize: 12,
+                    fontSize: 14,
                     fontWeight: FontWeight.w900,
                     color: AppColors.brandRed,
                   ),
@@ -869,7 +875,7 @@ class _ReferralCard extends StatelessWidget {
               text,
               style: TextStyle(
                 color: color,
-                fontSize: 11,
+                fontSize: 14,
                 fontWeight: FontWeight.w900,
               ),
             ),
@@ -891,8 +897,9 @@ class _ReferralCard extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             label,
+            textAlign: TextAlign.center,
             style: TextStyle(
-              fontSize: 8,
+              fontSize: 14,
               fontWeight: FontWeight.w900,
               color: done ? AppColors.brandBlack : AppColors.textHint,
             ),

@@ -1,3 +1,4 @@
+import '../settings/text_size_screen.dart';
 import 'distributor_profile_editor.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -893,6 +894,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
               () => context.push(AppRoutes.qa),
             ),
           ],
+          const Divider(height: 1),
+          const TextSizeTile(),
           const Divider(height: 1),
           const LegalLinks(),
           const Divider(height: 16),

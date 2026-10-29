@@ -6,6 +6,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'app.dart';
+import 'services/text_size_settings.dart';
 import 'firebase_options.dart';
 import 'services/api_client.dart';
 import 'services/auth_service.dart';
@@ -34,6 +35,7 @@ Future<void> main() async {
     }
   }
 
+  await textSizeSettings.load();
   await ApiClient.loadSavedToken();
   // Протухшая сессия должна уводить на экран входа, а не показывать
   // «Unauthorized» посреди формы: роутер слушает authService и сам сделает

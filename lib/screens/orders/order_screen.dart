@@ -1,3 +1,4 @@
+import '../../widgets/common/catalog_brand_filter.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -730,9 +731,11 @@ class _OrderScreenState extends State<OrderScreen> with WidgetsBindingObserver {
       },
       child: Scaffold(
         appBar: AppBar(
-          bottom: const PreferredSize(
-            preferredSize: Size.fromHeight(20),
-            child: Padding(
+          bottom: PreferredSize(
+            preferredSize: Size.fromHeight(
+              MediaQuery.textScalerOf(context).scale(11) + 7,
+            ),
+            child: const Padding(
               padding: EdgeInsets.only(bottom: 5),
               child: Text(
                 'Версия $_buildName · сборка $_buildNumber',
@@ -1360,7 +1363,7 @@ class _OrderScreenState extends State<OrderScreen> with WidgetsBindingObserver {
             ),
             const SizedBox(height: 12),
             SizedBox(
-              height: 36,
+              height: MediaQuery.textScalerOf(context).scale(14) + 24,
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
                 itemCount: categories.length,
@@ -1390,41 +1393,17 @@ class _OrderScreenState extends State<OrderScreen> with WidgetsBindingObserver {
               ),
             ),
             const SizedBox(height: 8),
-            Row(
-              children: [
-                Expanded(
-                  child: DropdownButtonFormField<String?>(
-                    key: ValueKey(_brandFilter),
-                    initialValue: _brandFilter,
-                    isExpanded: true,
-                    decoration: const InputDecoration(
-                      labelText: 'Бренд',
-                      isDense: true,
-                      contentPadding: EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 10,
-                      ),
-                    ),
-                    items: [
-                      const DropdownMenuItem<String?>(
-                        value: null,
-                        child: Text('Все бренды'),
-                      ),
-                      ...data.brands.map(
-                        (brand) => DropdownMenuItem<String?>(
-                          value: brand,
-                          child: Text(brand),
-                        ),
-                      ),
-                    ],
-                    onChanged: (value) {
-                      setState(() => _brandFilter = value);
-                      _applyFilters();
-                    },
-                  ),
-                ),
-                const SizedBox(width: 8),
-                FilterChip(
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final brand = CatalogBrandFilter(
+                  selected: _brandFilter,
+                  loadBrands: () async => (await _repo.orderConfig()).brands,
+                  onChanged: (value) {
+                    setState(() => _brandFilter = value);
+                    _applyFilters();
+                  },
+                );
+                final stock = FilterChip(
                   label: const Text('В наличии'),
                   selected: _inStockOnly,
                   onSelected: (value) {
@@ -1441,8 +1420,26 @@ class _OrderScreenState extends State<OrderScreen> with WidgetsBindingObserver {
                   side: BorderSide(
                     color: _inStockOnly ? AppColors.brandRed : AppColors.border,
                   ),
-                ),
-              ],
+                );
+                if (constraints.maxWidth < 420 &&
+                    MediaQuery.textScalerOf(context).scale(14) > 18) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      brand,
+                      const SizedBox(height: 8),
+                      Align(alignment: Alignment.centerLeft, child: stock),
+                    ],
+                  );
+                }
+                return Row(
+                  children: [
+                    Expanded(child: brand),
+                    const SizedBox(width: 8),
+                    stock,
+                  ],
+                );
+              },
             ),
           ],
         ),

@@ -1,3 +1,4 @@
+import '../settings/text_size_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/theme.dart';
@@ -231,6 +232,8 @@ class _ExpertProfileScreenState extends State<ExpertProfileScreen> {
             'УВЕДОМЛЕНИЯ',
             () => context.push(AppRoutes.notifications),
           ),
+          const Divider(height: 1),
+          const TextSizeTile(),
           const Divider(height: 1),
           const LegalLinks(),
           // Выход оформлен так же, как в профиле остальных ролей

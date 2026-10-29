@@ -281,7 +281,7 @@ void main() {
       await fixture.open(tester, repo);
       await tester.tap(find.text('Old category'));
       await tester.pumpAndSettle();
-      await tester.tap(find.byType(DropdownButtonFormField<String?>));
+      await tester.tap(find.byKey(const ValueKey('catalog-brand-filter')));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Old brand').last);
       await tester.pumpAndSettle();
